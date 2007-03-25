@@ -1,4 +1,18 @@
 <?php
+/*
+ * Protected node module
+ * Author: Mark Tolmacs
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
 
 /**
  * Implementation of hook_install()
@@ -9,11 +23,11 @@ function protected_node_install()
 	{
 		db_query('DROP TABLE {protected_nodes}');
 	}
-	
+
 	switch ($GLOBALS['db_type'])
 	{
 	    case 'mysql':
-	    case 'mysqli': 		
+	    case 'mysqli':
 			db_query('
 				CREATE TABLE {protected_nodes} (
 					nid int(10) unsigned NOT NULL,
@@ -39,6 +53,6 @@ function protected_node_install()
 function protected_node_uninstall()
 {
 	db_query('DROP TABLE {protected_nodes}');
-	
+
 	//variable_del(?);
 }
