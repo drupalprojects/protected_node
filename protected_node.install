@@ -1,0 +1,44 @@
+<?php
+
+/**
+ * Implementation of hook_install()
+ */
+function protected_node_install()
+{
+	if(db_table_exists('{protected_nodes}'))
+	{
+		db_query('DROP TABLE {protected_nodes}');
+	}
+	
+	switch ($GLOBALS['db_type'])
+	{
+	    case 'mysql':
+	    case 'mysqli': 		
+			db_query('
+				CREATE TABLE {protected_nodes} (
+					nid int(10) unsigned NOT NULL,
+					passwd varchar(255) NOT NULL,
+					PRIMARY KEY (nid)
+				) /*!40100 DEFAULT CHARACTER SET utf8 */;
+			');
+			break;
+		case 'pgsql':
+			db_query('
+				CREATE TABLE {protected_nodes} (
+					nid INTEGER PRIMARY KEY,
+					passwd VARCHAR(255) NOT NULL
+				);
+			');
+			break;
+	}
+}
+
+/**
+ * Implementation of hook_uninstall()
+ */
+function protected_node_uninstall()
+{
+	db_query('DROP TABLE {protected_nodes}');
+	
+	//variable_del(?);
+}
