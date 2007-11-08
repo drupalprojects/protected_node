@@ -28,9 +28,13 @@ function protected_node_help($section) {
 /**
  * Implementation of hook_perm()
  */
-function protected_node_perm()
-{
-	return array('access protected content', 'edit protected content');
+function protected_node_perm() {
+	$perms = array('access protected content', 'edit protected content');
+	foreach (array_keys(node_get_types()) as $type) {
+		$perms[] = 'edit protected ' . $type;
+	}
+	
+	return $perms;
 }
 
 /**
@@ -38,7 +42,7 @@ function protected_node_perm()
  */
 function protected_node_form_alter($form_id, &$form)
 {
-	if ($form['#id'] == 'node-form' && user_access('edit protected content'))
+	if ($form['#id'] == 'node-form' && (user_access('edit protected content') || user_access('edit protected '.$form['type']['#value']) ))
 	{
 		drupal_add_js(drupal_get_path('module', 'protected_node') . '/js/common.js');
 		drupal_add_js(drupal_get_path('module', 'protected_node') . '/js/progressbar.js');
@@ -79,11 +83,12 @@ function protected_node_form_alter($form_id, &$form)
  * Implementation of hook_nodeapi()
  */
 function protected_node_nodeapi(&$node, $op, $arg = 0, $page = 0) {
-	global $user;
-
+	global $user, $protected_node_salt;
+	
 	switch ($op) {
 		case 'load':
       		$output['is_protected'] = db_result(db_query('SELECT count(*) FROM {protected_nodes} WHERE nid = %d', $node->nid)) > 0;
+      		$output['was_protected'] = $output['is_protected'];
       		return $output;
       		break;
     	case 'delete':
@@ -92,8 +97,8 @@ function protected_node_nodeapi(&$node, $op, $arg = 0, $page = 0) {
     	case 'insert':
     		if ($node->is_protected  &&	(!empty($node->password1) || isset($_SESSION['_protected_node']['entered_password']))) {
 		    		$pwd = isset($_SESSION['_protected_node']['entered_password']) ? $_SESSION['_protected_node']['entered_password'] : $node->password1;
-		    		unset($_SESSION['_protected_node']['entered_password']);
-	      			db_query('INSERT INTO {protected_nodes} (nid, passwd) VALUES (%d, \'%s\')', $node->nid, $pwd);
+		    		unset($_SESSION['_protected_node']['entered_password']);		    		
+	      			db_query('INSERT INTO {protected_nodes} (nid, passwd) VALUES (%d, \'%s\')', $node->nid, sha1($protected_node_salt.$pwd));
   			}
       		break;
       	case 'validate':
@@ -107,26 +112,31 @@ function protected_node_nodeapi(&$node, $op, $arg = 0, $page = 0) {
   			}
       		break;
     	case 'update':
+    		// Protected flag was switched off?
+    		if ($node->was_protected && !$node->is_protected) {
+    			db_query('DELETE FROM {protected_nodes} WHERE nid = %d', $node->nid);
+    		}
+    		
     		if ($node->is_protected && (!empty($node->password1) || isset($_SESSION['_protected_node']['entered_password']))) {
 	    			if (db_result(db_query('SELECT count(*) FROM {protected_nodes} WHERE nid = %d', $node->nid)) > 0) {
 	    				$pwd = isset($_SESSION['_protected_node']['entered_password']) ? $_SESSION['_protected_node']['entered_password'] : $node->password1;
-		    			unset($_SESSION['_protected_node']['entered_password']);
-						db_query('UPDATE {protected_nodes} SET passwd = \'%s\' WHERE nid = %d', $pwd, $node->nid);
+		    			unset($_SESSION['_protected_node']['entered_password']);		    			
+						db_query('UPDATE {protected_nodes} SET passwd = \'%s\' WHERE nid = %d', sha1($protected_node_salt.$pwd), $node->nid);
 	    			}
 	    			else {
 	    				protected_node_nodeapi($node, 'insert', $arg, $page);
 	    			}
-  			}
+  			}  			
       		break;
-      	case 'view':
-      		if ($node->is_protected && !$arg && $node->uid !== $user->uid) {
-      			// If node is protected and not teaser and not owner of node
-	      		if (!isset($_SESSION['_protected_node']['passwords'][$node->nid])) {
-		      		drupal_goto('protected-node', 'from=' . $node->nid);
-		      	}
-	      	}
+      	case 'view':      		
+	      	if ($node->is_protected && !$arg && $node->uid !== $user->uid) {
+	      		// If node is protected and not teaser nor page view and not owner of node
+		    	if (!isset($_SESSION['_protected_node']['passwords'][$node->nid])) {
+			   		drupal_goto('protected-node', 'from=' . $node->nid);
+			   	}
+		    }      		
       		break;
-  	}
+ 	}
 }
 
 /**
@@ -134,7 +144,7 @@ function protected_node_nodeapi(&$node, $op, $arg = 0, $page = 0) {
  */
 function protected_node_menu($may_cache) {
   $items = array();
-  $may_cache = true;
+
   if ($may_cache){
     $items[] = array(
       'path' => 'protected-node',
@@ -164,6 +174,81 @@ function protected_node_file_download($file)
 		return -1;
 	}
 }
+
+/**
+ * Implementation of hook_disable()
+ */
+function protected_node_disable() {
+	protected_node_disabling(TRUE);
+	node_access_rebuild();
+}
+
+/**
+ * Implementation of hook_disable()
+ */
+function protected_node_enable() {	
+	node_access_rebuild();
+}
+
+/**
+ * Implementation of hook_node_access_records()
+ */
+function protected_node_node_access_records($node) {
+	if (protected_node_disabling()) {
+		return;
+	}
+	
+	$grants = array();
+	
+	/*
+	 * Access restrictions of this module only applies to nodes
+	 * marked protected
+	 */
+	if ($node->is_protected) {
+		$nid = (integer) $node->nid;
+		$grants[] = array(
+			'realm' => 'protected_node',
+			'gid' => $nid ? $nid : -1,
+      		'grant_view' => TRUE, 
+      		'grant_update' => FALSE, 
+      		'grant_delete' => FALSE,
+      		'priority' => 0,
+		);
+		$grants[] = array(
+			'realm' => 'protected_node_owner',
+			'gid' => $node->uid,
+      		'grant_view' => TRUE, 
+      		'grant_update' => TRUE, 
+      		'grant_delete' => TRUE,
+      		'priority' => 0,
+		);				
+	}
+	
+	return $grants;
+}
+
+/**
+ * Implementation of hook_node_grants()
+ */
+function protected_node_node_grants($account, $op) {
+	$grants = array();
+	
+	if ($op == 'view' && user_access('access protected content', $account)) {
+		// not checking URLs like node/$arg1
+		if (arg(0) !== "node" || !arg(1)) {
+			$nids = empty($_SESSION['_protected_node']['passwords']) ? array() : $_SESSION['_protected_node']['passwords'];			
+			$grants['protected_node'] = array_keys($nids);
+		} 
+		else {
+			// If the user does not yet have the credentials, let her through, protected_node_nodeapi() will intercept.
+			$grants['protected_node'] = array(arg(1));
+		}		
+	}
+	
+	$grants['protected_node_owner'] = array($account->uid);
+	return $grants;
+}
+
 
 /*********************
  * Helper functions  *
@@ -220,7 +305,9 @@ function protected_node_enterpassword() {
  *
  */
 function protected_node_enterpassword_validate($form_id, $form) {
-	$cnt = db_result(db_query('SELECT COUNT(*) FROM {protected_nodes} WHERE passwd = \'%s\' AND nid = %d', $form['password'], $form['from']));
+	global $protected_node_salt;
+	
+	$cnt = db_result(db_query('SELECT COUNT(*) FROM {protected_nodes} WHERE passwd = \'%s\' AND nid = %d', sha1($protected_node_salt.$form['password']), $form['from']));
 	if($cnt < 1)
 	{
 		form_set_error('password', t('Incorrect password!'));

@@ -52,7 +52,29 @@ function protected_node_install()
  */
 function protected_node_uninstall()
 {
-	db_query('DROP TABLE {protected_nodes}');
+	db_query('DROP TABLE {protected_nodes}');	
+}
 
-	//variable_del(?);
+/**
+ * Implementation of hook_update_N()
+ */
+function protected_node_update_1() {
+	global $protected_nodes_salt;
+	
+	$ret = array();
+
+	switch ($GLOBALS['db_type']) {
+		case 'mysql':
+		case 'mysqli':
+		case 'pgsql':						
+			$result = db_query("SELECT nid, passwd FROM {protected_nodes}");
+			while ($node = db_fetch_object($result)) {
+				$log = update_sql("UPDATE {protected_nodes} SET passwd = '".sha1($protected_nodes_salt.$node->passwd)."' WHERE nid = ".$node->nid);
+				$log['query'] = '****QUERY CONTAINS PASSWORD HASHES - REMOVED CONTENT****';
+				$ret[] = $log;
+			}
+			break;
+	}
+	
+	return $ret;
 }
