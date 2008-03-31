@@ -42,6 +42,12 @@ function protected_node_perm() {
  */
 function protected_node_form_alter($form_id, &$form)
 {
+   	// check if this node type should be protected
+  	$types_to_protect = variable_get('protected_node_nodetypes', array());
+  	if (!in_array($form['type']['#value'], $types_to_protect)) {
+		return;
+    }
+  
 	if ($form['#id'] == 'node-form' && (user_access('edit protected content') || user_access('edit protected '.$form['type']['#value']) ))
 	{
 		drupal_add_js(drupal_get_path('module', 'protected_node') . '/js/common.js');
@@ -84,6 +90,12 @@ function protected_node_form_alter($form_id, &$form)
  */
 function protected_node_nodeapi(&$node, $op, $arg = 0, $page = 0) {
 	global $user, $protected_node_salt;
+	
+	/*$types_to_protect = variable_get('protected_node_nodetypes', array());
+	
+	if (!in_array($node->type, $types_to_protect)) {
+	  return;
+	}*/
 	
 	switch ($op) {
 		case 'load':
@@ -132,9 +144,9 @@ function protected_node_nodeapi(&$node, $op, $arg = 0, $page = 0) {
 	      	if ($node->is_protected && !$arg && $node->uid !== $user->uid) {
 	      		// If node is protected and not teaser nor page view and not owner of node
 		    	if (!isset($_SESSION['_protected_node']['passwords'][$node->nid])) {
-			   		drupal_goto('protected-node', 'from=' . $node->nid);
+			   		drupal_goto('protected-node', 'from=' . $node->nid . '&_pnid=' . rand());
 			   	}
-		    }      		
+		    }
       		break;
  	}
 }
@@ -146,6 +158,14 @@ function protected_node_menu($may_cache) {
   $items = array();
 
   if ($may_cache){
+  	$items[] = array(
+  	  'path' => 'admin/settings/protected_node',
+      'title' => t('Protected node'),
+      'description' => t('Here you change protected node settings'),
+      'callback' => 'drupal_get_form',
+      'callback arguments' => 'protected_node_admin_settings',
+      'access' => user_access('administer site configuration'),
+    );
     $items[] = array(
       'path' => 'protected-node',
       'title' => t('Protected node - Enter Password'),
@@ -273,6 +293,7 @@ function protected_node_disabling($set = NULL)
  *
  */
 function protected_node_enterpassword() {
+	
 	if(!isset($_GET['from'])) {
 		// Illegal call
 		watchdog('protected_node', t('Illegal call to /protected-node'), WATCHDOG_WARN);
@@ -319,5 +340,28 @@ function protected_node_enterpassword_validate($form_id, $form) {
  */
 function protected_node_enterpassword_submit($form_id, $form) {
 	$_SESSION['_protected_node']['passwords'][$form['from']] = TRUE;
-	drupal_goto('node/' . $form['from']);
+	
+	$query = NULL;
+	if (!$user->uid) {
+		$query = '_pnid=' . rand();
+	}
+	drupal_goto('node/' . $form['from'], $query);
+}
+
+/**
+ * Define the settings form
+ *
+ * @return $form The settings form
+ **/
+function protected_node_admin_settings() {
+  $form['protected_node_nodetypes'] = array(
+    '#type' => 'checkboxes',
+    '#title' => t('Users may protect these node types'),
+    '#options' => node_get_types('names'),
+    '#default_value' => variable_get('protected_node_nodetypes', array()),
+    '#description' => t('There will be the option to protect nodes by password and you can set it for these node types.')
+  );
+  $form['array_filter'] = array('#type' => 'hidden');
+  
+  return system_settings_form($form);
 }
