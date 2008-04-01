@@ -59,7 +59,7 @@ function protected_node_uninstall()
  * Implementation of hook_update_N()
  */
 function protected_node_update_1() {
-	global $protected_nodes_salt;
+	global $protected_node_salt;
 	
 	$ret = array();
 
