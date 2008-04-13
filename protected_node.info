@@ -2,6 +2,4 @@ name = Protected Node
 description = Controls whether selected nodes are protected with a password.
 package= Access
 
-; Information added by drupal.org packaging script on 2007-02-13
-project = "protected_node"
 
