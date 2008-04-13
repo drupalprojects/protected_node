@@ -122,28 +122,17 @@ function protected_node_nodeapi(&$node, $op, $arg = 0, $page = 0) {
   			}  			
       		break;
       	case 'view':
-      		if ($node->is_protected) {				
+      		if ($node->is_protected) {
+      			// If we have been accessed from cron.php (f.e. search indexing)				
 		      	if (variable_get('cron_semaphore', FALSE)) {
 		      		$node->title = '';	      		
 		      		$node->teaser = '';
 				    $node->body = '';
 				    $node->content = array();				    
 		      	}
-		      	else {		      		
-			      	// If we have been accessed from cron.php (f.e. search indexing)
-					if (!$user->uid && variable_get('cache', 0)) {					
-						if ($arg) {
-							$node->teaser = '';
-					    	$node->body = '';
-					    	$node->content = array();
-						}
-						else {
-							drupal_set_message(
-								t('The requested node is protected and protected content only accessible to authenticated users on this site. Please !login or !register', 
-								array('!login' => l(t('login'), 'user'),	'!register' => l(t('register'), 'user/register')))
-							);
-							drupal_goto('user');
-						}
+		      	else {
+					if (!$user->uid && variable_get('cache', 0)) {
+						$GLOBALS['conf']['cache'] = FALSE;
 					}
 		      		
 			      	if ($node->uid !== $user->uid) {	      		
