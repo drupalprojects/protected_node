@@ -19,11 +19,6 @@
  */
 function protected_node_install()
 {
-	if(db_table_exists('{protected_nodes}'))
-	{
-		db_query('DROP TABLE {protected_nodes}');
-	}
-
 	switch ($GLOBALS['db_type'])
 	{
 	    case 'mysql':
@@ -45,6 +40,8 @@ function protected_node_install()
 			');
 			break;
 	}
+	
+	db_query("UPDATE {system} SET weight = 100 WHERE name = 'protected_node' AND type = 'module'");
 }
 
 /**
@@ -59,7 +56,7 @@ function protected_node_uninstall()
  * Implementation of hook_update_N()
  */
 function protected_node_update_1() {
-	global $protected_nodes_salt;
+	global $protected_node_salt;
 	
 	$ret = array();
 
@@ -77,4 +74,13 @@ function protected_node_update_1() {
 	}
 	
 	return $ret;
+}
+
+/**
+ * Implementation of hook_update_N()
+ */
+function protected_node_update_2() {
+	node_access_rebuild();
+	
+	return array();
 }
