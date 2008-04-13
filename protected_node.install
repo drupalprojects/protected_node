@@ -14,73 +14,44 @@
  * GNU General Public License for more details.
  */
 
+
+/**
+ * Implementation of hook_schema()
+ */
+function protected_node_schema() {
+	$schema['protected_nodes'] = array(
+		'description' => t('The table to store the node - password hash pairs.'),
+		'fields' => array(
+			'nid' => array(
+				'description' => t('The primary identifier for a node'),
+				'type' => 'serial',
+				'unsigned' => TRUE,
+        		'not null' => TRUE),
+        	'passwd' => array(
+        		'description' => t('The sha1 hashed password for the given node.'),
+        		'type' => 'varchar',
+        		'length' => 40,
+        		'not null' => TRUE,
+        		'default' => ''),
+		),
+		'indexes' => array('protected_passwd' => array('passwd')),
+		'primary key' => array('nid'),
+	);
+
+	return $schema;
+}
+
 /**
  * Implementation of hook_install()
  */
-function protected_node_install()
-{
-	switch ($GLOBALS['db_type'])
-	{
-	    case 'mysql':
-	    case 'mysqli':
-			db_query('
-				CREATE TABLE {protected_nodes} (
-					nid int(10) unsigned NOT NULL,
-					passwd varchar(255) NOT NULL,
-					PRIMARY KEY (nid)
-				) /*!40100 DEFAULT CHARACTER SET utf8 */;
-			');
-			break;
-		case 'pgsql':
-			db_query('
-				CREATE TABLE {protected_nodes} (
-					nid INTEGER PRIMARY KEY,
-					passwd VARCHAR(255) NOT NULL
-				);
-			');
-			break;
-	}
-	
+function protected_node_install() {
+	drupal_install_schema('protected_node');
 	db_query("UPDATE {system} SET weight = 100 WHERE name = 'protected_node' AND type = 'module'");
 }
 
 /**
  * Implementation of hook_uninstall()
  */
-function protected_node_uninstall()
-{
-	db_query('DROP TABLE {protected_nodes}');	
-}
-
-/**
- * Implementation of hook_update_N()
- */
-function protected_node_update_1() {
-	global $protected_node_salt;
-	
-	$ret = array();
-
-	switch ($GLOBALS['db_type']) {
-		case 'mysql':
-		case 'mysqli':
-		case 'pgsql':						
-			$result = db_query("SELECT nid, passwd FROM {protected_nodes}");
-			while ($node = db_fetch_object($result)) {
-				$log = update_sql("UPDATE {protected_nodes} SET passwd = '".sha1($protected_nodes_salt.$node->passwd)."' WHERE nid = ".$node->nid);
-				$log['query'] = '****QUERY CONTAINS PASSWORD HASHES - REMOVED CONTENT****';
-				$ret[] = $log;
-			}
-			break;
-	}
-	
-	return $ret;
-}
-
-/**
- * Implementation of hook_update_N()
- */
-function protected_node_update_2() {
-	node_access_rebuild();
-	
-	return array();
+function protected_node_uninstall() {
+	drupal_uninstall_schema('protected_node');	
 }

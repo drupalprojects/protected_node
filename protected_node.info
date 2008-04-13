@@ -1,5 +1,6 @@
 name = Protected Node
 description = Controls whether selected nodes are protected with a password.
-package= Access
+core = 6.x
+package = Access
 
 

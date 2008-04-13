@@ -17,8 +17,8 @@
 /**
  * Implementation of hook_help()
  */
-function protected_node_help($section) {
-	switch ($section) {
+function protected_node_help($path, $arg) {
+	switch ($path) {
 		case 'admin/modules#description':
 			return t('With this module anybody who has edit protected content right can password protect his or her own node.');
 			break;
@@ -40,8 +40,7 @@ function protected_node_perm() {
 /**
  * Implementation of hook_form_alter()
  */
-function protected_node_form_alter($form_id, &$form)
-{
+function protected_node_form_alter(&$form, &$form_state, $form_id) {
    	// check if this node type should be protected
   	$types_to_protect = variable_get('protected_node_nodetypes', array());
   	if (!in_array($form['type']['#value'], $types_to_protect)) {
@@ -67,7 +66,6 @@ function protected_node_form_alter($form_id, &$form)
 			'#type' => 'password_confirm',			
 			'#description' => t('Enter the node password here.'),
 			'#size' => 20,			
-			'#default_value' => $form['#node']->password,
 		);
 	}
 }
@@ -99,7 +97,7 @@ function protected_node_nodeapi(&$node, $op, $arg = 0, $page = 0) {
 	      			db_query('INSERT INTO {protected_nodes} (nid, passwd) VALUES (%d, \'%s\')', $node->nid, sha1($protected_node_salt.$pwd));
   			}
       		break;
-      	case 'validate':
+      	case 'validate':      		
       		if ($node->is_protected && (!empty($node->password) || isset($_SESSION['_protected_node']['entered_password']))) {		      		
 		      		if (!isset($_SESSION['_protected_node']['entered_password'])) {
 			      		$_SESSION['_protected_node']['entered_password'] = $node->password;
@@ -171,30 +169,24 @@ function protected_node_nodeapi(&$node, $op, $arg = 0, $page = 0) {
 /**
  * Implementation of hook_menu()
  */
-function protected_node_menu($may_cache) {
-  $items = array();
-
-  if ($may_cache){
-  	$items[] = array(
-  	  'path' => 'admin/settings/protected_node',
-      'title' => t('Protected node'),
-      'description' => t('Here you change protected node settings'),
-      'callback' => 'drupal_get_form',
-      'callback arguments' => 'protected_node_admin_settings',
-      'access' => user_access('administer site configuration'),
+function protected_node_menu() {
+  	$items['admin/settings/protected_node'] = array(  	  
+      'title' => 'Protected node',
+      'description' => 'Here you change protected node settings',
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('protected_node_admin_settings'),
+      'access arguments' => array('administer site configuration'),
     );
-    $items[] = array(
-      'path' => 'protected-node',
-      'title' => t('Protected node - Enter Password'),
-      'description' => t('Here you can enter the password for the node'),
-      'callback' => 'drupal_get_form',
-      'callback arguments' => 'protected_node_enterpassword',
-      'access' => user_access('access protected content'),
+    $items['protected-node'] = array(      
+      'title' => 'Protected node - Enter Password',      
+      'description' => 'Here you can enter the password for the node',
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('protected_node_enterpassword'),      
+      'access arguments' => array('access protected content'),
       'type' => MENU_CALLBACK
       );
-  }
 
-  return $items;
+	return $items;
 }
 
 /**
@@ -219,28 +211,13 @@ function protected_node_file_download($file)
  *********************/
 
 /**
- * Simple function to make sure we don't respond with grants when disabling ourselves.
- */
-function protected_node_disabling($set = NULL)
-{
-	static $disabling = false;
-
-	if ($set !== NULL)
-	{
-		$disabling = $set;
-	}
-
-	return $disabling;
-}
-
-/**
  *
  */
 function protected_node_enterpassword() {
 	
 	if(!isset($_GET['destination'])) {
 		// Illegal call
-		watchdog('protected_node', t('Illegal call to /protected-node'), WATCHDOG_WARN);
+		watchdog('protected_node', 'Illegal call to /protected-node', WATCHDOG_WARN);
 		drupal_access_denied();
 	}
 
@@ -273,10 +250,10 @@ function protected_node_enterpassword() {
 /**
  *
  */
-function protected_node_enterpassword_validate($form_id, $form) {
+function protected_node_enterpassword_validate($form, &$form_state) {	// DONE
 	global $protected_node_salt;
 	
-	$cnt = db_result(db_query('SELECT COUNT(*) FROM {protected_nodes} WHERE passwd = \'%s\' AND nid = %d', sha1($protected_node_salt.$form['password']), $_SESSION['_protected_node']['current']));
+	$cnt = db_result(db_query('SELECT nid FROM {protected_nodes} WHERE passwd = \'%s\' AND nid = %d', sha1($protected_node_salt.$form['#post']['password']), $_SESSION['_protected_node']['current']));
 	if($cnt < 1)
 	{
 		form_set_error('password', t('Incorrect password!'));
@@ -286,7 +263,7 @@ function protected_node_enterpassword_validate($form_id, $form) {
 /**
  *
  */
-function protected_node_enterpassword_submit($form_id, $form) {
+function protected_node_enterpassword_submit($form, &$form_state) {		// DONE
 	$_SESSION['_protected_node']['passwords'][$_SESSION['_protected_node']['current']] = TRUE;
 	unset($_SESSION['_protected_node']['current']);
 }
