@@ -206,7 +206,7 @@ function protected_node_enterpassword() {
 	
 	if(!isset($_GET['destination'])) {
 		// Illegal call
-		watchdog('protected_node', 'Illegal call to /protected-node', WATCHDOG_WARN);
+		watchdog('protected_node', 'Illegal call to /protected-node', array(), WATCHDOG_WARNING);
 		drupal_access_denied();
 	}
 
