@@ -185,7 +185,7 @@ function protected_node_file_download($file)
 {
 	global $user;
 
-	$db_file = db_result(db_query('SELECT u.nid FROM {files} f, {upload} u, {protected_nodes} pn, {node} n WHERE pn.nid = f.nid AND f.nid = n.nid AND f.filename = \'%s\' AND u.fid = f.fid', $file));
+	$db_file = db_result(db_query('SELECT u.nid FROM {files} f, {upload} u, {protected_nodes} pn, {node} n WHERE pn.nid = u.nid AND u.nid = n.nid AND f.filename = \'%s\' AND u.fid = f.fid', $file));
 	if(db_error() || $db_file === FALSE || $user->uid == $db_file || $_SESSION['_protected_node']['passwords'][$db_file] ) {
 		return array();
 	} else {
