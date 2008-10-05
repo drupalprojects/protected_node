@@ -20,6 +20,44 @@ function protected_node_help($path, $arg) {
 }
 
 /**
+ * Implementation of hook_requirements(). Checks for at least role who has access to protected node functionality.
+ * @link http://api.drupal.org/api/function/hook_requirements/6
+ *
+ * @param string $phase
+ */
+function protected_node_requirements($phase) {
+  if ($phase == 'runtime') {
+    $perms = protected_node_perm();
+
+    $likes = array();
+    foreach ( $perms as $perm ) {
+      $likes[] = "perm LIKE '%". $perm ."%'";
+    }
+    $sql = "SELECT rid FROM {permission} WHERE ". implode( ' OR ', $likes );
+    $roles = db_affected_rows( db_query( $sql ) );
+    if ($roles) {
+      $reqs['protected_node'] = array(
+        'title' => t( 'Protected nodes access rights' ),
+        'value' => t( 'At least one of the roles has access to protected contents' ),
+        'severity' => REQUIREMENT_OK
+      );
+    }
+    else {
+      $reqs['protected_node'] = array(
+        'title' => t( 'Protected nodes access rights' ),
+        'value' => t( 'None of the roles has !access', array(
+          '!access' => l( 'access to protected contents', 'admin/user/permissions', array('fragment' => 'module-protected_node') )
+        ) ),
+        'description' => t( 'Without giving access at least one of the available roles no-one can protect nodes or access protected contents' ),
+        'severity' => REQUIREMENT_ERROR
+      );
+    }
+
+    return $reqs;
+  }
+}
+
+/**
  * Implementation of hook_perm().
  * @link http://api.drupal.org/api/function/hook_perm/6
  */
@@ -40,12 +78,6 @@ function protected_node_perm( ) {
  * @link http://api.drupal.org/api/function/hook_form_alter/6
  */
 function protected_node_form_alter(&$form, &$form_state, $form_id) {
-  // check if this node type should be protected
-  $types_to_protect = variable_get( 'protected_node_nodetypes', array() );
-  if (!in_array( $form['type']['#value'], $types_to_protect )) {
-    return;
-  }
-
   if ($form['#id'] == 'node-form' && (user_access( 'edit protected content' ) || user_access( 'edit protected '. $form['type']['#value'] ))) {
     $form['protected_node'] = array(
       '#type' => 'fieldset',
@@ -78,11 +110,6 @@ function protected_node_form_alter(&$form, &$form_state, $form_id) {
  */
 function protected_node_nodeapi(&$node, $op, $arg = 0, $page = 0) {
   global $user, $protected_node_salt, $base_root;
-
-  $types_to_protect = variable_get( 'protected_node_nodetypes', array() );
-  if (!in_array( $node->type, $types_to_protect )) {
-    return;
-  }
 
   switch ($op) {
     case 'load' :
@@ -271,19 +298,8 @@ function protected_node_enterpassword_submit($form, &$form_state) {
  * Define the settings form
  *
  * @return $form The settings form
- **/
+ */
 function protected_node_admin_settings( ) {
-  $form['protected_node_nodetypes'] = array(
-    '#type' => 'checkboxes',
-    '#title' => t( 'Users may protect these node types' ),
-    '#options' => node_get_types( 'names' ),
-    '#default_value' => variable_get( 'protected_node_nodetypes', array() ),
-    '#description' => t( 'There will be the option to protect nodes by password and you can set it for these node types.' )
-  );
-  $form['array_filter'] = array(
-    '#type' => 'hidden'
-  );
-
   $form['protected_node_info'] = array(
     '#type' => 'textarea',
     '#title' => t( 'Password page info' ),
