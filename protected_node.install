@@ -1,8 +1,11 @@
 <?php
+// $Id$
+
 /*
- * Protected node module
- * Author: Mark Tolmacs <tolmi AT lazycat.hu>
+ * @file
+ * Protected node installation file.
  *
+ * This module allows nodes to be protected.
  */
 
 /**
@@ -17,7 +20,7 @@ function protected_node_install()
 			db_query('
 				CREATE TABLE {protected_nodes} (
 					nid int(10) unsigned NOT NULL,
-					passwd varchar(255) NOT NULL,
+					passwd varchar(40) NOT NULL,
 					PRIMARY KEY (nid)
 				) /*!40100 DEFAULT CHARACTER SET utf8 */;
 			');
@@ -26,7 +29,7 @@ function protected_node_install()
 			db_query('
 				CREATE TABLE {protected_nodes} (
 					nid INTEGER PRIMARY KEY,
-					passwd VARCHAR(255) NOT NULL
+					passwd VARCHAR(40) NOT NULL
 				);
 			');
 			break;
@@ -40,7 +43,7 @@ function protected_node_install()
  */
 function protected_node_uninstall()
 {
-	db_query('DROP TABLE {protected_nodes}');	
+	db_query('DROP TABLE {protected_nodes}');
 }
 
 /**
@@ -54,10 +57,10 @@ function protected_node_update_1() {
 	switch ($GLOBALS['db_type']) {
 		case 'mysql':
 		case 'mysqli':
-		case 'pgsql':						
+		case 'pgsql':
 			$result = db_query("SELECT nid, passwd FROM {protected_nodes}");
-			while ($node = db_fetch_object($result)) {
-				$log = update_sql("UPDATE {protected_nodes} SET passwd = '".sha1($protected_nodes_salt.$node->passwd)."' WHERE nid = ".$node->nid);
+			while (($node = db_fetch_object($result)) != null) {
+				$log = update_sql("UPDATE {protected_nodes} SET passwd = '".sha1($protected_node_salt.$node->passwd)."' WHERE nid = ".$node->nid);
 				$log['query'] = '****QUERY CONTAINS PASSWORD HASHES - REMOVED CONTENT****';
 				$ret[] = $log;
 			}
@@ -74,4 +77,25 @@ function protected_node_update_2() {
 	node_access_rebuild();
 	
 	return array();
+}
+
+/**
+ * Implementation of hook_update_N()
+ *
+ * We don't need a variable length column just 40 char one for the sha1 hash
+ */
+function protected_node_update_3() {
+	$ret = array();
+
+	switch ($GLOBALS['db_type']) {
+		case 'mysql':
+		case 'mysqli':
+			$ret[] = update_sql("ALTER TABLE {protected_nodes} MODIFY COLUMN passwd CHAR(40) NOT NULL");
+			break;
+		case 'pgsql':
+			$ret[] = update_sql("ALTER TABLE {protected_nodes} ALTER COLUMN passwd TYPE CHAR(40)");
+			break;
+	}
+	
+	return $ret;
 }
