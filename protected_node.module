@@ -1,202 +1,270 @@
 <?php
+// $Id$
+
+
 /*
+ * @file
  * Protected node module
- * Author: Mark Tolmacs <tolmi AT lazycat.hu>
  */
 
 /**
- * Implementation of hook_help()
+ * Implementation of hook_help().
+ * @link http://api.drupal.org/api/function/hook_help/6
  */
 function protected_node_help($path, $arg) {
-	switch ($path) {
-		case 'admin/modules#description' :
-			return t ( 'With this module anybody who has edit protected content right can password protect his or her own node.' );
-			break;
-	}
+  switch ($path) {
+    case 'admin/modules#description' :
+      return t( 'With this module anybody who has edit protected content right can password protect his or her own node.' );
+      break;
+  }
 }
 
 /**
- * Implementation of hook_perm()
+ * Implementation of hook_perm().
+ * @link http://api.drupal.org/api/function/hook_perm/6
  */
-function protected_node_perm() {
-	$perms = array ('access protected content', 'edit protected content' );
-	foreach ( array_keys ( node_get_types () ) as $type ) {
-		$perms [] = 'edit protected ' . $type;
-	}
+function protected_node_perm( ) {
+  $perms = array(
+    'access protected content',
+    'edit protected content'
+  );
+  foreach ( array_keys( node_get_types() ) as $type ) {
+    $perms[] = 'edit protected '. $type;
+  }
 
-	return $perms;
+  return $perms;
 }
 
 /**
- * Implementation of hook_form_alter()
+ * Implementation of hook_form_alter().
+ * @link http://api.drupal.org/api/function/hook_form_alter/6
  */
 function protected_node_form_alter(&$form, &$form_state, $form_id) {
-	// check if this node type should be protected
-	$types_to_protect = variable_get ( 'protected_node_nodetypes', array () );
-	if (! in_array ( $form ['type'] ['#value'], $types_to_protect )) {
-		return;
-	}
+  // check if this node type should be protected
+  $types_to_protect = variable_get( 'protected_node_nodetypes', array() );
+  if (!in_array( $form['type']['#value'], $types_to_protect )) {
+    return;
+  }
 
-	if ($form ['#id'] == 'node-form' && (user_access ( 'edit protected content' ) || user_access ( 'edit protected ' . $form ['type'] ['#value'] ))) {
-		$form ['protected_node'] = array ('#type' => 'fieldset', '#description' => t ( 'Here if you check the checkbox and provide a password your newly created node will be password protected.' ), '#title' => t ( 'Protected node' ), '#collapsible' => TRUE, '#collapsed' => TRUE );
-		$form ['protected_node'] ['is_protected'] = array ('#type' => 'checkbox', '#title' => t ( 'Node is protected' ), '#description' => t ( 'Check here if this content should be protected by a password.' ), '#default_value' => $form ['#node']->is_protected );
-		$form ['protected_node'] ['was_protected'] = array ('#type' => 'hidden', '#default_value' => $form ['#node']->was_protected );
-		$form ['protected_node'] ['password'] = array ('#type' => 'password_confirm', '#description' => t ( 'Enter the node password here.' ), '#size' => 20 );
-	}
+  if ($form['#id'] == 'node-form' && (user_access( 'edit protected content' ) || user_access( 'edit protected '. $form['type']['#value'] ))) {
+    $form['protected_node'] = array(
+      '#type' => 'fieldset',
+      '#description' => t( 'Here if you check the checkbox and provide a password your newly created node will be password protected.' ),
+      '#title' => t( 'Protected node' ),
+      '#collapsible' => TRUE,
+      '#collapsed' => TRUE
+    );
+    $form['protected_node']['is_protected'] = array(
+      '#type' => 'checkbox',
+      '#title' => t( 'Node is protected' ),
+      '#description' => t( 'Check here if this content should be protected by a password.' ),
+      '#default_value' => $form['#node']->is_protected
+    );
+    $form['protected_node']['was_protected'] = array(
+      '#type' => 'hidden',
+      '#default_value' => $form['#node']->was_protected
+    );
+    $form['protected_node']['password'] = array(
+      '#type' => 'password_confirm',
+      '#description' => t( 'Enter the node password here.' ),
+      '#size' => 20
+    );
+  }
 }
 
 /**
- * Implementation of hook_nodeapi()
+ * Implementation of hook_nodeapi().
+ * @link http://api.drupal.org/api/function/hook_nodeapi/6
  */
 function protected_node_nodeapi(&$node, $op, $arg = 0, $page = 0) {
-	global $user, $protected_node_salt, $base_root;
+  global $user, $protected_node_salt, $base_root;
 
-	$types_to_protect = variable_get ( 'protected_node_nodetypes', array () );
-	if (! in_array ( $node->type, $types_to_protect )) {
-		return;
-	}
+  $types_to_protect = variable_get( 'protected_node_nodetypes', array() );
+  if (!in_array( $node->type, $types_to_protect )) {
+    return;
+  }
 
-	switch ($op) {
-		case 'load' :
-			$output ['is_protected'] = db_result ( db_query ( 'SELECT count(*) FROM {protected_nodes} WHERE nid = %d', $node->nid ) ) > 0;
-			$output ['was_protected'] = $output ['is_protected'];
-			return $output;
-			break;
-		case 'delete' :
-			db_query ( 'DELETE FROM {protected_nodes} WHERE nid = %d', $node->nid );
-			break;
-		case 'insert' :
-			if ($node->is_protected && (! empty ( $node->password ) || isset ( $_SESSION ['_protected_node'] ['entered_password'] ))) {
-				$pwd = isset ( $_SESSION ['_protected_node'] ['entered_password'] ) ? $_SESSION ['_protected_node'] ['entered_password'] : $node->password;
-				unset ( $_SESSION ['_protected_node'] ['entered_password'] );
-				db_query ( 'INSERT INTO {protected_nodes} (nid, passwd) VALUES (%d, \'%s\')', $node->nid, sha1 ( $protected_node_salt . $pwd ) );
-			}
-			break;
-		case 'validate' :
-			if ($node->is_protected && (! empty ( $node->password ) || isset ( $_SESSION ['_protected_node'] ['entered_password'] ))) {
-				if (! isset ( $_SESSION ['_protected_node'] ['entered_password'] )) {
-					$_SESSION ['_protected_node'] ['entered_password'] = $node->password;
-				}
-			}
-			break;
-		case 'update' :
-			// Protected flag was switched off?
-			if ($node->was_protected && ! $node->is_protected) {
-				db_query ( 'DELETE FROM {protected_nodes} WHERE nid = %d', $node->nid );
-			}
+  switch ($op) {
+    case 'load' :
+      $output['is_protected'] = db_result( db_query( 'SELECT count(*) FROM {protected_nodes} WHERE nid = %d', $node->nid ) ) > 0;
+      $output['was_protected'] = $output['is_protected'];
+      return $output;
+      break;
+    case 'delete' :
+      db_query( 'DELETE FROM {protected_nodes} WHERE nid = %d', $node->nid );
+      break;
+    case 'insert' :
+      if ($node->is_protected && (!empty( $node->password ) || isset( $_SESSION['_protected_node']['entered_password'] ))) {
+        $pwd = isset( $_SESSION['_protected_node']['entered_password'] ) ? $_SESSION['_protected_node']['entered_password'] : $node->password;
+        unset( $_SESSION['_protected_node']['entered_password'] );
+        db_query( 'INSERT INTO {protected_nodes} (nid, passwd) VALUES (%d, \'%s\')', $node->nid, sha1( $protected_node_salt . $pwd ) );
+      }
+      break;
+    case 'validate' :
+      if ($node->is_protected && (!empty( $node->password ) || isset( $_SESSION['_protected_node']['entered_password'] ))) {
+        if (!isset( $_SESSION['_protected_node']['entered_password'] )) {
+          $_SESSION['_protected_node']['entered_password'] = $node->password;
+        }
+      }
+      break;
+    case 'update' :
+      // Protected flag was switched off?
+      if ($node->was_protected && !$node->is_protected) {
+        db_query( 'DELETE FROM {protected_nodes} WHERE nid = %d', $node->nid );
+      }
 
-			if ($node->is_protected && (! empty ( $node->password ) || isset ( $_SESSION ['_protected_node'] ['entered_password'] ))) {
-				if (db_result ( db_query ( 'SELECT count(*) FROM {protected_nodes} WHERE nid = %d', $node->nid ) ) > 0) {
-					$pwd = isset ( $_SESSION ['_protected_node'] ['entered_password'] ) ? $_SESSION ['_protected_node'] ['entered_password'] : $node->password;
-					unset ( $_SESSION ['_protected_node'] ['entered_password'] );
-					db_query ( 'UPDATE {protected_nodes} SET passwd = \'%s\' WHERE nid = %d', sha1 ( $protected_node_salt . $pwd ), $node->nid );
-				} else {
-					protected_node_nodeapi ( $node, 'insert', $arg, $page );
-				}
-			}
-			break;
-		case 'view' :
-			if ($node->is_protected) {
-				// If we have been accessed from cron.php (f.e. search indexing)
-				if (variable_get ( 'cron_semaphore', FALSE )) {
-					$node->title = '';
-					$node->teaser = '';
-					$node->body = '';
-					$node->content = array ();
-				} else {
-					if (! $user->uid && variable_get ( 'cache', 0 )) {
-						$GLOBALS ['conf'] ['cache'] = FALSE;
-					}
+      if ($node->is_protected && (!empty( $node->password ) || isset( $_SESSION['_protected_node']['entered_password'] ))) {
+        if (db_result( db_query( 'SELECT count(*) FROM {protected_nodes} WHERE nid = %d', $node->nid ) ) > 0) {
+          $pwd = isset( $_SESSION['_protected_node']['entered_password'] ) ? $_SESSION['_protected_node']['entered_password'] : $node->password;
+          unset( $_SESSION['_protected_node']['entered_password'] );
+          db_query( 'UPDATE {protected_nodes} SET passwd = \'%s\' WHERE nid = %d', sha1( $protected_node_salt . $pwd ), $node->nid );
+        }
+        else {
+          protected_node_nodeapi( $node, 'insert', $arg, $page );
+        }
+      }
+      break;
+    case 'view' :
+      if ($node->is_protected) {
+        // If we have been accessed from cron.php (f.e. search indexing)
+        if (variable_get( 'cron_semaphore', FALSE )) {
+          $node->title = '';
+          $node->teaser = '';
+          $node->body = '';
+          $node->content = array();
+        }
+        else {
+          if (!$user->uid && variable_get( 'cache', 0 )) {
+            $GLOBALS['conf']['cache'] = FALSE;
+          }
 
-					if ($node->uid !== $user->uid) {
-						// If node is protected and not teaser nor page view and not owner of node
-						if (! isset ( $_SESSION ['_protected_node'] ['passwords'] [$node->nid] )) {
-							if (! $arg) {
-								$_SESSION ['_protected_node'] ['current'] = $node->nid;
-								drupal_goto ( 'protected-node', 'destination=' . $_GET ['q'] );
-							} else {
-								$node->teaser = '';
-								$node->body = '';
-								$node->content = array ();
-							}
-						}
-					}
-				}
-			}
-			break;
-	}
+          if ($node->uid !== $user->uid) {
+            // If node is protected and not teaser nor page view and not owner of node
+            if (!isset( $_SESSION['_protected_node']['passwords'][$node->nid] )) {
+              if (!$arg) {
+                $_SESSION['_protected_node']['current'] = $node->nid;
+                drupal_goto( 'protected-node', 'destination='. $_GET['q'] );
+              }
+              else {
+                $node->teaser = '';
+                $node->body = '';
+                $node->content = array();
+              }
+            }
+          }
+        }
+      }
+      break;
+  }
 }
 
 /**
- * Implementation of hook_menu()
+ * Implementation of hook_menu().
+ * @link http://api.drupal.org/api/function/hook_menu/6
  */
-function protected_node_menu() {
-	$items ['admin/settings/protected_node'] = array ('title' => 'Protected node', 'description' => 'Here you change protected node settings', 'page callback' => 'drupal_get_form', 'page arguments' => array ('protected_node_admin_settings' ), 'access arguments' => array ('administer site configuration' ) );
-	$items ['protected-node'] = array ('title' => 'Protected node - Enter Password', 'description' => 'Here you can enter the password for the node', 'page callback' => 'drupal_get_form', 'page arguments' => array ('protected_node_enterpassword' ), 'access arguments' => array ('access protected content' ), 'type' => MENU_CALLBACK );
+function protected_node_menu( ) {
+  $items['admin/settings/protected_node'] = array(
+    'title' => 'Protected node',
+    'description' => 'Here you change protected node settings',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array(
+      'protected_node_admin_settings'
+    ),
+    'access arguments' => array(
+      'administer site configuration'
+    )
+  );
+  $items['protected-node'] = array(
+    'title' => 'Protected node - Enter Password',
+    'description' => 'Here you can enter the password for the node',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array(
+      'protected_node_enterpassword'
+    ),
+    'access arguments' => array(
+      'access protected content'
+    ),
+    'type' => MENU_CALLBACK
+  );
 
-	return $items;
+  return $items;
 }
 
 /**
- * Implementation of hook_file_download()
+ * Implementation of hook_file_download().
+ * @link http://api.drupal.org/api/function/hook_file_download/6
  */
 function protected_node_file_download($file) {
-	global $user;
+  global $user;
 
-	$db_file = db_result ( db_query ( 'SELECT u.nid FROM {files} f, {upload} u, {protected_nodes} pn, {node} n WHERE pn.nid = u.nid AND u.nid = n.nid AND f.filename = \'%s\' AND u.fid = f.fid', $file ) );
-	if (db_error () || $db_file === FALSE || $user->uid == $db_file || $_SESSION ['_protected_node'] ['passwords'] [$db_file]) {
-		return array ();
-	} else {
-		return - 1;
-	}
+  $db_file = db_result( db_query( 'SELECT u.nid FROM {files} f, {upload} u, {protected_nodes} pn, {node} n WHERE pn.nid = u.nid AND u.nid = n.nid AND f.filename = \'%s\' AND u.fid = f.fid', $file ) );
+  if (db_error() || $db_file === FALSE || $user->uid == $db_file || $_SESSION['_protected_node']['passwords'][$db_file]) {
+    return array();
+  }
+  else {
+    return -1;
+  }
 }
 
-/*********************
- * Helper functions  *
- *********************/
+/*
+ * Helper functions
+ */
 
 /**
  *
  */
-function protected_node_enterpassword() {
+function protected_node_enterpassword( ) {
 
-	if (! isset ( $_GET ['destination'] )) {
-		// Illegal call
-		watchdog ( 'protected_node', 'Illegal call to /protected-node', array (), WATCHDOG_WARNING );
-		drupal_access_denied ();
-	}
+  if (!isset( $_GET['destination'] )) {
+    // Illegal call
+    watchdog( 'protected_node', 'Illegal call to /protected-node', array(), WATCHDOG_WARNING );
+    drupal_access_denied();
+  }
 
-	$info = variable_get ( 'protected_node_info', '' );
-	if (module_exists ( 'token' )) {
-		$info = token_replace ( $info, 'node', node_load ( $_SESSION ['_protected_node'] ['current'] ) );
-	}
+  $info = variable_get( 'protected_node_info', '' );
+  if (module_exists( 'token' )) {
+    $info = token_replace( $info, 'node', node_load( $_SESSION['_protected_node']['current'] ) );
+  }
 
-	$form ['protected_node'] = array ('#value' => $info );
-	$form ['protected_node_enterpassword'] = array ('#type' => 'fieldset', '#description' => t ( 'The node you are trying to view is password protected. Please enter password below to proceed.' ), '#collapsible' => FALSE );
-	$form ['protected_node_enterpassword'] ['password'] = array ('#type' => 'password', '#title' => t ( 'Node password' ), '#size' => 20 );
-	$form ['protected_node_enterpassword'] ['submit'] = array ('#type' => 'submit', '#value' => t ( 'OK' ) );
+  $form['protected_node'] = array(
+    '#value' => $info
+  );
+  $form['protected_node_enterpassword'] = array(
+    '#type' => 'fieldset',
+    '#description' => t( 'The node you are trying to view is password protected. Please enter password below to proceed.' ),
+    '#collapsible' => FALSE
+  );
+  $form['protected_node_enterpassword']['password'] = array(
+    '#type' => 'password',
+    '#title' => t( 'Node password' ),
+    '#size' => 20
+  );
+  $form['protected_node_enterpassword']['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t( 'OK' )
+  );
 
-	return $form;
+  return $form;
 }
 
 /**
  *
  */
-function protected_node_enterpassword_validate($form, &$form_state) { // DONE
-	global $protected_node_salt;
+function protected_node_enterpassword_validate($form, &$form_state) {
+  global $_protected_node_salt;
 
-	$cnt = db_result ( db_query ( 'SELECT nid FROM {protected_nodes} WHERE passwd = \'%s\' AND nid = %d', sha1 ( $protected_node_salt . $form ['#post'] ['password'] ), $_SESSION ['_protected_node'] ['current'] ) );
-	if ($cnt < 1) {
-		form_set_error ( 'password', t ( 'Incorrect password!' ) );
-	}
+  $cnt = db_result( db_query( 'SELECT nid FROM {protected_nodes} WHERE passwd = \'%s\' AND nid = %d', sha1( $_protected_node_salt . $form['#post']['password'] ), $_SESSION['_protected_node']['current'] ) );
+  if ($cnt < 1) {
+    form_set_error( 'password', t( 'Incorrect password!' ) );
+  }
 }
 
 /**
  *
  */
-function protected_node_enterpassword_submit($form, &$form_state) { // DONE
-	$_SESSION ['_protected_node'] ['passwords'] [$_SESSION ['_protected_node'] ['current']] = TRUE;
-	unset ( $_SESSION ['_protected_node'] ['current'] );
+function protected_node_enterpassword_submit($form, &$form_state) {
+  $_SESSION['_protected_node']['passwords'][$_SESSION['_protected_node']['current']] = TRUE;
+  unset( $_SESSION['_protected_node']['current'] );
 }
 
 /**
@@ -204,11 +272,24 @@ function protected_node_enterpassword_submit($form, &$form_state) { // DONE
  *
  * @return $form The settings form
  **/
-function protected_node_admin_settings() {
-	$form ['protected_node_nodetypes'] = array ('#type' => 'checkboxes', '#title' => t ( 'Users may protect these node types' ), '#options' => node_get_types ( 'names' ), '#default_value' => variable_get ( 'protected_node_nodetypes', array () ), '#description' => t ( 'There will be the option to protect nodes by password and you can set it for these node types.' ) );
-	$form ['array_filter'] = array ('#type' => 'hidden' );
+function protected_node_admin_settings( ) {
+  $form['protected_node_nodetypes'] = array(
+    '#type' => 'checkboxes',
+    '#title' => t( 'Users may protect these node types' ),
+    '#options' => node_get_types( 'names' ),
+    '#default_value' => variable_get( 'protected_node_nodetypes', array() ),
+    '#description' => t( 'There will be the option to protect nodes by password and you can set it for these node types.' )
+  );
+  $form['array_filter'] = array(
+    '#type' => 'hidden'
+  );
 
-	$form ['protected_node_info'] = array ('#type' => 'textarea', '#title' => t ( 'Password page info' ), '#default_value' => variable_get ( 'protected_node_info', '' ), '#description' => t ( 'You can use node type tokens from the token module if you have installed it previously.' ) );
+  $form['protected_node_info'] = array(
+    '#type' => 'textarea',
+    '#title' => t( 'Password page info' ),
+    '#default_value' => variable_get( 'protected_node_info', '' ),
+    '#description' => t( 'You can use node type tokens from the token module if you have installed it previously.' )
+  );
 
-	return system_settings_form ( $form );
+  return system_settings_form( $form );
 }
