@@ -46,7 +46,7 @@ function protected_node_schema( ) {
  */
 function protected_node_install( ) {
   drupal_install_schema( 'protected_node' );
-  db_query( "UPDATE {system} SET weight = 100 WHERE name = 'protected_node' AND type = 'module'" );
+  db_query( "UPDATE {system} SET weight = 80 WHERE name = 'protected_node' AND type = 'module'" );
 }
 
 /**
@@ -69,6 +69,20 @@ function protected_node_update_3( ) {
     'length' => 40,
     'not null' => TRUE
   ) );
+
+  return $ret;
+}
+
+/**
+ * Implementation of hook_update-N()
+ *
+ * Altering node weight from 100 to 80
+ * fixing issue #296685
+ *
+ */
+function protected_node_update_4( ) {
+  $ret = array();
+  $ret[] = update_sql( "UPDATE {system} SET weight = 80 WHERE name = 'protected_node' AND type = 'module'" );
 
   return $ret;
 }
