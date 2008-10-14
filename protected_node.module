@@ -392,3 +392,7 @@ function protected_node_isset_protected($nid) {
   }
 
 }
+
+if (module_exists('views')) {
+  include dirname(__FILE__).DIRECTORY_SEPARATOR.'protected_node.views.inc';
+}
