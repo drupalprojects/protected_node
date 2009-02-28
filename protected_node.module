@@ -81,19 +81,27 @@ function protected_node_perm( ) {
  * @link http://api.drupal.org/api/function/hook_form_alter/6
  */
 function protected_node_form_alter(&$form, &$form_state, $form_id) {
+  $types = node_get_types();
+  $node_type = $types[$form['type']['#value']];
   if ($form['#id'] == 'node-form' && (user_access( 'edit protected content' ) || user_access( 'edit protected ' . $form['type']['#value'] ))) {
     $form['protected_node'] = array(
       '#type' => 'fieldset',
       '#description' => t( 'Here if you check the checkbox and provide a password your newly created node will be password protected.' ),
-      '#title' => t( 'Protected node' ),
+      '#title' => t( 'Password protect this @node', array('@node' => $node_type->name) ),
       '#collapsible' => TRUE,
       '#collapsed' => TRUE
     );
     $form['protected_node']['is_protected'] = array(
       '#type' => 'checkbox',
-      '#title' => t( 'Node is protected' ),
+      '#title' => t( 'This @node is protected', array('@node' => $node_type->name) ),
       '#description' => t( 'Check here if this content should be protected by a password.' ),
       '#default_value' => $form['#node']->is_protected
+    );
+    $form['protected_node']['show_title'] = array(
+      '#type' => 'checkbox',
+      '#title' => t( 'Show Title' ),
+      '#description' => t( 'Show the title to users when requesting the password.' ),
+      '#default_value' => variable_get('protected_node-'. $form['nid']['#value'] .'-show_title', FALSE),
     );
     $form['protected_node']['was_protected'] = array(
       '#type' => 'hidden',
@@ -101,7 +109,7 @@ function protected_node_form_alter(&$form, &$form_state, $form_id) {
     );
     $form['protected_node']['password'] = array(
       '#type' => 'password_confirm',
-      '#description' => t( 'Enter the node password here.' ),
+      '#description' => t( 'Enter the @node password here.', array('@node' => $node_type->name) ),
       '#size' => 20
     );
   }
@@ -129,6 +137,9 @@ function protected_node_nodeapi(&$node, $op, $arg = 0, $page = 0) {
         unset( $_SESSION['_protected_node']['entered_password'] );
         protected_node_set_protected( $node->nid, $pwd );
       }
+      if ($node->show_title) {
+        variable_set('protected_node-'. $node->nid .'-show_title', TRUE );
+      }
       break;
     case 'validate' :
       if ($node->is_protected && !empty($node->password)) {
@@ -151,6 +162,14 @@ function protected_node_nodeapi(&$node, $op, $arg = 0, $page = 0) {
           protected_node_nodeapi( $node, 'insert', $arg, $page );
         }
       }
+
+      //mark the node for show title on password page
+      if ($node->show_title) {
+        variable_set('protected_node-'. $node->nid .'-show_title', TRUE );
+      }
+      else {
+        variable_del('protected_node-'. $node->nid .'-show_title');
+      }
       break;
     case 'view' :
       if ($node->is_protected && !user_access('bypass password protection')) {
@@ -171,7 +190,8 @@ function protected_node_nodeapi(&$node, $op, $arg = 0, $page = 0) {
             if (!isset( $_SESSION['_protected_node']['passwords'][$node->nid] )) {
               if (!$arg) {
                 $_SESSION['_protected_node']['current'] = $node->nid;
-                drupal_goto( 'protected-node', 'destination=' . $_GET['q'] );
+                $destination = drupal_get_destination();
+                drupal_goto( 'protected-node', $destination );
               }
               else {
                 $node->teaser = '';

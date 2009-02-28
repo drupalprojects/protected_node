@@ -16,6 +16,10 @@ function protected_node_enterpassword( ) {
     drupal_access_denied();
   }
 
+  $node = node_load( $_SESSION['_protected_node']['current'] );
+  $types = node_get_types();
+  $node_type = $types[$node->type];
+
   $info = variable_get( 'protected_node_info', '' );
   if (module_exists( 'token' )) {
     $info = token_replace( $info, 'node', node_load( $_SESSION['_protected_node']['current'] ) );
@@ -26,12 +30,15 @@ function protected_node_enterpassword( ) {
   );
   $form['protected_node_enterpassword'] = array(
     '#type' => 'fieldset',
-    '#description' => t( 'The node you are trying to view is password protected. Please enter password below to proceed.' ),
+    '#description' => t( 'The @node $title you are trying to view is password protected. Please enter the password below to proceed.', 
+  							array('@node' => $node_type->name, 
+  								  '$title' => variable_get('protected_node-'. $node->nid .'-show_title', FALSE) ? '"'.$node->title.'"' : '')
+  	),
     '#collapsible' => FALSE
   );
   $form['protected_node_enterpassword']['password'] = array(
     '#type' => 'password',
-    '#title' => t( 'Node password' ),
+    '#title' => t( '@node password', array('@node' => $node_type->name) ),
     '#size' => 20
   );
   $form['protected_node_enterpassword']['submit'] = array(
