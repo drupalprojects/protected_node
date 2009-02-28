@@ -69,6 +69,7 @@ function protected_node_requirements($phase) {
 function protected_node_perm( ) {
   $perms = array(
     'access protected content',
+  	'bypass password protection',
     'edit protected content'
   );
   foreach ( array_keys( node_get_types() ) as $type ) {
@@ -157,7 +158,7 @@ function protected_node_nodeapi(&$node, $op, $arg = 0, $page = 0) {
       }
       break;
     case 'view' :
-      if ($node->is_protected) {
+      if ($node->is_protected && !user_access('bypass password protection')) {
         // If we have been accessed from cron.php (f.e. search indexing)
         if (variable_get( 'cron_semaphore', FALSE )) {
           $node->title = '';
@@ -228,7 +229,7 @@ function protected_node_file_download($file) {
   global $user;
 
   $db_file = db_result( db_query( 'SELECT n.nid FROM {files} f, {protected_nodes} pn, {node} n WHERE pn.nid = f.nid AND f.nid = n.nid AND f.filename = \'%s\'', $file ) );
-  if (db_error() || $db_file === FALSE || $user->uid == $db_file || $_SESSION['_protected_node']['passwords'][$db_file]) {
+  if (db_error() || $db_file === FALSE || $user->uid == $db_file || $_SESSION['_protected_node']['passwords'][$db_file] || user_access('bypass password protection')) {
     return array();
   }
   else {
