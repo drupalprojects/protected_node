@@ -270,7 +270,7 @@ function protected_node_enterpassword( ) {
   }
 
   $form['protected_node'] = array(
-    '#value' => $info
+    '#value' => check_plain($info),
   );
   $form['protected_node_enterpassword'] = array(
     '#type' => 'fieldset',
