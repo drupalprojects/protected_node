@@ -1,5 +1,4 @@
 <?php
-// $Id$
 /**
  * @file
  * Configuration file for the protected_node module.
