@@ -1,5 +1,4 @@
 <?php
-// $Id$
 
 function protected_node_views_tables() {
   $tables["protected_nodes"] = array(
