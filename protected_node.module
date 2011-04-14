@@ -1,6 +1,4 @@
 <?php
-
-
 /*
  * @file
  * Protected node module
@@ -65,7 +63,7 @@ function protected_node_requirements($phase) {
 function protected_node_perm( ) {
   $perms = array(
     'access protected content',
-  	'bypass password protection',
+    'bypass password protection',
     'edit protected content'
   );
   foreach ( array_keys( node_get_types() ) as $type ) {
@@ -78,11 +76,16 @@ function protected_node_perm( ) {
 /**
  * Implementation of hook_form_alter().
  * @link http://api.drupal.org/api/function/hook_form_alter/6
+ *
+ * Turn off the auto-complete feature on this form since it could otherwise
+ * pre-fill the password with a wrong parameter.
  */
 function protected_node_form_alter(&$form, &$form_state, $form_id) {
-  $types = node_get_types();
-  $node_type = $types[$form['type']['#value']];
-  if ($form['#id'] == 'node-form' && (user_access( 'edit protected content' ) || user_access( 'edit protected ' . $form['type']['#value'] ))) {
+  if (isset($form['type']['#value']) && $form['#id'] == 'node-form'
+  && (user_access('edit protected content') || user_access('edit protected ' . $form['type']['#value']))) {
+    $types = node_get_types();
+    $node_type = $types[$form['type']['#value']];
+    $form['#attributes']['autocomplete'] = 'off';
     $form['protected_node'] = array(
       '#type' => 'fieldset',
       '#description' => t( 'Here if you check the checkbox and provide a password your newly created node will be password protected.' ),
@@ -172,15 +175,15 @@ function protected_node_nodeapi(&$node, $op, $arg = 0, $page = 0) {
       }
       break;
     case 'view' :
-      if ($node->is_protected && !user_access('bypass password protection')) {
-        // If we have been accessed from cron.php (f.e. search indexing)
-        if (variable_get( 'cron_semaphore', FALSE )) {
+      if ($node->is_protected) {
+        // Accessed for search indexing? (usually by cron.php)
+        if ($node->build_mode == NODE_BUILD_SEARCH_INDEX) {
           $node->title = '';
           $node->teaser = '';
           $node->body = '';
           $node->content = array();
         }
-        else {
+        elseif (!user_access('bypass password protection')) {
           if (!$user->uid && variable_get( 'cache', 0 )) {
             $GLOBALS['conf']['cache'] = FALSE;
           }
@@ -191,7 +194,7 @@ function protected_node_nodeapi(&$node, $op, $arg = 0, $page = 0) {
               if (!$arg) {
                 $_SESSION['_protected_node']['current'] = $node->nid;
                 $destination = drupal_get_destination();
-                drupal_goto( 'protected-node', $destination );
+                drupal_goto('protected-node', $destination);
               }
               else {
                 $node->teaser = '';
@@ -313,17 +316,12 @@ function protected_node_unset_protected($nid) {
  * @return boolean TRUE if the node identified by the nid you provided is protected, FALSE otherwise.
  */
 function protected_node_isset_protected($nid) {
-  if (!is_numeric( $nid )) {
+  if (!is_numeric($nid)) {
     return FALSE;
   }
 
-  $nodes = db_affected_rows( db_query( 'SELECT nid FROM {protected_nodes} WHERE nid = %d', $nid ) );
-  if ($nodes > 0) {
-    return TRUE;
-  }
-  else {
-    return FALSE;
-  }
+  $found_nid = db_result(db_query('SELECT nid FROM {protected_nodes} WHERE nid = %d', $nid));
+  return $found_nid == $nid;
 }
 
  /**
@@ -339,3 +337,26 @@ function protected_node_autocomplete_off($form_element, &$form_state) {
 
   return $form_element;
 }
+
+/**
+ * Prevent boost from caching protected nodes.
+ *
+ * @todo
+ * We also need to make sure the cache gets cleared whenever
+ * the protection is turned on.
+ */
+function protected_node_boost_is_cacheable($path) {
+  // the $path may be an alias, unalias first
+  $url = drupal_lookup_path('source', $path);
+  if (!$url) {
+    // $path is not an alias, use $path as is for our test
+    $url = $path;
+  }
+  $p = explode('/', $url);
+  if (count($p) == 2 && $p[0] == 'node' && is_numeric($p[1])) {
+    // if protected, do not cache (i.e. not caching == return FALSE)
+    return !protected_node_isset_protected($p[1]);
+  }
+}
+
+// vim: ts=2 sw=2 et syntax=php

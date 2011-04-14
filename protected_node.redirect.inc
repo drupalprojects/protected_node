@@ -5,7 +5,7 @@
  */
 
 /**
- *
+ * Create the form asking the end users for the node password.
  */
 function protected_node_enterpassword( ) {
 
@@ -67,3 +67,5 @@ function protected_node_enterpassword_submit($form, &$form_state) {
   $_SESSION['_protected_node']['passwords'][$_SESSION['_protected_node']['current']] = TRUE;
   unset( $_SESSION['_protected_node']['current'] );
 }
+
+// vim: ts=2 sw=2 et syntax=php

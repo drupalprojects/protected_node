@@ -19,3 +19,5 @@ function protected_node_admin_settings( ) {
 
   return system_settings_form( $form );
 }
+
+// vim: ts=2 sw=2 et syntax=php

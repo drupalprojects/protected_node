@@ -1,9 +1,7 @@
 <?php
-
-
 /*
  * @file
- * Protected node module
+ * Protected node module: install the protected nodes schema.
  */
 
 /**
@@ -85,3 +83,5 @@ function protected_node_update_4( ) {
 
   return $ret;
 }
+
+// vim: ts=2 sw=2 et syntax=php
