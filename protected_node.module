@@ -203,12 +203,12 @@ function protected_node_nodeapi(&$node, $op, $arg = 0, $page = 0) {
         }
 
         if ($node->uid !== $user->uid) {
-          if (user_access('access protected content')) {
-            drupal_access_denied();
-          }
           // If node is protected and not teaser nor page view and not owner of node
           if (!isset( $_SESSION['_protected_node']['passwords'][$node->nid] )) {
             if (!$arg) {
+              if (user_access('access protected content')) {
+                drupal_access_denied();
+              }
               $_SESSION['_protected_node']['current'] = $node->nid;
               $destination = drupal_get_destination();
               if (!empty($_SERVER['HTTP_REFERER'])) {
