@@ -17,46 +17,6 @@ function protected_node_help($path, $arg) {
 }
 
 /**
- * Implementation of hook_requirements(). Checks for at least role who has access to protected node functionality.
- * @link http://api.drupal.org/api/function/hook_requirements/6
- *
- * @param string $phase
- */
-function protected_node_requirements($phase) {
-  if ($phase == 'runtime') {
-    $perms = protected_node_perm();
-
-    $likes = array();
-    foreach ( $perms as $perm ) {
-      $likes[] = "perm LIKE '%" . $perm . "%'";
-    }
-    $sql = "SELECT rid FROM {permission} WHERE " . implode( ' OR ', $likes );
-    $roles = db_affected_rows( db_query( $sql ) );
-    if ($roles) {
-      $reqs['protected_node'] = array(
-        'title' => t( 'Protected nodes access rights' ),
-        'value' => t( 'At least one of the roles has access to protected contents' ),
-        'severity' => REQUIREMENT_OK
-      );
-    }
-    else {
-      $reqs['protected_node'] = array(
-        'title' => t( 'Protected nodes access rights' ),
-        'value' => t( 'None of the roles has !access', array(
-          '!access' => l( 'access to protected contents', 'admin/user/permissions', array(
-            'fragment' => 'module-protected_node'
-          ) )
-        ) ),
-        'description' => t( 'Without giving access at least one of the available roles no-one can protect nodes or access protected contents' ),
-        'severity' => REQUIREMENT_ERROR
-      );
-    }
-
-    return $reqs;
-  }
-}
-
-/**
  * Implementation of hook_perm().
  * @link http://api.drupal.org/api/function/hook_perm/6
  */
