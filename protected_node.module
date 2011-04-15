@@ -97,17 +97,17 @@ function protected_node_form_alter(&$form, &$form_state, $form_id) {
       '#type' => 'checkbox',
       '#title' => t( 'This @node is protected', array('@node' => $node_type->name) ),
       '#description' => t( 'Check here if this content should be protected by a password.' ),
-      '#default_value' => $form['#node']->is_protected
+      '#default_value' => !empty($form['#node']->is_protected),
+    );
+    $form['protected_node']['was_protected'] = array(
+      '#type' => 'hidden',
+      '#default_value' => !empty($form['#node']->was_protected),
     );
     $form['protected_node']['show_title'] = array(
       '#type' => 'checkbox',
       '#title' => t( 'Show Title' ),
       '#description' => t( 'Show the title to users when requesting the password.' ),
       '#default_value' => variable_get('protected_node-'. $form['nid']['#value'] .'-show_title', FALSE),
-    );
-    $form['protected_node']['was_protected'] = array(
-      '#type' => 'hidden',
-      '#default_value' => $form['#node']->was_protected
     );
     $form['protected_node']['password'] = array(
       '#type' => 'password_confirm',
@@ -145,8 +145,18 @@ function protected_node_nodeapi(&$node, $op, $arg = 0, $page = 0) {
       }
       break;
     case 'validate' :
-      if ($node->is_protected && !empty($node->password)) {
-        $_SESSION['_protected_node']['entered_password'] = $node->password;
+      if ($node->is_protected) {
+        if (empty($node->password)) {
+          // TODO: when we support global password, this test needs to verify
+          //       whether a global password applies.
+          if (empty($_SESSION['_protected_node']['entered_password'])) {
+            // $arg is the form in this case
+            form_error($arg['protected_node']['password'], t('To protect this page, please enter a password.'));
+          }
+        }
+        else {
+          $_SESSION['_protected_node']['entered_password'] = $node->password;
+        }
       }
       break;
     case 'update' :
