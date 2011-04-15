@@ -126,96 +126,101 @@ function protected_node_nodeapi(&$node, $op, $arg = 0, $page = 0) {
   global $user;
 
   switch ($op) {
-    case 'load' :
-      $output['is_protected'] = protected_node_isset_protected( $node->nid );
-      $output['was_protected'] = $output['is_protected'];
-      return $output;
-      break;
-    case 'delete' :
+  case 'load' :
+    $output['is_protected'] = protected_node_isset_protected( $node->nid );
+    $output['was_protected'] = $output['is_protected'];
+    return $output;
+
+  case 'delete' :
+    protected_node_unset_protected( $node->nid );
+    break;
+
+  case 'insert' :
+    if ($node->is_protected && (!empty( $node->password ) || isset( $_SESSION['_protected_node']['entered_password'] ))) {
+      $pwd = isset( $_SESSION['_protected_node']['entered_password'] ) ? $_SESSION['_protected_node']['entered_password'] : $node->password;
+      unset( $_SESSION['_protected_node']['entered_password'] );
+      protected_node_set_protected( $node->nid, $pwd );
+    }
+    if ($node->show_title) {
+      variable_set('protected_node-'. $node->nid .'-show_title', TRUE );
+    }
+    break;
+
+  case 'validate' :
+    if ($node->is_protected) {
+      if (empty($node->password)) {
+        // TODO: when we support global password, this test needs to verify
+        //       whether a global password applies.
+        if (empty($_SESSION['_protected_node']['entered_password'])) {
+          // $arg is the form in this case
+          form_error($arg['protected_node']['password'], t('To protect this page, please enter a password.'));
+        }
+      }
+      else {
+        $_SESSION['_protected_node']['entered_password'] = $node->password;
+      }
+    }
+    break;
+
+  case 'update' :
+    // Protected flag was switched off?
+    if ($node->was_protected && !$node->is_protected) {
       protected_node_unset_protected( $node->nid );
-      break;
-    case 'insert' :
-      if ($node->is_protected && (!empty( $node->password ) || isset( $_SESSION['_protected_node']['entered_password'] ))) {
+    }
+
+    if ($node->is_protected && (!empty( $node->password ) || isset( $_SESSION['_protected_node']['entered_password'] ))) {
+      if (db_result( db_query( 'SELECT count(*) FROM {protected_nodes} WHERE nid = %d', $node->nid ) ) > 0) {
         $pwd = isset( $_SESSION['_protected_node']['entered_password'] ) ? $_SESSION['_protected_node']['entered_password'] : $node->password;
         unset( $_SESSION['_protected_node']['entered_password'] );
         protected_node_set_protected( $node->nid, $pwd );
       }
-      if ($node->show_title) {
-        variable_set('protected_node-'. $node->nid .'-show_title', TRUE );
-      }
-      break;
-    case 'validate' :
-      if ($node->is_protected) {
-        if (empty($node->password)) {
-          // TODO: when we support global password, this test needs to verify
-          //       whether a global password applies.
-          if (empty($_SESSION['_protected_node']['entered_password'])) {
-            // $arg is the form in this case
-            form_error($arg['protected_node']['password'], t('To protect this page, please enter a password.'));
-          }
-        }
-        else {
-          $_SESSION['_protected_node']['entered_password'] = $node->password;
-        }
-      }
-      break;
-    case 'update' :
-      // Protected flag was switched off?
-      if ($node->was_protected && !$node->is_protected) {
-        protected_node_unset_protected( $node->nid );
-      }
-
-      if ($node->is_protected && (!empty( $node->password ) || isset( $_SESSION['_protected_node']['entered_password'] ))) {
-        if (db_result( db_query( 'SELECT count(*) FROM {protected_nodes} WHERE nid = %d', $node->nid ) ) > 0) {
-          $pwd = isset( $_SESSION['_protected_node']['entered_password'] ) ? $_SESSION['_protected_node']['entered_password'] : $node->password;
-          unset( $_SESSION['_protected_node']['entered_password'] );
-          protected_node_set_protected( $node->nid, $pwd );
-        }
-        else {
-          protected_node_nodeapi( $node, 'insert', $arg, $page );
-        }
-      }
-
-      //mark the node for show title on password page
-      if ($node->show_title) {
-        variable_set('protected_node-'. $node->nid .'-show_title', TRUE );
-      }
       else {
-        variable_del('protected_node-'. $node->nid .'-show_title');
+        protected_node_nodeapi( $node, 'insert', $arg, $page );
       }
-      break;
-    case 'view' :
-      if ($node->is_protected) {
-        // Accessed for search indexing? (usually by cron.php)
-        if ($node->build_mode == NODE_BUILD_SEARCH_INDEX) {
-          $node->title = '';
-          $node->teaser = '';
-          $node->body = '';
-          $node->content = array();
-        }
-        elseif (!user_access('bypass password protection')) {
-          if (!$user->uid && variable_get( 'cache', 0 )) {
-            $GLOBALS['conf']['cache'] = FALSE;
-          }
+    }
 
-          if ($node->uid !== $user->uid) {
-            // If node is protected and not teaser nor page view and not owner of node
-            if (!isset( $_SESSION['_protected_node']['passwords'][$node->nid] )) {
-              if (!$arg) {
-                $_SESSION['_protected_node']['current'] = $node->nid;
-                $destination = drupal_get_destination();
-                drupal_goto('protected-node', $destination);
-              }
-              else {
-                $node->teaser = '';
-                $node->body = '';
-                $node->content = array();
-              }
+    //mark the node for show title on password page
+    if ($node->show_title) {
+      variable_set('protected_node-'. $node->nid .'-show_title', TRUE );
+    }
+    else {
+      variable_del('protected_node-'. $node->nid .'-show_title');
+    }
+    break;
+
+  case 'view' :
+    if ($node->is_protected) {
+      // Accessed for search indexing? (usually by cron.php)
+      if ($node->build_mode == NODE_BUILD_SEARCH_INDEX) {
+        $node->title = '';
+        $node->teaser = '';
+        $node->body = '';
+        $node->content = array();
+      }
+      elseif (!user_access('bypass password protection')) {
+        if (!$user->uid && variable_get( 'cache', 0 )) {
+          $GLOBALS['conf']['cache'] = FALSE;
+        }
+
+        if ($node->uid !== $user->uid) {
+          // If node is protected and not teaser nor page view and not owner of node
+          if (!isset( $_SESSION['_protected_node']['passwords'][$node->nid] )) {
+            if (!$arg) {
+              $_SESSION['_protected_node']['current'] = $node->nid;
+              $destination = drupal_get_destination();
+              drupal_goto('protected-node', $destination);
+            }
+            else {
+              $node->teaser = '';
+              $node->body = '';
+              $node->content = array();
             }
           }
         }
       }
-      break;
+    }
+    break;
+
   }
 }
 
@@ -293,10 +298,10 @@ function protected_node_set_protected($nid, $password) {
 
   $success = FALSE;
   if (protected_node_isset_protected( $nid )) {
-    $success = db_query( 'UPDATE {protected_nodes} SET passwd = \'%s\' WHERE nid = %d', sha1( $protected_node_salt . $password ), $nid );
+    $success = db_query( "UPDATE {protected_nodes} SET passwd = '%s' WHERE nid = %d", sha1( $protected_node_salt . $password ), $nid );
   }
   else {
-    $success = db_query( 'INSERT INTO {protected_nodes} (nid, passwd) VALUES (%d, \'%s\')', $nid, sha1( $protected_node_salt . $password ) );
+    $success = db_query( "INSERT INTO {protected_nodes} (nid, passwd) VALUES (%d, '%s')", $nid, sha1( $protected_node_salt . $password ) );
   }
 
   return $success !== FALSE;
