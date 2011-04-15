@@ -203,6 +203,9 @@ function protected_node_nodeapi(&$node, $op, $arg = 0, $page = 0) {
         }
 
         if ($node->uid !== $user->uid) {
+          if (user_access('access protected content')) {
+            drupal_access_denied();
+          }
           // If node is protected and not teaser nor page view and not owner of node
           if (!isset( $_SESSION['_protected_node']['passwords'][$node->nid] )) {
             if (!$arg) {
@@ -352,6 +355,28 @@ function protected_node_autocomplete_off($form_element, &$form_state) {
   $form_element['pass2']['#attributes']['autocomplete'] = 'off';
 
   return $form_element;
+}
+
+/**
+ * Implementation of hook_db_rewrite_sql().
+ *
+ * This hook forbids end users from seeing a node they do not otherwise have
+ * access to without a password.
+ */
+function protected_node_db_rewrite_sql($query, $primary_table, $primary_field, $args) {
+  if ($primary_field != 'nid') {
+    return;
+  }
+  if (user_access('access protected content')) {
+    return;
+  }
+
+  // Prevent query from finding nodes the current user may not have permission to see.
+  // (i.e. if the user doesn't know the password, then it shouldn't be shown)
+  $join = "LEFT JOIN {protected_nodes} protected_nd ON $primary_table.nid = protected_nd.nid";
+  $where = "protected_nd.nid IS NULL";
+
+  return array('join' => $join, 'where' => $where);
 }
 
 /**
