@@ -1,4 +1,5 @@
 name = Protected Node
-description = Controls whether selected nodes are protected with a password.
+description = Controls whether selected nodes are protected with a password. Works even better with the Token module.
 core = 6.x
 package = Access
+recommends[] = tokens

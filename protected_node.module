@@ -208,6 +208,9 @@ function protected_node_nodeapi(&$node, $op, $arg = 0, $page = 0) {
             if (!$arg) {
               $_SESSION['_protected_node']['current'] = $node->nid;
               $destination = drupal_get_destination();
+              if (!empty($_SERVER['HTTP_REFERER'])) {
+                $destination .= '&back=' . urlencode($_SERVER['HTTP_REFERER']);
+              }
               drupal_goto('protected-node', $destination);
             }
             else {
@@ -231,7 +234,7 @@ function protected_node_nodeapi(&$node, $op, $arg = 0, $page = 0) {
 function protected_node_menu( ) {
   $items['admin/settings/protected_node'] = array(
     'title' => 'Protected node',
-    'description' => 'Here you change protected node settings',
+    'description' => 'Edit the global Protected node settings',
     'page callback' => 'drupal_get_form',
     'page arguments' => array(
       'protected_node_admin_settings'
@@ -242,7 +245,7 @@ function protected_node_menu( ) {
     'file' => 'protected_node.settings.inc'
   );
   $items['protected-node'] = array(
-    'title' => 'Protected node - Enter Password',
+    'title' => 'Protected page - Enter Password',
     'description' => 'Here you can enter the password for the node',
     'page callback' => 'drupal_get_form',
     'page arguments' => array(
@@ -290,18 +293,16 @@ function protected_node_file_download($file) {
  * @return boolean TRUE if the action was successful, FALSE otherwise.
  */
 function protected_node_set_protected($nid, $password) {
-  global $protected_node_salt;
-
-  if (empty( $password ) || !is_numeric( $nid )) {
+  if (empty($password) || !is_numeric($nid)) {
     return FALSE;
   }
 
   $success = FALSE;
-  if (protected_node_isset_protected( $nid )) {
-    $success = db_query( "UPDATE {protected_nodes} SET passwd = '%s' WHERE nid = %d", sha1( $protected_node_salt . $password ), $nid );
+  if (protected_node_isset_protected($nid)) {
+    $success = db_query("UPDATE {protected_nodes} SET passwd = '%s' WHERE nid = %d", sha1($password), $nid);
   }
   else {
-    $success = db_query( "INSERT INTO {protected_nodes} (nid, passwd) VALUES (%d, '%s')", $nid, sha1( $protected_node_salt . $password ) );
+    $success = db_query("INSERT INTO {protected_nodes} (nid, passwd) VALUES (%d, '%s')", $nid, sha1($password));
   }
 
   return $success !== FALSE;
