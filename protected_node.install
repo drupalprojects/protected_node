@@ -83,9 +83,9 @@ function protected_node_requirements($phase) {
 /**
  * Implementation of hook_schema().
  */
-function protected_node_schema( ) {
+function protected_node_schema() {
   $schema['protected_nodes'] = array(
-    'description' => t( 'The table to store the node - password hash pairs.' ),
+    'description' => t('The table to store the node - password hash pairs.'),
     'fields' => array(
       'nid' => array(
         'description' => t('The primary identifier for a node'),
@@ -134,7 +134,7 @@ function protected_node_schema( ) {
 /**
  * Implementation of hook_install().
  */
-function protected_node_install( ) {
+function protected_node_install() {
   drupal_install_schema('protected_node');
   db_query("UPDATE {system} SET weight = 80 WHERE name = 'protected_node' AND type = 'module'");
 }
@@ -142,7 +142,7 @@ function protected_node_install( ) {
 /**
  * Implementation of hook_uninstall().
  */
-function protected_node_uninstall( ) {
+function protected_node_uninstall() {
   drupal_uninstall_schema('protected_node');
   db_query("DELETE FROM {variable} WHERE name LIKE 'protected_node_%%'");
 }
