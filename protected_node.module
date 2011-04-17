@@ -531,4 +531,19 @@ function protected_node_boost_is_cacheable($path) {
   }
 }
 
+/**
+ * Add the Protected Node fieldset to the CCK.
+ */
+function protected_node_content_extra_fields($type_name) {
+  $extra = array();
+
+  $extra['protected_node'] = array(
+    'label' => t('Protected node'),
+    'description' => t('Protected node module form.'),
+    'weight' => 20,
+  );
+
+  return $extra;
+}
+
 // vim: ts=2 sw=2 et syntax=php
