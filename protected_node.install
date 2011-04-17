@@ -25,10 +25,10 @@ function protected_node_requirements($phase) {
 
     $likes = array();
     foreach ($perms as $perm) {
-      $likes[] = "perm LIKE '%" . $perm . "%'";
+      $likes[] = "perm LIKE '%%%s%%'";
     }
     $sql = "SELECT COUNT(rid) FROM {permission} WHERE " . implode(' OR ', $likes);
-    $roles = db_result(db_query($sql));
+    $roles = db_result(db_query($sql, $perms));
     if ($roles) {
       $reqs['protected_node_rights'] = array(
         'title' => t('Protected nodes access rights'),
