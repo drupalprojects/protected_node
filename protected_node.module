@@ -173,12 +173,48 @@ function protected_node_nodeapi(&$node, $op, $arg = 0, $page = 0) {
         break;
 
       }
+
+      if ($node->protected_node_emails) {
+        if ($node->status) {
+          // verify each email address
+          $emails = explode(',', str_replace(array("\r", "\n"), ',', $node->protected_node_emails));
+          foreach ($emails as $k => $m) {
+            $m = trim($m);
+            if ($m) {
+              if (!valid_email_address($m)) {
+                form_error($arg['protected_node']['protected_node_emails'], t('Invalid email address: @m. Please correct this mistake and try again.', array('@m' => $m)));
+                unset($emails[$k]); // unset just in case; should be useless though
+              }
+              else {
+                $emails[$k] = $m;
+              }
+            }
+            else {
+              // ignore empty entries
+              unset($emails[$k]);
+            }
+          }
+          $node->protected_node_emails = implode(', ', $emails);
+        }
+        else {
+          // the node is not published, forget about emails!
+          form_error($arg['protected_node']['protected_node_emails'], t('Invalid email address: @m. Please correct this mistake and try again.', array('@m' => $m)));
+          $node->protected_node_emails = NULL;
+        }
+      }
+    }
+    elseif (trim($node->protected_node_emails)) {
+      form_error($arg['protected_node']['protected_node_emails'], t('No email can be sent by the protected node module when the node is not protected.'));
     }
     break;
 
   case 'insert':
   case 'update':
     protected_node_save($node);
+    if ($node->protected_node_is_protected && $node->protected_node_emails) {
+      module_load_include('mail.inc', 'protected_node');
+      protected_node_send_mail($node);
+    }
     break;
 
   case 'view':
@@ -297,6 +333,7 @@ function protected_node_save($node) {
         $changed = FALSE;
       }
       else {
+        $node->protected_node_clear_passwd = $node->protected_node_passwd;
         $node->protected_node_passwd = sha1($node->protected_node_passwd);
       }
     }
@@ -325,6 +362,7 @@ function protected_node_save($node) {
       $node->protected_node_passwd = '';
     }
     elseif($node->protected_node_passwd) {
+      $node->protected_node_clear_passwd = $node->protected_node_passwd;
       $node->protected_node_passwd = sha1($node->protected_node_passwd);
     }
     // we don't need to set the protected_node_passwd_changed since no
@@ -367,6 +405,40 @@ function protected_node_load($nid) {
   $result['protected_node_passwd'] = trim($result['protected_node_passwd']);
 
   return $result;
+}
+
+/**
+ * Implementation of hook_token_list().
+ *
+ * This function defines some extras for the protected node (i.e. whether a
+ * node is protected, title flag, last time the password was changed, etc.)
+ */
+function protected_node_token_list($type = 'all') {
+  if ($type == 'node' || $type == 'all') {
+    $tokens['node']['node-is-protected']        = t('Whether the node is protected (yes/no).');
+    $tokens['node']['node-password']            = t('The password in clear (only if available, empty otherwise).');
+    $tokens['node']['node-protected-title']     = t('Whether the title node of the node is protected (yes/no).');
+    return $tokens;
+  }
+}
+
+/**
+ * Implementation of hook_token_values().
+ */
+function protected_node_token_values($type, $object = NULL, $options = array()) {
+  if ($type == 'node' && $object) {
+    if (empty($object->protected_node_is_protected)) {
+      $tokens['node-is-protected'] = t('no');
+      $tokens['node-password'] = '';
+      $tokens['node-protected-title'] = '';
+    }
+    else {
+      $tokens['node-is-protected'] = t('yes');
+      $tokens['node-password'] = empty($object->protected_node_clear_passwd) ? '' : $object->protected_node_clear_passwd;
+      $tokens['node-protected-title'] = empty($object->protected_node_show_title) ? t('yes') : t('no');
+    }
+    return $tokens;
+  }
 }
 
 /**

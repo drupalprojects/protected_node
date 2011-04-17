@@ -5,6 +5,32 @@
  */
 
 /**
+ * The default email subject sent to users to whom you give access to
+ * a protected node.
+ */
+function protected_node_email_subject() {
+  return t("Please visit my website...");
+}
+
+/**
+ * The default email body sent to users to whom you give access to
+ * a protected node.
+ */
+function protected_node_email_body() {
+  return t(
+"Dear friend,
+
+I just created a new page on my website and wanted to invite you to
+visit. The page is protected by the following password:
+
+[node-password]
+
+Thank you.
+[site-name]"
+  );
+}
+
+/**
  * Actual implementation of the protected_node_menu() function.
  *
  * Moved here to optimze the module (menu are cached and the definitions
@@ -94,6 +120,22 @@ function protected_node_node_form_alter(&$form) {
     break;
 
   }
+
+  // include the email box?
+  $width_height = variable_get('protected_node_email_box', '');
+  if ($width_height) {
+    list($width, $height) = explode('x', $width_height);
+    $form['protected_node']['protected_node_emails'] = array(
+      '#type' => 'textarea',
+      '#description' => t('Enter a list of email addresses separated by newlines and/or commas. At the time you save the page, each one of those users will be sent an email with a link back to this page and optionally the password.')
+        . '<br />'
+        . t('<strong>WARNING</strong>: for an email to be sent you MUST (1) protect the node; (2) re-enter the password; (3) publish the page.')
+        . '<br />'
+        . t('The password is necessary only if you used [node-password] in the email message.'),
+      '#cols' => $width,
+      '#rows' => $height,
+    );
+  }
 }
 
 /**
@@ -179,6 +221,44 @@ function protected_node_admin_settings() {
     '#title' => t('Show node titles by default'),
     '#default_value' => variable_get('protected_node_show_node_titles', FALSE),
     '#description' => t('Whether a the node title should be shown (selected) or hidden (unchecked) by default. This flag is used as the default of the Show title checkbox on a create node.'),
+  );
+
+  $form['protected_node_auto_email'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Protected node email support'),
+    '#description' => t('The following allows the users who can protect a node to send an email about the protected node to their friends.'),
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+  );
+
+  $form['protected_node_auto_email']['protected_node_email_box'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Email node information'),
+    '#size' => 12,
+    '#default_value' => variable_get('protected_node_email_box', ''),
+    '#description' => t('Enter the width x height of the email box text area (i.e. 60x5). Leave empty to disable this feature.'),
+  );
+
+  $form['protected_node_auto_email']['protected_node_email_from'] = array(
+    '#type' => 'textfield',
+    '#title' => t('From email address'),
+    '#default_value' => variable_get('protected_node_email_from', ''),
+    '#description' => t('Enter the email address used in the From: header. By default, [site-mail] is used (@mail)', array('@mail' => variable_get('site_mail', '<undefined>'))),
+  );
+
+  $form['protected_node_auto_email']['protected_node_email_subject'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Email subject'),
+    '#default_value' => variable_get('protected_node_email_subject', protected_node_email_subject()),
+    '#description' => t('Enter the subject of the email. You may enter tokens in this field. Remember that [user-name] will be the author name.'),
+  );
+
+  $form['protected_node_auto_email']['protected_node_email_body'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Email content'),
+    '#rows' => 15,
+    '#default_value' => variable_get('protected_node_email_body', protected_node_email_body()),
+    '#description' => t('Enter the body of the email. You may enter tokens in this field. Remember that [user-name] will be the author name.'),
   );
 
   $form['protected_node_form'] = array(
@@ -351,6 +431,29 @@ function _protected_node_admin_settings_validate($form, &$form_state) {
     }
     break;
 
+  }
+
+  // if defined, the email box parameter must be a valid size
+  $email_box = trim($form_state['values']['protected_node_email_box']);
+  if ($email_box) {
+    if (!preg_match('/[0-9]+x[0-9]+/', $email_box)) {
+      form_error($form['protected_node_security']['protected_node_email_box'],
+                 t('The email box must be two numbers separated by the letter x in lowercase.'));
+    }
+    else {
+      list($width, $height) = explode('x', $email_box);
+      if ($width < 10 || $height < 2) {
+        form_error($form['protected_node_security']['protected_node_email_box'],
+                   t('The email box must have a width of at least 10 and a height of at least 2.'));
+      }
+    }
+  }
+
+  if ($form_state['values']['protected_node_email_from']) {
+    if (!valid_email_address($m)) {
+      form_error($form['protected_node_auto_email']['protected_node_email_from'],
+                 t('The From email address is not valid.'));
+    }
   }
 }
 
