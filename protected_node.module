@@ -92,7 +92,9 @@ function protected_node_init() {
 
   // user already entered the password?
   if (!empty($_SESSION['_protected_node']['passwords'][$node->nid])) {
-    if ($_SESSION['_protected_node']['passwords'][$node->nid] > variable_get('protected_node_session_timelimit', 0)) {
+    $when = $_SESSION['_protected_node']['passwords'][$node->nid];
+    if ($when > variable_get('protected_node_session_timelimit', 0) // global reset time
+     && $when > $node->protected_node_passwd_changed) {  // this page reset time
       return;
     }
     // the session is out of date, we can as well get rid of it now
@@ -198,7 +200,9 @@ function protected_node_nodeapi(&$node, $op, $arg = 0, $page = 0) {
           // is there a password?
           if (!isset($_SESSION['_protected_node']['passwords'][$node->nid])) {
             // is password out of date?
-            if ($_SESSION['_protected_node']['passwords'][$node->nid] <= variable_get('protected_node_session_timelimit', 0)) {
+            $when = $_SESSION['_protected_node']['passwords'][$node->nid];
+            if ($when <= variable_get('protected_node_session_timelimit', 0) // global reset time
+             || $when <= $node->protected_node_passwd_changed) {  // this page reset time
               unset($_SESSION['_protected_node']['passwords'][$node->nid]);
             }
           }
@@ -285,19 +289,35 @@ function protected_node_save($node) {
   if ($result) {
     // note: the following test prevents the user from using "0"
     //       as a password.
-    if (empty($node->protected_node_passwd)) {
-      $node->protected_node_passwd = $result;
+    if (isset($node->protected_node_passwd)) {
+      $changed = $node->protected_node_passwd != $result;
+      if (empty($node->protected_node_passwd)) {
+        // keep result if it's empty...
+        $node->protected_node_passwd = $result;
+        $changed = FALSE;
+      }
+      else {
+        $node->protected_node_passwd = sha1($node->protected_node_passwd);
+      }
     }
     else {
-      $node->protected_node_passwd = sha1($node->protected_node_passwd);
+      $changed = FALSE;
+      $node->protected_node_passwd = $result;
     }
     $sql = "UPDATE {protected_nodes} SET protected_node_is_protected = %d,"
-            . " protected_node_passwd = '%s', protected_node_show_title = %d"
-            . " WHERE nid = %d";
-    db_query($sql, $node->protected_node_is_protected,
-                   $node->protected_node_passwd,
-                   $node->protected_node_show_title,
-                   $node->nid);
+            . " protected_node_passwd = '%s', protected_node_show_title = %d";
+    $args = array(
+      $node->protected_node_is_protected,
+      $node->protected_node_passwd,
+      $node->protected_node_show_title,
+    );
+    if ($changed) {
+      $sql .= ", protected_node_passwd_changed = %d";
+      $args[] = time(); // last time the password was changed (i.e. invalidate all existing sessions)
+    }
+    $sql .= " WHERE nid = %d";
+    $args[] = $node->nid;
+    db_query($sql, $args);
   }
   else {
     if (!isset($node->protected_node_passwd)) {
@@ -307,6 +327,8 @@ function protected_node_save($node) {
     elseif($node->protected_node_passwd) {
       $node->protected_node_passwd = sha1($node->protected_node_passwd);
     }
+    // we don't need to set the protected_node_passwd_changed since no
+    // one has ever entered a password for this node
     $sql = "INSERT INTO {protected_nodes} (protected_node_is_protected,"
             . " protected_node_passwd, protected_node_show_title, nid)"
             . " VALUES (%d, '%s', %d, %d)";
@@ -328,12 +350,14 @@ function protected_node_load($nid) {
     return FALSE;
   }
 
-  $sql = 'SELECT protected_node_is_protected, protected_node_passwd, protected_node_show_title FROM {protected_nodes} WHERE nid = %d';
+  $sql = "SELECT protected_node_is_protected, protected_node_passwd, protected_node_passwd_changed,"
+            . " protected_node_show_title FROM {protected_nodes} WHERE nid = %d";
   $result = db_fetch_array(db_query($sql, $nid));
   if (is_array($result)) {
     $result += array(
       'protected_node_is_protected' => FALSE,
       'protected_node_passwd' => '',
+      'protected_node_passwd_changed' => 0,
       'protected_node_show_title' => 0,
     );
   }

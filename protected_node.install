@@ -107,6 +107,12 @@ function protected_node_schema( ) {
         'not null' => TRUE,
         'default' => '',
       ),
+      'protected_node_passwd_changed' => array(
+        'description' => t('Date when the password was last changed'),
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
       'protected_node_show_title' => array(
         'description' => t('Whether the title of the node should also be protected.'),
         'type' => 'int',
@@ -238,6 +244,14 @@ function protected_node_update_6000() {
     // remove the variable
     variable_del($row['name']);
   }
+
+  $field = array(
+    'description' => t('Date when the password was last changed'),
+    'type' => 'int',
+    'not null' => TRUE,
+    'default' => 0,
+  );
+  db_add_field($ret, 'protected_nodes', 'protected_node_passwd_changed', $field);
 
   // request for a rebuild of the node access table
   //node_access_needs_rebuild(TRUE);
