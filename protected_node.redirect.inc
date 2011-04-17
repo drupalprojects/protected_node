@@ -11,6 +11,8 @@
  * It would be a good idea to transform this function in a theme() call instead.
  */
 function protected_node_enterpassword() {
+  global $user;
+
   // make sure we have a destination otherwise there is no password to check
   if (!isset($_GET['destination'])) {
     // Illegal call
@@ -19,7 +21,7 @@ function protected_node_enterpassword() {
   }
 
   // some variable initialization
-  $node = node_load($_SESSION['_protected_node']['current']);
+  $node = node_load($_GET['protected_nid']);
   $types = node_get_types();
   $node_type = $types[$node->type];
   $has_token = module_exists('token');
@@ -29,6 +31,7 @@ function protected_node_enterpassword() {
   if (!empty($title)) {
     if ($has_token) {
       $title = token_replace($title, 'node', $node);
+      $title = token_replace($title, 'user', $user);
     }
     drupal_set_title($title);
   }
@@ -37,6 +40,7 @@ function protected_node_enterpassword() {
   $info = variable_get('protected_node_info', '');
   if ($has_token) {
     $info = token_replace($info, 'node', $node);
+    $info = token_replace($info, 'user', $user);
   }
   $form['protected_node'] = array(
     '#value' => $info,
@@ -60,6 +64,7 @@ function protected_node_enterpassword() {
   }
   elseif ($has_token) {
     $description = token_replace($description, 'node', $node);
+    $description = token_replace($description, 'user', $user);
   }
   $form['protected_node_enterpassword'] = array(
     '#type' => 'fieldset',
@@ -68,16 +73,30 @@ function protected_node_enterpassword() {
   );
 
   // create the password widget
+  $label = variable_get('protected_node_password_label', '');
+  if ($label) {
+    $label = token_replace($label, 'node', $node);
+    $label = token_replace($label, 'user', $user);
+  }
+  else {
+    $label = t('@node_type password', array('@node_type' => $node_type->name));
+  }
   $form['protected_node_enterpassword']['password'] = array(
     '#type' => 'password',
-    '#title' => t('@node_type password', array('@node_type' => $node_type->name)),
+    '#title' => $label,
     '#size' => 20
+  );
+
+  // the node we're working on
+  $form['protected_node_nid'] = array(
+    '#type' => 'hidden',
+    '#value' => $_GET['protected_nid'],
   );
 
   // add a submit button
   $form['protected_node_enterpassword']['submit'] = array(
     '#type' => 'submit',
-    '#value' => t('OK')
+    '#value' => t('OK'),
   );
 
   // add a cancel link when 'back' is defined (i.e. referer on the previous page)
@@ -100,10 +119,25 @@ function protected_node_enterpassword() {
  * Verify that the user entered the correct password.
  */
 function protected_node_enterpassword_validate($form, &$form_state) {
-  $sql = "SELECT nid FROM {protected_nodes} WHERE passwd = '%s' AND nid = %d";
-  $cnt = db_result(db_query($sql, sha1($form['#post']['password']), $_SESSION['_protected_node']['current']));
-  if ($cnt < 1) {
-    form_set_error('password', t('Incorrect password!'));
+  // TODO: we do not want to check the global password if there is a local
+  //       password (i.e. extract local password instead of comparing!)
+  $sql = "SELECT nid FROM {protected_nodes} WHERE protected_node_passwd = '%s' AND nid = %d";
+  $passwd = sha1($form['#post']['password']);
+  $nid = db_result(db_query($sql, $passwd, $form_state['values']['protected_node_nid']));
+  if (empty($nid)) {
+    switch (variable_get('protected_node_use_global_password', PROTECTED_NODE_PER_NODE_PASSWORD)) {
+    case PROTECTED_NODE_PER_NODE_AND_GLOBAL_PASSWORD:
+    case PROTECTED_NODE_GLOBAL_PASSWORD:
+      $global_passwd = variable_get('protected_node_global_password', '');
+      if ($global_passwd == $passwd) {
+        $nid = 1;
+      }
+      break;
+
+    }
+    if (empty($nid)) {
+      form_set_error('password', t('Incorrect password!'));
+    }
   }
 }
 
@@ -111,8 +145,7 @@ function protected_node_enterpassword_validate($form, &$form_state) {
  * Allow the user to see this node.
  */
 function protected_node_enterpassword_submit($form, &$form_state) {
-  $_SESSION['_protected_node']['passwords'][$_SESSION['_protected_node']['current']] = TRUE;
-  unset($_SESSION['_protected_node']['current']);
+  $_SESSION['_protected_node']['passwords'][$form_state['values']['protected_node_nid']] = time();
 }
 
 // vim: ts=2 sw=2 et syntax=php

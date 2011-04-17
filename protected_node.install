@@ -88,27 +88,38 @@ function protected_node_schema( ) {
     'description' => t( 'The table to store the node - password hash pairs.' ),
     'fields' => array(
       'nid' => array(
-        'description' => t( 'The primary identifier for a node' ),
+        'description' => t('The primary identifier for a node'),
         'type' => 'serial',
         'unsigned' => TRUE,
-        'not null' => TRUE
+        'not null' => TRUE,
       ),
-      'passwd' => array(
-        'description' => t( 'The sha1 hashed password for the given node.' ),
+      'protected_node_is_protected' => array(
+        'description' => t('Whether this node is currently protected.'),
+        'type' => 'int',
+        'size' => 'small',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'protected_node_passwd' => array(
+        'description' => t('The sha1 hashed password for the given node.'),
         'type' => 'char',
         'length' => 40,
         'not null' => TRUE,
-        'default' => ''
-      )
+        'default' => '',
+      ),
+      'protected_node_show_title' => array(
+        'description' => t('Whether the title of the node should also be protected.'),
+        'type' => 'int',
+        'size' => 'small',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
     ),
     'indexes' => array(
-      'protected_passwd' => array(
-        'passwd'
-      )
+      'protected_is_protected' => array('protected_node_is_protected'),
+      'protected_passwd' => array('protected_node_passwd'),
     ),
-    'primary key' => array(
-      'nid'
-    )
+    'primary key' => array('nid'),
   );
 
   return $schema;
@@ -118,8 +129,8 @@ function protected_node_schema( ) {
  * Implementation of hook_install().
  */
 function protected_node_install( ) {
-  drupal_install_schema( 'protected_node' );
-  db_query( "UPDATE {system} SET weight = 80 WHERE name = 'protected_node' AND type = 'module'" );
+  drupal_install_schema('protected_node');
+  db_query("UPDATE {system} SET weight = 80 WHERE name = 'protected_node' AND type = 'module'");
 }
 
 /**
@@ -138,11 +149,11 @@ function protected_node_uninstall( ) {
 function protected_node_update_3( ) {
   $ret = array();
 
-  db_change_field( $ret, 'protected_nodes', 'passwd', 'passwd', array(
+  db_change_field($ret, 'protected_nodes', 'passwd', 'passwd', array(
     'type' => 'char',
     'length' => 40,
     'not null' => TRUE
-  ) );
+  ));
 
   return $ret;
 }
@@ -154,9 +165,82 @@ function protected_node_update_3( ) {
  * fixing issue #296685
  *
  */
-function protected_node_update_4( ) {
+function protected_node_update_4() {
   $ret = array();
-  $ret[] = update_sql( "UPDATE {system} SET weight = 80 WHERE name = 'protected_node' AND type = 'module'" );
+  $ret[] = update_sql("UPDATE {system} SET weight = 80 WHERE name = 'protected_node' AND type = 'module'");
+
+  return $ret;
+}
+
+/**
+ * Implementation of hook_update_N().
+ */
+function protected_node_update_6000() {
+  $ret = array();
+
+  // we want an is_protected field so we can load it easily and
+  // we can keep the other parameters even when we unprotect
+  // a node (although it's not that important right now.)
+  $field = array(
+    'type' => 'int',
+    'size' => 'small',
+    'not null' => TRUE,
+    'default' => 0,
+  );
+  db_add_field($ret, 'protected_nodes', 'protected_node_is_protected', $field);
+  db_add_index($ret, 'protected_nodes', 'protected_is_protected', array('protected_node_is_protected'));
+
+  // at this time all the protected node entries meant that the
+  // nodes were protected; yet, we don't want the default to be 1
+  $sql = "UPDATE {protected_nodes} SET protected_node_is_protected = 1";
+  $ret[] = update_sql($sql);
+
+  // rename the password so we can directly append to the $node object
+  // without too much potential for clashes
+  //$field = array(
+  //  'description' => t('The sha1 hashed password for the given node.'),
+  //  'type' => 'char',
+  //  'length' => 40,
+  //  'not null' => TRUE,
+  //  'default' => '',
+  //);
+  //db_change_field($ret, 'protected_nodes', 'passwd', 'protected_node_passwd', $field);
+  //
+  // Core destroys the data in this case because it uses a CAST(passwd AS char) instead
+  // of CHAR(40). (at least that breaks under PostgreSQL.)
+  $sql = "ALTER TABLE {protected_nodes} RENAME passwd TO protected_node_passwd";
+  $ret[] = update_sql($sql);
+
+  // create a column for the show title flag
+  // then copy the flag status from the {variable} table
+  $field = array(
+    'type' => 'int',
+    'size' => 'small',
+    'not null' => TRUE,
+    'default' => 0,
+  );
+  db_add_field($ret, 'protected_nodes', 'protected_node_show_title', $field);
+
+  // the variable value is TRUE, no need to read it
+  $sql_var = "SELECT name FROM {variable} WHERE name LIKE 'protected_node-%-show_title'";
+  $sql_update = "UPDATE {protected_nodes} SET protected_node_show_title = 1 WHERE nid = %d";
+  $result = db_query($sql_var);
+  $ret[] = array('success' => $result !== FALSE, 'query' => check_plain($sql_var));
+  while ($row = db_fetch_array($result)) {
+    // get the node identifier
+    preg_match('/protected_node-([0-9]+)-show_title/', $row['name'], $match);
+    // the update may do nothing if the node was deleted
+    $r = db_query($sql_update, $match[1]);
+    if ($r === FALSE) {
+      // only record failures otherwise we could get thousands of entries...
+      $ret[] = array('success' => FALSE, 'query' => check_plain($sql_update));
+    }
+    // remove the variable
+    variable_del($row['name']);
+  }
+
+  // request for a rebuild of the node access table
+  //node_access_needs_rebuild(TRUE);
 
   return $ret;
 }
