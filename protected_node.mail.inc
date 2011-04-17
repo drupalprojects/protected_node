@@ -30,6 +30,8 @@ function protected_node_send_mail($node) {
   drupal_mail('protected_node', 'password',
               $node->protected_node_emails, 'en',
               array('node' => $node), $from, TRUE);
+
+  drupal_set_message(t('The email about this page was sent to the specified email addresses.'));
 }
 
 /**

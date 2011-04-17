@@ -108,7 +108,7 @@ function protected_node_node_form_alter(&$form) {
   case PROTECTED_NODE_PER_NODE_AND_GLOBAL_PASSWORD:
     $form['protected_node']['protected_node_passwd'] = array(
       '#type' => 'password_confirm',
-      '#description' => t('Enter the @node password here.', array('@node' => $node_type->name)),
+      '#description' => t('Enter the @node password here. Remember that changing the password prevents all the users who knew the old password to continue to access the page.', array('@node' => $node_type->name)),
       '#size' => 20,
       '#after_build' => array('protected_node_autocomplete_off'),
     );
@@ -131,7 +131,7 @@ function protected_node_node_form_alter(&$form) {
         . '<br />'
         . t('<strong>WARNING</strong>: for an email to be sent you MUST (1) protect the node; (2) re-enter the password; (3) publish the page.')
         . '<br />'
-        . t('The password is necessary only if you used [node-password] in the email message.'),
+        . t('The password is necessary only if you used [node-password] in the email message. It is necessary to re-enter it because it is otherwise encrypted in the database.'),
       '#cols' => $width,
       '#rows' => $height,
     );
@@ -259,6 +259,13 @@ function protected_node_admin_settings() {
     '#rows' => 15,
     '#default_value' => variable_get('protected_node_email_body', protected_node_email_body()),
     '#description' => t('Enter the body of the email. You may enter tokens in this field. Remember that [user-name] will be the author name.'),
+  );
+
+  $form['protected_node_auto_email']['protected_node_random_password'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Generate a random password if necessary'),
+    '#default_value' => variable_get('protected_node_random_password', FALSE),
+    '#description' => t('When this flag is set, saving a protected node without re-entering the password will randomize a password and send it to your users. You may enter your email address to know about the password yourself. (It otherwise gets encrypted in the database.)'),
   );
 
   $form['protected_node_form'] = array(

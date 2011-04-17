@@ -152,6 +152,9 @@ function protected_node_form_alter(&$form, &$form_state, $form_id) {
  */
 function protected_node_nodeapi(&$node, $op, $arg = 0, $page = 0) {
   global $user;
+  // ugly but we want to keep some variables between the validation and insert/update
+  global $_protected_node_emails;
+  global $_protected_node_random_passwd;
 
   switch ($op) {
   case 'load':
@@ -159,19 +162,14 @@ function protected_node_nodeapi(&$node, $op, $arg = 0, $page = 0) {
 
   case 'validate':
     if ($node->protected_node_is_protected) {
-      switch (variable_get('protected_node_use_global_password', PROTECTED_NODE_PER_NODE_PASSWORD)) {
-      case PROTECTED_NODE_PER_NODE_PASSWORD:
-        if (empty($node->protected_node_passwd)) {
-          // password missing in database too?
-          $sql = "SELECT protected_node_passwd FROM {protected_nodes} WHERE nid = %d";
-          $result = trim(db_result(db_query($sql, $node->nid))); // getting "    " (40 spaces) when empty
-          if (empty($result)) {
-            // $arg is the form in this case
-            form_error($arg['protected_node']['protected_node_passwd'], t('To protect this page, please enter a password.'));
-          }
+      $missing_password = FALSE;
+      if (empty($node->protected_node_passwd)) {
+        // password missing in database too?
+        $sql = "SELECT protected_node_passwd FROM {protected_nodes} WHERE nid = %d";
+        $result = trim(db_result(db_query($sql, $node->nid))); // getting "    " (40 spaces) when empty
+        if (empty($result)) {
+          $missing_password = TRUE;
         }
-        break;
-
       }
 
       if ($node->protected_node_emails) {
@@ -194,12 +192,28 @@ function protected_node_nodeapi(&$node, $op, $arg = 0, $page = 0) {
               unset($emails[$k]);
             }
           }
-          $node->protected_node_emails = implode(', ', $emails);
+          $_protected_node_emails = implode(', ', $emails);
+          if ($_protected_node_emails && $missing_password && variable_get('protected_node_random_password', FALSE)) {
+            // automatically generate a password for the email (note that means the author won't know the password!)
+            $_protected_node_random_passwd = user_password();
+            $missing_password = FALSE; // not missing anymore
+            drupal_set_message('A random password was generated in order to send the email about this page. Remember that changing the password will prevent users you just emailed from accessing this page.', 'warning');
+          }
         }
         else {
           // the node is not published, forget about emails!
           form_error($arg['protected_node']['protected_node_emails'], t('Invalid email address: @m. Please correct this mistake and try again.', array('@m' => $m)));
-          $node->protected_node_emails = NULL;
+          $_protected_node_emails = '';
+        }
+      }
+
+      if ($missing_password) {
+        switch (variable_get('protected_node_use_global_password', PROTECTED_NODE_PER_NODE_PASSWORD)) {
+        case PROTECTED_NODE_PER_NODE_PASSWORD:
+          // $arg is the form in this case
+          form_error($arg['protected_node']['protected_node_passwd'], t('To protect this page, please enter a password.'));
+          break;
+
         }
       }
     }
@@ -210,6 +224,12 @@ function protected_node_nodeapi(&$node, $op, $arg = 0, $page = 0) {
 
   case 'insert':
   case 'update':
+    if (isset($_protected_node_random_passwd)) {
+      $node->protected_node_passwd = $_protected_node_random_passwd;
+    }
+    if (!empty($_protected_node_emails)) {
+      $node->protected_node_emails = $_protected_node_emails;
+    }
     protected_node_save($node);
     if ($node->protected_node_is_protected && $node->protected_node_emails) {
       module_load_include('mail.inc', 'protected_node');
@@ -313,11 +333,10 @@ function protected_node_file_download($file) {
  * If the node already password protected this method changes the password
  * to the one you provided as $password parameter.
  *
- * @param int $nid The node ID to set protected or change passsword on.
- * @param string $password The password you wish to set.
+ * @param[in,out] object $node The node to be saved.
  * @return boolean TRUE if the action was successful, FALSE otherwise.
  */
-function protected_node_save($node) {
+function protected_node_save(&$node) {
   // we first test whether a protected_nodes entry exist so we can use UPDATE
   // or INSERT accordingly (UPDATE does not always properly report working
   // with MySQL.)
