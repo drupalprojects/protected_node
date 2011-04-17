@@ -13,16 +13,25 @@
 function protected_node_enterpassword() {
   global $user;
 
-  // make sure we have a destination otherwise there is no password to check
-  if (!isset($_GET['destination'])) {
+  // make sure we have a destination and a node nid
+  // otherwise there is no password to check
+  // TODO: extract the nid from the destination URI?
+  if (!isset($_GET['destination']) || empty($_GET['protected_nid']) || !is_numeric($_GET['protected_nid'])) {
     // Illegal call
     watchdog('protected_node', 'Illegal call to /protected-node', array(), WATCHDOG_WARNING);
     drupal_access_denied();
     exit();
   }
 
-  // some variable initialization
   $node = node_load($_GET['protected_nid']);
+  if (!$node) {
+    // Illegal node identifier
+    watchdog('protected_node', 'Invalid nid (@nid) used with /protected-node', array('@nid' => $_GET['protected_nid']), WATCHDOG_WARNING);
+    drupal_access_denied();
+    exit();
+  }
+
+  // some variable initialization
   $types = node_get_types();
   $node_type = $types[$node->type];
   $has_token = module_exists('token');
