@@ -18,6 +18,7 @@ function protected_node_enterpassword() {
     // Illegal call
     watchdog('protected_node', 'Illegal call to /protected-node', array(), WATCHDOG_WARNING);
     drupal_access_denied();
+    exit();
   }
 
   // some variable initialization
