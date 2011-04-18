@@ -664,38 +664,43 @@ function protected_node_set_protected($param, $passwd = NULL) {
       if (empty($passwd)) {
         // in this case, an empty password is fine
         $sql = "UPDATE {protected_nodes} SET protected_node_is_protected = 1 WHERE nid = %d";
-        return db_query($sql, $node->nid) !== FALSE;
+        $result = db_query($sql, $node->nid) !== FALSE;
       }
-
-      // we have to also update the password in this case
-      $sql = "UPDATE {protected_nodes} SET protected_node_is_protected = 1,"
-          . " protected_node_passwd = '%s', protected_node_passwd_changed = %d WHERE nid = %d";
-      return db_query($sql, sha1($passwd), time(), $node->nid) !== FALSE;
-    }
-
-    // no entry in the database yet, add it now
-    if (empty($passwd)) {
-      $passwd = '';
+      else {
+        // we have to also update the password in this case
+        $sql = "UPDATE {protected_nodes} SET protected_node_is_protected = 1,"
+            . " protected_node_passwd = '%s', protected_node_passwd_changed = %d WHERE nid = %d";
+        $result = db_query($sql, sha1($passwd), time(), $node->nid) !== FALSE;
+      }
     }
     else {
-      $passwd = sha1($passwd);
+      // no entry in the database yet, add it now
+      if (empty($passwd)) {
+        $passwd = '';
+      }
+      else {
+        $passwd = sha1($passwd);
+      }
+      $sql = "INSERT INTO {protected_nodes} (protected_node_is_protected,"
+              . " protected_node_passwd, protected_node_show_title, nid)"
+              . " VALUES (1, '%s', %d, %d)";
+      $result = db_query($sql, $passwd,
+                     variable_get('protected_node_show_node_titles', FALSE),
+                     $node->nid) !== FALSE;
     }
-    $sql = "INSERT INTO {protected_nodes} (protected_node_is_protected,"
-            . " protected_node_passwd, protected_node_show_title, nid)"
-            . " VALUES (1, '%s', %d, %d)";
-    return db_query($sql, $passwd,
-                   variable_get('protected_node_show_node_titles', FALSE),
-                   $node->nid) !== FALSE;
+  }
+  else {
+    // the node is already protected, change the password if necessary
+    if (empty($passwd)) {
+      // it is protected; we're done (the password is not to be changed)
+      return TRUE;
+    }
+
+    $sql = "UPDATE {protected_nodes} SET protected_node_passwd = '%s', protected_node_passwd_changed = %d WHERE nid = %d";
+    $result = db_query($sql, sha1($passwd), time(), $node->nid) !== FALSE;
   }
 
-  // the node is already protected, change the password if necessary
-  if (empty($passwd)) {
-    // it is protected; we're done (the password is not to be changed)
-    return TRUE;
-  }
-
-  $sql = "UPDATE {protected_nodes} SET protected_node_passwd = '%s', protected_node_passwd_changed = %d WHERE nid = %d";
-  return db_query($sql, sha1($passwd), time(), $node->nid) !== FALSE;
+  return $result;
 }
 
 /**
@@ -726,6 +731,30 @@ function protected_node_isset_protected($nid) {
   }
 
   return db_result(db_query("SELECT protected_node_is_protected FROM {protected_nodes} WHERE nid = %d", $nid)) == 1;
+}
+
+/**
+ * Revoke access to the current from the specified protected node.
+ */
+function protected_node_lock($nid) {
+  if (is_numeric($nid)) {
+    unset($_SESSION['_protected_node']['passwords'][$nid]);
+  }
+}
+
+/**
+ * Give access to the current user to the specified protected node.
+ */
+function protected_node_unlock($nid) {
+  if (is_numeric($nid)) {
+    // make sure the node exists
+    $node = node_load($nid);
+    if ($node->protected_node_is_protected) {
+      $_SESSION['_protected_node']['passwords'][$nid] = time();
+      return TRUE;
+    }
+  }
+  return FALSE;
 }
 
 // vim: ts=2 sw=2 et syntax=php

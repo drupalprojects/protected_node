@@ -3,3 +3,4 @@ description = Controls whether selected nodes are protected with a password. Wor
 core = 6.x
 package = Access
 recommends[] = tokens
+recommends[] = upload
