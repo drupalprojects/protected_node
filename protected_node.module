@@ -105,7 +105,7 @@ function protected_node_init() {
   if (!empty($_SERVER['HTTP_REFERER'])) {
     $query .= '&back=' . urlencode($_SERVER['HTTP_REFERER']);
   }
-  $query .= '&protected_nid=' . $node->nid;
+  $query .= '&protected_page=' . $node->nid;
 
   drupal_goto('protected-node', $query);
 }

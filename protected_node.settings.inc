@@ -49,12 +49,21 @@ function protected_node_menu_array() {
   );
   $items['protected-node'] = array(
     'title' => 'Protected page - Enter Password',
-    'description' => 'Here you can enter the password for the node',
+    'description' => 'Here you can enter the password for protected pages',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('protected_node_enterpassword'),
     'access arguments' => array('access protected content'),
     'type' => MENU_CALLBACK,
     'file' => 'protected_node.redirect.inc'
+  );
+  $items['protected-nodes'] = array(
+    'title' => 'Protected page - Enter Password',
+    'description' => 'Here you can enter the password for protected pages',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('protected_node_enter_any_password'),
+    'access arguments' => array('access protected content'),
+    'type' => MENU_CALLBACK,
+    'file' => 'protected_node.fork.inc'
   );
 
   return $items;

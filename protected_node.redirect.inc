@@ -7,7 +7,22 @@
 /**
  * Create the form asking the end users for the node password.
  *
- * \todo
+ * The function expects two $_GET with variables named: destination
+ * and protected_page. The destination is a URL back to the protected
+ * page of which the password is being required. The protected_page
+ * variable is set to the nid of that protected page (see todo below).
+ *
+ * The function accepts a $_GET named 'back'. This is a URL used for the
+ * Cancel link shown next to the OKAY button.
+ *
+ * @todo
+ * The redirection uses a destination and a protected_page parameter. The
+ * protected_page can be infered from the destination since the destination
+ * represents a node. We want to remove the use of the protected_page because
+ * that could be set to a node nid that has nothing to do with the destination
+ * (which is not a security risk, but can make it confusing.)
+ *
+ * @todo
  * It would be a good idea to transform this function in a theme() call instead.
  */
 function protected_node_enterpassword() {
@@ -16,17 +31,17 @@ function protected_node_enterpassword() {
   // make sure we have a destination and a node nid
   // otherwise there is no password to check
   // TODO: extract the nid from the destination URI?
-  if (!isset($_GET['destination']) || empty($_GET['protected_nid']) || !is_numeric($_GET['protected_nid'])) {
+  if (!isset($_GET['destination']) || empty($_GET['protected_page']) || !is_numeric($_GET['protected_page'])) {
     // Illegal call
     watchdog('protected_node', 'Illegal call to /protected-node', array(), WATCHDOG_WARNING);
     drupal_access_denied();
     exit();
   }
 
-  $node = node_load($_GET['protected_nid']);
+  $node = node_load($_GET['protected_page']);
   if (!$node) {
     // Illegal node identifier
-    watchdog('protected_node', 'Invalid nid (@nid) used with /protected-node', array('@nid' => $_GET['protected_nid']), WATCHDOG_WARNING);
+    watchdog('protected_node', 'Invalid nid (@nid) used with /protected-node', array('@nid' => $_GET['protected_page']), WATCHDOG_WARNING);
     drupal_access_denied();
     exit();
   }
@@ -57,8 +72,6 @@ function protected_node_enterpassword() {
   );
 
   // enter the detailed description of the protected node password
-  //            array('@node' => $node_type->name,
-  //                  '@title' =>  ? '"'.$node->title.'"' : '')
   $description = variable_get('protected_node_description', '');
   if (!$description) {
     // TODO: this needs to move to {protected_node} and be loaded along the other information
@@ -100,7 +113,7 @@ function protected_node_enterpassword() {
   // the node we're working on
   $form['protected_node_nid'] = array(
     '#type' => 'hidden',
-    '#value' => $_GET['protected_nid'],
+    '#value' => $_GET['protected_page'],
   );
 
   // add a submit button
@@ -131,6 +144,7 @@ function protected_node_enterpassword() {
 function protected_node_enterpassword_validate($form, &$form_state) {
   // TODO: we do not want to check the global password if there is a local
   //       password (i.e. extract local password instead of comparing!)
+  // TODO: the protected_node_nid parameter should be extracted from the destination URI
   $sql = "SELECT nid FROM {protected_nodes} WHERE protected_node_passwd = '%s' AND nid = %d";
   $passwd = sha1($form['#post']['password']);
   $nid = db_result(db_query($sql, $passwd, $form_state['values']['protected_node_nid']));
@@ -155,6 +169,7 @@ function protected_node_enterpassword_validate($form, &$form_state) {
  * Allow the user to see this node.
  */
 function protected_node_enterpassword_submit($form, &$form_state) {
+  // TODO: the protected_node_nid parameter should be extracted from the destination URI
   $_SESSION['_protected_node']['passwords'][$form_state['values']['protected_node_nid']] = time();
 }
 
