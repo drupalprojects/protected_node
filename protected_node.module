@@ -55,18 +55,45 @@ function protected_node_init() {
 
   // are we about to display a node?
   // can user see all nodes anyway?
-  if (arg(0) != 'node' || !is_numeric(arg(1)) || user_access('bypass password protection')) {
+  if (user_access('bypass password protection')) {
     return;
   }
 
+  $nid = FALSE;
+  if (arg(0) == 'node' && is_numeric(arg(1))) {
+    $nid = protected_node_is_locked(arg(1));
+  }
+  elseif (arg(0) == 'system' && arg(1) == 'files') {
+    $filename = arg(2);
+    if (!empty($filename)) {
+      $nid = protected_node_and_attachment($filename);
+    }
+  }
+
+  if ($nid) {
+    $query = drupal_get_destination();
+    if (!empty($_SERVER['HTTP_REFERER'])) {
+      $query .= '&back=' . urlencode($_SERVER['HTTP_REFERER']);
+    }
+    $query .= '&protected_page=' . $nid;
+
+    drupal_goto('protected-node', $query);
+  }
+}
+
+/**
+ * Check whether a node is protected and a password is required.
+ */
+function protected_node_is_locked($nid) {
   // get the node
-  $node = node_load(arg(1));
+  $node = node_load($nid);
 
   // is the node protected?
   if (!$node->protected_node_is_protected) {
-    return;
+    return FALSE;
   }
 
+  // anonymous user?
   if (!$user->uid) {
     // do not cache anything for anonymous users as that could make
     // the content of the page available to people who never enter
@@ -76,9 +103,9 @@ function protected_node_init() {
     }
   }
   else {
-    // author looking at his work?
+    // author looking at his work? (if not anonymous)
     if ($node->uid === $user->uid) {
-      return;
+      return FALSE;
     }
   }
 
@@ -87,28 +114,79 @@ function protected_node_init() {
   // change the URL on the user.)
   if (!user_access('access protected content')) {
     drupal_access_denied();
-    return;
+    return FALSE;
   }
 
   // user already entered the password?
-  if (!empty($_SESSION['_protected_node']['passwords'][$node->nid])) {
-    $when = $_SESSION['_protected_node']['passwords'][$node->nid];
+  if (!empty($_SESSION['_protected_node']['passwords'][$nid])) {
+    $when = $_SESSION['_protected_node']['passwords'][$nid];
     if ($when > variable_get('protected_node_session_timelimit', 0) // global reset time
      && $when > $node->protected_node_passwd_changed) {  // this page reset time
-      return;
+      return FALSE;
     }
     // the session is out of date, we can as well get rid of it now
-    unset($_SESSION['_protected_node']['passwords'][$node->nid]);
+    unset($_SESSION['_protected_node']['passwords'][$nid]);
   }
 
-  $query = drupal_get_destination();
-  if (!empty($_SERVER['HTTP_REFERER'])) {
-    $query .= '&back=' . urlencode($_SERVER['HTTP_REFERER']);
-  }
-  $query .= '&protected_page=' . $node->nid;
-
-  drupal_goto('protected-node', $query);
+  return $nid;
 }
+
+/**
+ * If gathering an attachment, verify that it is accessible and if
+ * not ask for the password.
+ *
+ * @param[in] $filename  The name of the attachment file.
+ */
+function protected_node_and_attachment($filename) {
+  global $user;
+
+  // the upload module glues the attachments and nodes together
+  // without that module, we cannot test anything here
+  // (it is not required anyway if the user is going to the /node/#
+  // page itself.)
+  if (user_access('bypass password protection') || !module_exists('upload')) {
+    return FALSE;
+  }
+
+  // check whether the node linked to this file attachment is protected
+  $sql = "SELECT u.nid, n.uid, pn.protected_node_passwd_changed"
+        . " FROM {files} f, {upload} u, {protected_nodes} pn, {node} n"
+        . " WHERE pn.nid = u.nid AND u.nid = n.nid AND f.filename = '%s' AND u.fid = f.fid"
+            . " AND pn.protected_node_is_protected = 1";
+  $file_info = db_fetch_array(db_query($sql, $filename));
+  if ($file_info === FALSE  // row doesn't exist, it's not protected
+   || ($user->uid && $user->uid == $file_info['uid'])) { // $user is the author
+    return FALSE;
+  }
+
+  // got the password?
+  if (isset($_SESSION['_protected_node']['passwords'][$file_info['nid']])) {
+    $when = $_SESSION['_protected_node']['passwords'][$file_info['nid']];
+    if ($when > $file_info['protected_node_passwd_changed']  // this page reset time
+     && $when > variable_get('protected_node_session_timelimit', 0)) { // global reset time
+      return FALSE;
+    }
+  }
+
+  // avoid the drupal_goto() if another module anyway forbids access
+  // to the file
+  foreach (module_implements('file_download') as $module) {
+    // skip ourself, we already know the answer!
+    if ($module != 'protected_node') {
+      $function = $module . '_file_download';
+      $result = call_user_func_array($function, array($filename));
+      if (isset($result) && $result == -1) {
+        // this $module forbids the file download, forget it
+        // a password won't help
+        return FALSE;
+      }
+    }
+  }
+
+  // no password, access denied
+  return $file_info['nid'];
+}
+
 
 /**
  * Call module implemented functions with a parameter passed as reference
@@ -172,7 +250,7 @@ function protected_node_nodeapi(&$node, $op, $arg = 0, $page = 0) {
         }
       }
 
-      if ($node->protected_node_emails) {
+      if (!empty($node->protected_node_emails)) {
         if ($node->status) {
           // verify each email address
           $emails = explode(',', str_replace(array("\r", "\n"), ',', $node->protected_node_emails));
@@ -217,7 +295,7 @@ function protected_node_nodeapi(&$node, $op, $arg = 0, $page = 0) {
         }
       }
     }
-    elseif (trim($node->protected_node_emails)) {
+    elseif (isset($node->protected_node_emails) && trim($node->protected_node_emails)) {
       form_error($arg['protected_node']['protected_node_emails'], t('No email can be sent by the protected node module when the node is not protected.'));
     }
     break;
@@ -231,7 +309,7 @@ function protected_node_nodeapi(&$node, $op, $arg = 0, $page = 0) {
       $node->protected_node_emails = $_protected_node_emails;
     }
     protected_node_save($node);
-    if ($node->protected_node_is_protected && $node->protected_node_emails) {
+    if ($node->protected_node_is_protected && !empty($node->protected_node_emails)) {
       module_load_include('mail.inc', 'protected_node');
       protected_node_send_mail($node);
     }
@@ -312,14 +390,36 @@ function protected_node_protected_node_hide(&$node) {
 function protected_node_file_download($file) {
   global $user;
 
-  $db_file = db_result(db_query('SELECT u.nid FROM {files} f, {upload} u, {protected_nodes} pn, {node} n WHERE pn.nid = u.nid AND u.nid = n.nid AND f.filename = \'%s\' AND u.fid = f.fid', $file));
-  // TODO: $db_file is compared to $user->uid, but set to u.nid (N and not U)
-  if (db_error() || $db_file === FALSE || $user->uid == $db_file || $_SESSION['_protected_node']['passwords'][$db_file] || user_access('bypass password protection')) {
+  // the upload module glues the attachments and nodes together
+  // without that module, we cannot test anything here
+  // (it is not required anyway if the user is going to the /node/#
+  // page itself.)
+  if (user_access('bypass password protection') || !module_exists('upload')) {
     return array();
   }
-  else {
-    return -1;
+
+  // check whether the node linked to this file attachment is protected
+  $sql = "SELECT u.nid, n.uid, pn.protected_node_passwd_changed"
+        . " FROM {files} f, {upload} u, {protected_nodes} pn, {node} n"
+        . " WHERE pn.nid = u.nid AND u.nid = n.nid AND f.filename = '%s' AND u.fid = f.fid"
+            . " AND pn.protected_node_is_protected = 1";
+  $file_info = db_fetch_array(db_query($sql, $file));
+  if ($file_info === FALSE  // row doesn't exist, it's not protected
+   || ($user->uid && $user->uid == $file_info['uid'])) { // $user is the author
+    return array();
   }
+
+  // got the password?
+  if (isset($_SESSION['_protected_node']['passwords'][$file_info['nid']])) {
+    $when = $_SESSION['_protected_node']['passwords'][$file_info['nid']];
+    if ($when > $file_info['protected_node_passwd_changed']  // this page reset time
+     && $when > variable_get('protected_node_session_timelimit', 0)) { // global reset time
+      return array();
+    }
+  }
+
+  // no password, access denied
+  return -1;
 }
 
 /*
