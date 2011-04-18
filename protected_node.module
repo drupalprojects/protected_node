@@ -316,7 +316,7 @@ function protected_node_nodeapi(&$node, $op, $arg = 0, $page = 0) {
     break;
 
   case 'view':
-    if ($node->protected_node_is_protected) {
+    if (!empty($node->protected_node_is_protected)) {
       // Accessed for search indexing? (usually by cron.php)
       if ($node->build_mode == NODE_BUILD_SEARCH_INDEX) {
         // "user" could see the node, but at this time, not its contents
@@ -561,20 +561,6 @@ function protected_node_token_values($type, $object = NULL, $options = array()) 
 }
 
 /**
- * This method determines the protected flag status for the given node id.
- *
- * @param int $nid The node id you wish to check for.
- * @return boolean TRUE if the node identified by the nid you provided is protected, FALSE otherwise.
- */
-function protected_node_isset_protected($nid) {
-  if (!is_numeric($nid)) {
-    return FALSE;
-  }
-
-  return db_result(db_query('SELECT protected_node_is_protected FROM {protected_nodes} WHERE nid = %d', $nid)) == 1;
-}
-
-/**
  * After_build function to disable autocomplete for the password fields.
  *
  * Without this FF >= 3 will attempt to autocomplete the fields with the user's login info.
@@ -644,6 +630,102 @@ function protected_node_content_extra_fields($type_name) {
   );
 
   return $extra;
+}
+
+/**
+ * This method marks the specified node as protected.
+ *
+ * The method accepts a password. It is legal to not pass a password in
+ * which case the previously defined password is used or the global password.
+ * If no password is available, then the node gets locked until edited by
+ * the author or the administrator (UID=1) and a password is added.
+ *
+ * If the \p $passwd parameter is set, then the change is marked in the
+ * database. In other words, all users who had previously enter a password
+ * will be kicked out.
+ *
+ * @param[in] $param  The node identifier or whatever valid $param passed to node_load.
+ * @param[in] $passwd  The node password.
+ *
+ * @return TRUE if the node is protection on return.
+ */
+function protected_node_set_protected($param, $passwd = NULL) {
+  // get the existing node
+  $node = node_load($param);
+  if ($node == FALSE) {
+    // not even a valid node identifier?!
+    return FALSE;
+  }
+
+  if (empty($node->protected_node_is_protected)) {
+    // node exists in our table?
+    $r = db_result(db_query("SELECT nid FROM {protected_nodes} WHERE nid = %d", $node->nid));
+    if ($r) {
+      if (empty($passwd)) {
+        // in this case, an empty password is fine
+        $sql = "UPDATE {protected_nodes} SET protected_node_is_protected = 1 WHERE nid = %d";
+        return db_query($sql, $node->nid) !== FALSE;
+      }
+
+      // we have to also update the password in this case
+      $sql = "UPDATE {protected_nodes} SET protected_node_is_protected = 1,"
+          . " protected_node_passwd = '%s', protected_node_passwd_changed = %d WHERE nid = %d";
+      return db_query($sql, sha1($passwd), time(), $node->nid) !== FALSE;
+    }
+
+    // no entry in the database yet, add it now
+    if (empty($passwd)) {
+      $passwd = '';
+    }
+    else {
+      $passwd = sha1($passwd);
+    }
+    $sql = "INSERT INTO {protected_nodes} (protected_node_is_protected,"
+            . " protected_node_passwd, protected_node_show_title, nid)"
+            . " VALUES (1, '%s', %d, %d)";
+    return db_query($sql, $passwd,
+                   variable_get('protected_node_show_node_titles', FALSE),
+                   $node->nid) !== FALSE;
+  }
+
+  // the node is already protected, change the password if necessary
+  if (empty($passwd)) {
+    // it is protected; we're done (the password is not to be changed)
+    return TRUE;
+  }
+
+  $sql = "UPDATE {protected_nodes} SET protected_node_passwd = '%s', protected_node_passwd_changed = %d WHERE nid = %d";
+  return db_query($sql, sha1($passwd), time(), $node->nid) !== FALSE;
+}
+
+/**
+ * This method marks the specified node as unprotected.
+ *
+ * @param[in] int $nid  The node identifier.
+ *
+ * @return TRUE if the node was protected before the call, FALSE otherwise.
+ */
+function protected_node_unset_protected($nid) {
+  $r = db_result(db_query("SELECT protected_node_is_protected FROM {protected_nodes} WHERE nid = %d", $nid)) == 1;
+
+  db_query("UPDATE {protected_nodes} SET protected_node_is_protected = 0 WHERE nid = %d", $nid);
+
+  return $r;
+}
+
+/**
+ * This method determines the protected flag status for the given node id.
+ *
+ * @param[in] int $nid The node id you wish to check for.
+ *
+ * @return boolean TRUE if the node identified by the nid you provided is protected, FALSE otherwise.
+ */
+function protected_node_isset_protected($nid) {
+  if (!is_numeric($nid)) {
+    return FALSE;
+  }
+
+  return db_result(db_query("SELECT protected_node_is_protected FROM {protected_nodes} WHERE nid = %d", $nid)) == 1;
 }
 
 // vim: ts=2 sw=2 et syntax=php
