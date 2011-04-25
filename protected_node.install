@@ -224,7 +224,18 @@ function protected_node_update_6000() {
   //
   // Core destroys the data in this case because it uses a CAST(passwd AS char) instead
   // of CHAR(40). (at least that breaks under PostgreSQL.)
-  $sql = "ALTER TABLE {protected_nodes} RENAME passwd TO protected_node_passwd";
+  // And of course MySQL does not support the RENAME COLUMN feature...
+  switch () {
+  case 'mysql':
+  case 'mysqli':
+    $sql = "ALTER TABLE {protected_nodes} CHANGE passwd protected_node_passwd CHAR(40) NOT NULL";
+    break;
+
+  case 'pgsql': // also works in Oracle9i+
+    $sql = "ALTER TABLE {protected_nodes} RENAME COLUMN passwd TO protected_node_passwd";
+    break;
+
+  }
   $ret[] = update_sql($sql);
 
   // create a column for the show title flag
