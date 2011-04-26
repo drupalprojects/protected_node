@@ -192,6 +192,8 @@ function protected_node_update_4() {
  * Implementation of hook_update_N().
  */
 function protected_node_update_6000() {
+  global $db_type;
+
   $ret = array();
 
   // we want an is_protected field so we can load it easily and
@@ -225,7 +227,7 @@ function protected_node_update_6000() {
   // Core destroys the data in this case because it uses a CAST(passwd AS char) instead
   // of CHAR(40). (at least that breaks under PostgreSQL.)
   // And of course MySQL does not support the RENAME COLUMN feature...
-  switch () {
+  switch ($db_type) {
   case 'mysql':
   case 'mysqli':
     $sql = "ALTER TABLE {protected_nodes} CHANGE passwd protected_node_passwd CHAR(40) NOT NULL";
