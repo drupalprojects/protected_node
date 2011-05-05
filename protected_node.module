@@ -28,10 +28,11 @@ function protected_node_perm() {
   $perms = array(
     'access protected content',
     'bypass password protection',
-    'edit protected content',
+    'edit any password',
+    'view protected content',
   );
   foreach (array_keys(node_get_types()) as $type) {
-    $perms[] = 'edit protected ' . $type;
+    $perms[] = 'edit ' . $type . ' password';
   }
 
   return $perms;
@@ -44,6 +45,48 @@ function protected_node_perm() {
 function protected_node_menu() {
   module_load_include('settings.inc', 'protected_node');
   return protected_node_menu_array();
+}
+
+/**
+ * Callback function to determine who can enter a password.
+ */
+function protected_node_access_callback() {
+  global $user;
+
+  // super user?
+  if ($user->uid == 1) {
+    return TRUE;
+  }
+  if (!user_access('access protected content')) {
+    return FALSE;
+  }
+
+  // is $nid properly defined?
+  if (empty($_GET['protected_page']) || !is_numeric($_GET['protected_page'])) {
+    return FALSE;
+  }
+
+  // valid node?
+  $node = node_load($_GET['protected_page']);
+  if (!$node) {
+    return FALSE;
+  }
+
+  // editing/deleting? user has edit right?
+  if (substr($_GET['destination'], 0, 5) == 'node/') {
+    if (substr($_GET['destination'], -5) == '/edit') {
+      if (!node_access('update', $node)) {
+        return FALSE;
+      }
+    }
+    else if(substr($_GET['destination'], -7) == '/delete') {
+      if (!node_access('delete', $node)) {
+        return FALSE;
+      }
+    }
+  }
+
+  return TRUE;
 }
 
 /**
@@ -60,13 +103,30 @@ function protected_node_init() {
   }
 
   $nid = FALSE;
+  $param2 = arg(2);
   if (arg(0) == 'node' && is_numeric(arg(1))) {
-    $nid = protected_node_is_locked(arg(1));
+    if ($param2 === NULL) {
+      $nid = protected_node_is_locked(arg(1), 'view');
+      if ($nid === -1) {
+        return;
+      }
+    }
+    elseif ($param2 == 'edit' || $param2 == 'delete') {
+      $nid = protected_node_is_locked(arg(1), $param2);
+    }
+    else {
+      // any access right?
+      $nid = protected_node_is_locked(arg(1));
+    }
+    if ($nid === TRUE || $nid === -1) {
+      drupal_access_denied();
+      exit();
+    }
   }
   elseif (arg(0) == 'system' && arg(1) == 'files') {
-    $filename = arg(2);
-    if (!empty($filename)) {
-      $nid = protected_node_and_attachment($filename);
+    if (!empty($param2)) {
+      // $param2 is a filename in this case
+      $nid = protected_node_and_attachment($param2);
     }
   }
 
@@ -83,8 +143,16 @@ function protected_node_init() {
 
 /**
  * Check whether a node is protected and a password is required.
+ *
+ * \param[in] $nid The node identifier.
+ * \param[in] $op Operation: 'access', 'view', 'edit', or 'delete'
+ *
+ * \return FALSE if the node is not protected for the current user.
+ *         Return TRUE if it is protected and cannot be viewed by
+ *         the current user. Return $nid if the user has a chance
+ *         to unlock this protected node by entering the password.
  */
-function protected_node_is_locked($nid) {
+function protected_node_is_locked($nid, $op = 'access') {
   // get the node
   $node = node_load($nid);
 
@@ -99,6 +167,7 @@ function protected_node_is_locked($nid) {
     // the content of the page available to people who never enter
     // the password (especially with aggressive caching.)
     if (variable_get('cache', CACHE_DISABLED)) {
+      // prevent caching (do NOT use variable_set() since this is temporary for this session.)
       $GLOBALS['conf']['cache'] = CACHE_DISABLED;
     }
   }
@@ -113,12 +182,37 @@ function protected_node_is_locked($nid) {
   // (this check avoids the rather useless drupal_goto() and thus does not
   // change the URL on the user.)
   if (!user_access('access protected content')) {
-    drupal_access_denied();
-    return FALSE;
+    return TRUE;
+  }
+
+  // if the user is only trying to view this node, accept
+  if ($op == 'view') {
+    if (user_access('view protected content') && node_access('view', $node)) {
+      // user's got view permission without password
+      // (password for edit/delete rights.)
+      return -1;
+    }
+  }
+  elseif ($op == 'edit') {
+    if (!node_access('update', $node)) {
+      // no rights to edit
+      return TRUE;
+    }
+    // rights to edit, but password is still required in this case!
+  }
+  elseif ($op == 'delete') {
+    if (!node_access('delete', $node)) {
+      // no rights to delete
+      return TRUE;
+    }
+    // rights to delete, but password is still required in this case!
+  }
+  else {
+    return TRUE;
   }
 
   // user already entered the password?
-  if (!empty($_SESSION['_protected_node']['passwords'][$nid])) {
+  if (isset($_SESSION['_protected_node']['passwords'][$nid])) {
     $when = $_SESSION['_protected_node']['passwords'][$nid];
     if ($when > variable_get('protected_node_session_timelimit', 0) // global reset time
      && $when > $node->protected_node_passwd_changed) {  // this page reset time
@@ -166,6 +260,8 @@ function protected_node_and_attachment($filename) {
      && $when > variable_get('protected_node_session_timelimit', 0)) { // global reset time
       return FALSE;
     }
+    // the session is out of date, we can as well get rid of it now
+    unset($_SESSION['_protected_node']['passwords'][$file_info['nid']]);
   }
 
   // avoid the drupal_goto() if another module anyway forbids access
@@ -207,10 +303,11 @@ function protected_node_invoke($hook, &$param) {
  * Implementation of hook_form_alter().
  * @link http://api.drupal.org/api/function/hook_form_alter/6
  *
- * Add the protected node form widgets.
+ * Add the protected node form widgets assuming the user editing this
+ * node as permission to do so on this type of node.
  *
  * Turn off the auto-complete feature on this form since it could otherwise
- * pre-fill the password with a wrong parameter.
+ * pre-fill the password with the wrong parameter.
  *
  * @param[in,out] $form  The form to alter
  * @param[in,out] $form_state  The current state of the form
@@ -218,7 +315,7 @@ function protected_node_invoke($hook, &$param) {
  */
 function protected_node_form_alter(&$form, &$form_state, $form_id) {
   if (isset($form['type']['#value']) && $form['#id'] == 'node-form'
-  && (user_access('edit protected content') || user_access('edit protected ' . $form['type']['#value']))) {
+  && (user_access('edit any password') || user_access('edit ' . $form['type']['#value'] . ' password'))) {
     module_load_include('settings.inc', 'protected_node');
     protected_node_node_form_alter($form);
   }
@@ -239,7 +336,8 @@ function protected_node_nodeapi(&$node, $op, $arg = 0, $page = 0) {
     return protected_node_load($node->nid);
 
   case 'validate':
-    if ($node->protected_node_is_protected) {
+    if ($node->protected_node_is_protected
+    && (user_access('edit any password') || user_access('edit ' . $form['type']['#value'] . ' password'))) {
       $missing_password = FALSE;
       if (empty($node->protected_node_passwd)) {
         // password missing in database too?
@@ -302,16 +400,18 @@ function protected_node_nodeapi(&$node, $op, $arg = 0, $page = 0) {
 
   case 'insert':
   case 'update':
-    if (isset($_protected_node_random_passwd)) {
-      $node->protected_node_passwd = $_protected_node_random_passwd;
-    }
-    if (!empty($_protected_node_emails)) {
-      $node->protected_node_emails = $_protected_node_emails;
-    }
-    protected_node_save($node);
-    if ($node->protected_node_is_protected && !empty($node->protected_node_emails)) {
-      module_load_include('mail.inc', 'protected_node');
-      protected_node_send_mail($node);
+    if (user_access('edit any password') || user_access('edit ' . $node->type . ' password')) {
+      if (isset($_protected_node_random_passwd)) {
+        $node->protected_node_passwd = $_protected_node_random_passwd;
+      }
+      if (!empty($_protected_node_emails)) {
+        $node->protected_node_emails = $_protected_node_emails;
+      }
+      protected_node_save($node);
+      if ($node->protected_node_is_protected && !empty($node->protected_node_emails)) {
+        module_load_include('mail.inc', 'protected_node');
+        protected_node_send_mail($node);
+      }
     }
     break;
 
@@ -325,14 +425,15 @@ function protected_node_nodeapi(&$node, $op, $arg = 0, $page = 0) {
         // be searching so we let go without the access denied error.)
         protected_node_invoke('protected_node_hide', $node);
       }
-      elseif (!user_access('bypass password protection')) {
-        if (!$user->uid && variable_get('cache', 0)) {
-          $GLOBALS['conf']['cache'] = FALSE;
+      elseif (!user_access('bypass password protection') && !user_access('view protected content')) {
+        if (!$user->uid && variable_get('cache', CACHE_DISABLED)) {
+          // prevent caching (do NOT use variable_set() since this is temporary for this session.)
+          $GLOBALS['conf']['cache'] = CACHE_DISABLED;
         }
 
         if ($node->uid !== $user->uid) {
           // is there a password?
-          if (!isset($_SESSION['_protected_node']['passwords'][$node->nid])) {
+          if (isset($_SESSION['_protected_node']['passwords'][$node->nid])) {
             // is password out of date?
             $when = $_SESSION['_protected_node']['passwords'][$node->nid];
             if ($when <= variable_get('protected_node_session_timelimit', 0) // global reset time
@@ -342,7 +443,7 @@ function protected_node_nodeapi(&$node, $op, $arg = 0, $page = 0) {
           }
           if (!isset($_SESSION['_protected_node']['passwords'][$node->nid])) {
             if (!user_access('access protected content')) {
-              // user will never be given access (no drupal_goto() call)
+              // user will never be given access (no drupal_goto() call necessary)
               drupal_access_denied();
               exit();
             }
@@ -462,11 +563,13 @@ function protected_node_save(&$node) {
       $node->protected_node_passwd = $result;
     }
     $sql = "UPDATE {protected_nodes} SET protected_node_is_protected = %d,"
-            . " protected_node_passwd = '%s', protected_node_show_title = %d";
+            . " protected_node_passwd = '%s', protected_node_show_title = %d,"
+            . " protected_node_hint = '%s'";
     $args = array(
       $node->protected_node_is_protected,
       $node->protected_node_passwd,
       $node->protected_node_show_title,
+      isset($node->protected_node_hint) ? $node->protected_node_hint : '',
     );
     if ($changed) {
       $sql .= ", protected_node_passwd_changed = %d";
@@ -509,7 +612,7 @@ function protected_node_load($nid) {
   }
 
   $sql = "SELECT protected_node_is_protected, protected_node_passwd, protected_node_passwd_changed,"
-            . " protected_node_show_title FROM {protected_nodes} WHERE nid = %d";
+            . " protected_node_show_title, protected_node_hint FROM {protected_nodes} WHERE nid = %d";
   $result = db_fetch_array(db_query($sql, $nid));
   if (is_array($result)) {
     $result += array(
@@ -517,11 +620,12 @@ function protected_node_load($nid) {
       'protected_node_passwd' => '',
       'protected_node_passwd_changed' => 0,
       'protected_node_show_title' => 0,
+      'protected_node_hint' => '',
     );
   }
 
   // the password is a CHAR(40) and when empty it's all spaces
-  // (this is possible when the global password is to be used)
+  // (this is possible when the global password is used)
   $result['protected_node_passwd'] = trim($result['protected_node_passwd']);
 
   return $result;
@@ -538,6 +642,7 @@ function protected_node_token_list($type = 'all') {
     $tokens['node']['node-is-protected']        = t('Whether the node is protected (yes/no).');
     $tokens['node']['node-password']            = t('The password in clear (only if available, empty otherwise).');
     $tokens['node']['node-protected-title']     = t('Whether the title node of the node is protected (yes/no).');
+    $tokens['node']['node-password-hint']       = t('The password hint as entered in this node.');
     return $tokens;
   }
 }
@@ -551,11 +656,13 @@ function protected_node_token_values($type, $object = NULL, $options = array()) 
       $tokens['node-is-protected'] = t('no');
       $tokens['node-password'] = '';
       $tokens['node-protected-title'] = '';
+      $tokens['node-password-hint'] = '';
     }
     else {
       $tokens['node-is-protected'] = t('yes');
       $tokens['node-password'] = empty($object->protected_node_clear_passwd) ? '' : $object->protected_node_clear_passwd;
       $tokens['node-protected-title'] = empty($object->protected_node_show_title) ? t('yes') : t('no');
+      $tokens['node-password-hint'] = $object->protected_node_hint;
     }
     return $tokens;
   }
@@ -722,7 +829,10 @@ function protected_node_unset_protected($nid) {
 /**
  * This method determines the protected flag status for the given node id.
  *
- * @param[in] int $nid The node id you wish to check for.
+ * Note that doesn't mean the node is protected for the current user
+ * (i.e. the current user may have entered the password successfully.)
+ *
+ * @param[in] int $nid  The node id to check.
  *
  * @return boolean TRUE if the node identified by the nid you provided is protected, FALSE otherwise.
  */
@@ -735,16 +845,32 @@ function protected_node_isset_protected($nid) {
 }
 
 /**
- * Revoke access to the current from the specified protected node.
+ * Revoke access to the current used from the specified protected node.
+ * The effect is immediate.
+ *
+ * Note that the date is not checked so it is possible that the node was
+ * already locked and this function still returns TRUE (i.e. the lock
+ * release was out of date and thus the node was anyway not accessible.)
+ *
+ * @param[in] $nid  The node to lock.
+ *
+ * @return TRUE if the node gets unlocked. 
  */
 function protected_node_lock($nid) {
-  if (is_numeric($nid)) {
+  if (is_numeric($nid) && isset($_SESSION['_protected_node']['passwords'][$nid])) {
     unset($_SESSION['_protected_node']['passwords'][$nid]);
+    return TRUE;
   }
+  return FALSE;
 }
 
 /**
  * Give access to the current user to the specified protected node.
+ * The duration of the lock is as expected starting now.
+ *
+ * @param[in] $nid  The node to unlock.
+ *
+ * @return TRUE if the node gets unlocked.
  */
 function protected_node_unlock($nid) {
   if (is_numeric($nid)) {

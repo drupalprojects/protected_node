@@ -50,7 +50,7 @@ function protected_node_rules_condition_content_is_protected(&$node, $settings) 
  * Condition: check whether the current user has access to the node.
  */
 function protected_node_rules_condition_content_is_locked($node) {
-  return protected_node_is_locked($node->nid) == $node->nid;
+  return protected_node_is_locked($node->nid) !== FALSE;
 }
 
 /**

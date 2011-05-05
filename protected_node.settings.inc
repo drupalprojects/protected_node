@@ -52,7 +52,7 @@ function protected_node_menu_array() {
     'description' => 'Here you can enter the password for protected pages',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('protected_node_enterpassword'),
-    'access arguments' => array('access protected content'),
+    'access callback' => 'protected_node_access_callback',
     'type' => MENU_CALLBACK,
     'file' => 'protected_node.redirect.inc'
   );
@@ -92,10 +92,6 @@ function protected_node_node_form_alter(&$form) {
     '#description' => t('Check here if this content should be protected by a password.'),
     '#default_value' => !empty($form['#node']->protected_node_is_protected),
   );
-  //$form['protected_node']['was_protected'] = array(
-  //  '#type' => 'hidden',
-  //  '#default_value' => !empty($form['#node']->was_protected),
-  //);
 
   if (isset($form['#node']->protected_node_show_title)) {
     $show_title = $form['#node']->protected_node_show_title;
@@ -128,6 +124,23 @@ function protected_node_node_form_alter(&$form) {
     }
     break;
 
+  }
+
+  if (variable_get('protected_node_allow_hint', FALSE)) {
+    if (isset($form['#node']->protected_node_hint)) {
+      $hint = $form['#node']->protected_node_hint;
+    }
+    else {
+      $hint = '';
+    }
+    $form['protected_node']['protected_node_hint'] = array(
+      '#type' => 'textarea',
+      '#title' => t('Password hint'),
+      '#description' => t('Enter a password hint. This information is displayed in the password form using the [node-password-hint] token.'),
+      '#default_value' => $hint,
+      '#cols' => 45,
+      '#rows' => 5,
+    );
   }
 
   // include the email box?
@@ -230,6 +243,13 @@ function protected_node_admin_settings() {
     '#title' => t('Show node titles by default'),
     '#default_value' => variable_get('protected_node_show_node_titles', FALSE),
     '#description' => t('Whether a the node title should be shown (selected) or hidden (unchecked) by default. This flag is used as the default of the Show title checkbox on a create node.'),
+  );
+
+  $form['protected_node_security']['protected_node_allow_hint'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Allow author to enter a password hint'),
+    '#default_value' => variable_get('protected_node_allow_hint', FALSE),
+    '#description' => t('By default, the password is kept as secret as possible. This option allows the author to enter a hint about the password of a node. The hint is later shown using the [node-password-hint] token.'),
   );
 
   $form['protected_node_auto_email'] = array(
