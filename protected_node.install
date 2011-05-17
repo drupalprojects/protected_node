@@ -99,7 +99,7 @@ function protected_node_schema() {
     'fields' => array(
       'nid' => array(
         'description' => t('The primary identifier for a node'),
-        'type' => 'serial',
+        'type' => 'int',
         'unsigned' => TRUE,
         'not null' => TRUE,
       ),
@@ -312,6 +312,24 @@ function protected_node_update_6001() {
       $ret[] = array('success' => $r !== FALSE, 'query' => check_plain($sql));
     }
   }
+
+  return $ret;
+}
+
+/**
+ * Implementation of hook_update_N().
+ */
+function protected_node_update_6002() {
+  $ret = array();
+
+  // change the nid field from a serial to an int
+  $field = array(
+    'description' => t('The primary identifier for a node'),
+    'type' => 'int',
+    'unsigned' => TRUE,
+    'not null' => TRUE,
+  );
+  db_change_field($ret, 'protected_nodes', 'nid', 'nid', $field);
 
   return $ret;
 }
