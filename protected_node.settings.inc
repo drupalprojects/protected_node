@@ -33,7 +33,7 @@ Thank you.
 /**
  * Actual implementation of the protected_node_menu() function.
  *
- * Moved here to optimze the module (menu are cached and the definitions
+ * Moved here to optimize the module (menu are cached and the definitions
  * are only rarely necessary.)
  */
 function protected_node_menu_array() {
