@@ -156,6 +156,17 @@ function protected_node_enterpassword_validate($form, &$form_state) {
       if ($global_passwd == $passwd) {
         $nid = 1;
       }
+      else {
+        // this comes last so we avoid loading the node if another password matches
+        // although that means the main global password has priority which may, in the
+        // long run, be a problem (but since the result is the same, I don't foresee
+        // this being a problem at all.)
+        $node = node_load($form_state['values']['protected_node_nid']);
+        $node_type_passwd = variable_get('protected_node_node_type_password_' . $node->type, '');
+        if ($node_type_passwd == $passwd) {
+          $nid = 1;
+        }
+      }
       break;
 
     }

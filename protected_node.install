@@ -334,4 +334,19 @@ function protected_node_update_6002() {
   return $ret;
 }
 
+/**
+ * Implementation of hook_update_N().
+ *
+ * Make sure the global password isn't saved in clear.
+ * (unfortunately this doesn't fix it in backups...)
+ */
+function protected_node_update_6003() {
+  $ret = array();
+
+  variable_del('protected_node_global_password_field');
+  drupal_set_message('Please, change your global Protected node password as it may have been compromised.', 'warning');
+
+  return $ret;
+}
+
 // vim: ts=2 sw=2 et syntax=php

@@ -4,9 +4,61 @@
  * Protected node module
  */
 
+/**
+ * The password is required on all nodes unless the node type defines
+ * a default password.
+ *
+ * Defined in: protected_node_use_global_password
+ */
 define('PROTECTED_NODE_PER_NODE_PASSWORD', 0);
+
+/**
+ * The password is not required. The system uses the global password
+ * if the node does not define a password.
+ *
+ * Defined in: protected_node_use_global_password
+ */
 define('PROTECTED_NODE_PER_NODE_AND_GLOBAL_PASSWORD', 1);
+
+/**
+ * Use the global password only. Ignore the node specific password
+ * and don't ask for one when editing the node.
+ *
+ * Defined in: protected_node_use_global_password
+ */
 define('PROTECTED_NODE_GLOBAL_PASSWORD', 2);
+
+/**
+ * Never protect these types of nodes.
+ *
+ * Defined in: protected_node_protection_<node type name>
+ */
+define('PROTECTED_NODE_PROTECTION_NEVER', 0);
+
+/**
+ * The author can choose whether the node is protected or not.
+ * By default, the node is not protected.
+ *
+ * Defined in: protected_node_protection_<node type name>
+ */
+define('PROTECTED_NODE_PROTECTION_PROTECTABLE', 1);
+
+/**
+ * The author can choose whether the node is protected or not.
+ * By default, the node is protected.
+ *
+ * Defined in: protected_node_protection_<node type name>
+ */
+define('PROTECTED_NODE_PROTECTION_PROTECTED', 2);
+
+/**
+ * The nodes of this type will always be protected.
+ *
+ * Defined in: protected_node_protection_<node type name>
+ */
+define('PROTECTED_NODE_PROTECTION_ALWAYS', 3);
+
+
 
 /**
  * Implementation of hook_help().
@@ -314,7 +366,11 @@ function protected_node_invoke($hook, &$param) {
  * @param[in] $form_id  The name of the form being modified
  */
 function protected_node_form_alter(&$form, &$form_state, $form_id) {
-  if (isset($form['type']['#value']) && $form['#id'] == 'node-form'
+  if ($form_id == 'node_type_form' && isset($form['identity']['type'])) {
+    module_load_include('settings.inc', 'protected_node');
+    protected_node_node_type_form_alter($form);
+  }
+  elseif (isset($form['type']['#value']) && $form['#id'] == 'node-form'
   && (user_access('edit any password') || user_access('edit ' . $form['type']['#value'] . ' password'))) {
     module_load_include('settings.inc', 'protected_node');
     protected_node_node_form_alter($form);
@@ -333,7 +389,7 @@ function protected_node_nodeapi(&$node, $op, $arg = 0, $page = 0) {
 
   switch ($op) {
   case 'load':
-    return protected_node_load($node->nid);
+    return protected_node_load($node);
 
   case 'validate':
     if ($node->protected_node_is_protected
@@ -592,42 +648,68 @@ function protected_node_save(&$node) {
     // we don't need to set the protected_node_passwd_changed since no
     // one has ever entered a password for this node
     $sql = "INSERT INTO {protected_nodes} (protected_node_is_protected,"
-            . " protected_node_passwd, protected_node_show_title, nid)"
-            . " VALUES (%d, '%s', %d, %d)";
+            . " protected_node_passwd, protected_node_show_title, nid,"
+            . " protected_node_hint)"
+            . " VALUES (%d, '%s', %d, %d, '%s')";
     db_query($sql, $node->protected_node_is_protected,
                    $node->protected_node_passwd,
                    $node->protected_node_show_title,
-                   $node->nid);
+                   $node->nid,
+                   isset($node->protected_node_hint) ? $node->protected_node_hint : '');
   }
 }
 
 /**
  * Load the node extension fields.
  *
- * @param[in] int $nid The node id you wish to check for.
- * @return An array with the node extended fields.
+ * @param[in] object $node  The node to complement with the protected node parameters.
+ *
+ * @return An array with the node extended fields or FALSE.
  */
-function protected_node_load($nid) {
-  if (!is_numeric($nid)) {
+function protected_node_load($node) {
+  // valid input parameters?
+  if (!is_object($node) || !is_numeric($node->nid)) {
     return FALSE;
+  }
+
+  // default fields for protected nodes
+  static $default_fields = array(
+    'protected_node_is_protected' => FALSE,
+    'protected_node_passwd' => '',
+    'protected_node_passwd_changed' => 0,
+    'protected_node_show_title' => 0,
+    'protected_node_hint' => '',
+  );
+
+  // can the node be protected at all?
+  $protection = variable_get('protected_node_protection_' . $node->type, PROTECTED_NODE_PROTECTION_PROTECTABLE);
+  if ($protection == PROTECTED_NODE_PROTECTION_NEVER) {
+    // by default the node is not protected, return that
+    return $default_fields;
   }
 
   $sql = "SELECT protected_node_is_protected, protected_node_passwd, protected_node_passwd_changed,"
             . " protected_node_show_title, protected_node_hint FROM {protected_nodes} WHERE nid = %d";
-  $result = db_fetch_array(db_query($sql, $nid));
-  if (is_array($result)) {
-    $result += array(
-      'protected_node_is_protected' => FALSE,
-      'protected_node_passwd' => '',
-      'protected_node_passwd_changed' => 0,
-      'protected_node_show_title' => 0,
-      'protected_node_hint' => '',
-    );
+  $result = db_fetch_array(db_query($sql, $node->nid));
+  if (!is_array($result)) {
+    // the SELECT failed, use the defaults
+    $result = $default_fields;
+  }
+  else {
+    // define any missing field
+    $result += $default_fields;
   }
 
   // the password is a CHAR(40) and when empty it's all spaces
   // (this is possible when the global password is used)
   $result['protected_node_passwd'] = trim($result['protected_node_passwd']);
+
+  // if the user changed the mode to "always protected" then we force that here
+  // it means the node may not be accessible to people without administration
+  // privileges since it may not have a default password
+  if ($protection == PROTECTED_NODE_PROTECTION_ALWAYS) {
+    $result['protected_node_is_protected'] = TRUE;
+  }
 
   return $result;
 }
@@ -645,6 +727,27 @@ function protected_node_token_list($type = 'all') {
     $tokens['node']['node-protected-title']     = t('Whether the title node of the node is protected (yes/no).');
     $tokens['node']['node-password-hint']       = t('The password hint as entered in this node.');
     return $tokens;
+  }
+}
+
+/**
+ * Implementation of hook_node_type().
+ *
+ * This function deletes the variables corresponding to the fields added
+ * to the node type form.
+ *
+ * @param[in] $op  The operation performed on the node type.
+ * @param[in] $type  The type object concerned.
+ */
+function protected_node_node_type($op, $type) {
+  switch ($op) {
+  case 'delete':
+    variable_del('protected_node_fieldset_' . $type->type);
+    variable_del('protected_node_protection_' . $type->type);
+    variable_del('protected_node_node_type_password_' . $type->type);
+    variable_del('protected_node_node_type_password_field_' . $type->type); // should already be deleted by the submit()
+    break;
+
   }
 }
 

@@ -5,6 +5,25 @@
  */
 
 /**
+ * When editing a node that can be protected and the protected fieldset is
+ * added, open it if the node is already protected. Leave closed otherwise.
+ */
+define('PROTECTED_NODE_FIELDSET_SMART', 0);
+
+/**
+ * When editing a node that can be protected, always show the fieldset as
+ * opened.
+ */
+define('PROTECTED_NODE_FIELDSET_OPEN', 1);
+
+/**
+ * When editing a node that can be protected, always show the fieldset as
+ * closed.
+ */
+define('PROTECTED_NODE_FIELDSET_CLOSE', 2);
+
+
+/**
  * The default email subject sent to users to whom you give access to
  * a protected node.
  */
@@ -74,24 +93,75 @@ function protected_node_menu_array() {
  *
  * It was moved here to optimize the module (so the .module is smaller)
  * This is really only necessary when some edits a node.
+ *
+ * @param[in,out] $form  The form to be altered with the protected node field set.
  */
 function protected_node_node_form_alter(&$form) {
-  $types = node_get_types();
-  $node_type = $types[$form['type']['#value']];
+  $protection = variable_get('protected_node_protection_' . $form['type']['#value'], PROTECTED_NODE_PROTECTION_PROTECTABLE);
+  if ($protection == PROTECTED_NODE_PROTECTION_NEVER) {
+    // never protecting, do nothing
+    return;
+  }
+
+  // try to avoid pre-filled password forms
   $form['#attributes']['autocomplete'] = 'off';
+
+  $node_type = node_get_types('type', $form['type']['#value']);
+  $fieldset_mode = variable_get('protected_node_fieldset_' . $node_type->type, PROTECTED_NODE_FIELDSET_SMART);
+  switch ($fieldset_mode) {
+  case PROTECTED_NODE_FIELDSET_OPEN:
+    $collapsed = FALSE;
+    break;
+
+  case PROTECTED_NODE_FIELDSET_CLOSE:
+    $collapsed = TRUE;
+    break;
+
+  default: //case PROTECTED_NODE_FIELDSET_SMART:
+    if ($protection == PROTECTED_NODE_PROTECTION_ALWAYS
+    || ($protection == PROTECTED_NODE_PROTECTION_PROTECTED && empty($form['nid']['#value']))) {
+      $collapsed = FALSE;
+    }
+    else {
+      $collapsed = empty($form['#node']->protected_node_is_protected);
+    }
+    break;
+
+  }
   $form['protected_node'] = array(
     '#type' => 'fieldset',
-    '#description' => t('By selection the checkbox below you will password protect this page. Unless you are using the global password feature, you want to enter a password in this form.'),
+    '#description' => t('By selecting the checkbox below you password protect this page. Unless you are using the global password feature, you want to enter a password in this form.'),
     '#title' => t('Password protect this @node', array('@node' => $node_type->name)),
     '#collapsible' => TRUE,
-    '#collapsed' => empty($form['#node']->protected_node_is_protected),
+    '#collapsed' => $collapsed,
   );
-  $form['protected_node']['protected_node_is_protected'] = array(
-    '#type' => 'checkbox',
-    '#title' => t('This @node is protected', array('@node' => $node_type->name)),
-    '#description' => t('Check here if this content should be protected by a password.'),
-    '#default_value' => !empty($form['#node']->protected_node_is_protected),
-  );
+  if ($protection == PROTECTED_NODE_PROTECTION_ALWAYS) {
+    // always protected, don't show anything to the user
+    $form['protected_node']['protected_node_is_protected'] = array(
+      '#type' => 'value',
+      '#value' => TRUE,
+    );
+  }
+  else {
+    // define the current default value
+    if (empty($form['nid']['#value'])) {
+      // a new node is being created, use the protection mode
+      // to determine the default
+      // (no need to test for NEVER, we're already out of this function in that case;
+      // no need to test for ALWAYS, we went through the previous level if() in that
+      // case.)
+      $protected = $protection == PROTECTED_NODE_PROTECTION_PROTECTED;
+    }
+    else {
+      $protected = !empty($form['#node']->protected_node_is_protected);
+    }
+    $form['protected_node']['protected_node_is_protected'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('This @node is protected', array('@node' => $node_type->name)),
+      '#description' => t('Check here if this content should be protected by a password.'),
+      '#default_value' => $protected,
+    );
+  }
 
   if (isset($form['#node']->protected_node_show_title)) {
     $show_title = $form['#node']->protected_node_show_title;
@@ -501,6 +571,8 @@ function _protected_node_admin_settings_submit($form, &$form_state) {
   $passwd = $form_state['values']['protected_node_global_password_field'];
   if ($passwd) {
     variable_set('protected_node_global_password', sha1($passwd));
+    unset($form_state['values']['protected_node_global_password_field']);
+    variable_del('protected_node_global_password_field');
   }
   // never reset the password...
 }
@@ -587,6 +659,111 @@ function protected_node_action_protect_nodes_with_password($form, &$form_state) 
   $sql = "UPDATE {protected_nodes} SET protected_node_is_protected = 1 WHERE protected_node_is_protected = 0 AND protected_node_passwd <> ''";
   db_query($sql);
   drupal_set_message('All nodes with an existing password (excluding the global password) are now protected.');
+}
+
+/**
+ * @brief Implementation of the hook_form_alter() for node types.
+ *
+ * This function adds a field set to each node type to let user decide whether
+ * a node type is always protected, is never protected, or is protect-able.
+ * If protect-able, then one can choose whether the protected node field set
+ * should be always open, always closed, or smart (i.e. open if the node is
+ * protected.)
+ *
+ * @param[in,out] $form  The node type form where our field set is added.
+ */
+function protected_node_node_type_form_alter(&$form) {
+  $form['protected_node'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Protected node settings'),
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+  );
+
+  $options = array(
+    PROTECTED_NODE_PROTECTION_NEVER       => t('Never protected'),
+    PROTECTED_NODE_PROTECTION_PROTECTABLE => t('Protectable (default is unprotected)'),
+    PROTECTED_NODE_PROTECTION_PROTECTED   => t('Protectable (default is protected)'),
+    PROTECTED_NODE_PROTECTION_ALWAYS      => t('Always protected'),
+  );
+  $form['protected_node']['protected_node_protection'] = array(
+    '#type' => 'radios',
+    '#title' => t('Protected mode for nodes of this type'),
+    '#default_value' => variable_get('protected_node_protection_' . $form['#node_type']->type, PROTECTED_NODE_PROTECTION_PROTECTABLE),
+    '#options' => $options,
+    '#description' => t('Select the protection mode for nodes of this type:<ul><li>Never protected &mdash; the nodes cannot be protected</li><li>Protectable &mdash; lets users choose whether the node is protected, defaults to protected or unprotected.</li><li>Always protected &mdash; the node is automatically protected, the author has no choice.</li></ul>'),
+  );
+
+  $form['protected_node']['protected_node_node_type_password_field'] = array(
+    '#type' => 'password_confirm',
+    '#description' => t('Enter a node type password. This password is the default for all the nodes of this type.'),
+    '#size' => 20,
+    '#after_build' => array('protected_node_autocomplete_off'),
+    '#title' => t('A default (global) password for nodes of this type'),
+    // No default value
+    //'#default_value' => variable_get('protected_node_node_password_' . $form['#node_type']->type, ''),
+  );
+  // yeah... we're calling a Core "private" function...
+  _user_password_dynamic_validation();
+
+  $options = array(
+    PROTECTED_NODE_FIELDSET_OPEN  => t('Always open'),
+    PROTECTED_NODE_FIELDSET_SMART => t('Smart mode (Open when protected)'),
+    PROTECTED_NODE_FIELDSET_CLOSE => t('Always closed'),
+  );
+  $form['protected_node']['protected_node_fieldset'] = array(
+    '#type' => 'radios',
+    '#title' => t('How to show the protected node fieldset'),
+    '#default_value' => variable_get('protected_node_fieldset_' . $form['#node_type']->type, PROTECTED_NODE_FIELDSET_SMART),
+    '#options' => $options,
+    '#description' => t('Select whether the "Protected node" field set should be opened or closed when editing a node.'),
+  );
+
+  $form['#validate'][] = '_protected_node_node_type_validate';
+  $form['#submit'][] = '_protected_node_node_type_submit';
+}
+
+/**
+ * Implements the validation of the protected node node type form.
+ *
+ * This function ensures that the password is encrypted.
+ */
+function _protected_node_node_type_validate($form, &$form_state) {
+  if (!empty($form_state['values']['protected_node_node_type_password_field'])) {
+    $form_state['values']['protected_node_node_type_password'] = sha1($form_state['values']['protected_node_node_type_password_field']);
+  }
+  else {
+    $node_type = trim($form_state['values']['type']);
+    $old_node_type = isset($form_state['values']['old_type']) ? $form_state['values']['old_type'] : '';
+    if ($node_type != $old_node_type) {
+      $passwd = variable_get('protected_node_node_type_password_' . $old_node_type, '');
+      if ($passwd) {
+        // save only if available, we don't need an empty password
+        $form_state['values']['protected_node_node_type_password'] = $passwd;
+      }
+      variable_del('protected_node_node_type_password_' . $old_node_type);
+    }
+  }
+  unset($form_state['values']['protected_node_node_type_password_field']);
+}
+
+/**
+ * Do a little extra work on submission.
+ */
+function _protected_node_node_type_submit($form, &$form_state) {
+  // make doubly sure the unencrypted field doesn't get saved
+  // (it should already be removed in the validate() function.)
+  unset($form_state['values']['protected_node_node_type_password_field']);
+
+  // delete the current password_field variable if it exists
+  $node_type = trim($form_state['values']['type']);
+  variable_del('protected_node_node_type_password_field_' . $node_type);
+
+  if (!empty($form_state['values']['old_type'])) {
+    // delete the old password field variable if it exists
+    $old_node_type = $form_state['values']['old_type'];
+    variable_del('protected_node_node_type_password_field_' . $old_node_type);
+  }
 }
 
 // vim: ts=2 sw=2 et syntax=php

@@ -1,5 +1,6 @@
 There is now a simple API with three functions ready to be used
-by 3rd party modules:
+by 3rd party modules and a hook to allow for hiding 3rd party
+data that has to be protected.
 
 
 bool protected_node_set_protected(int $nid, string $passwd = NULL)
@@ -42,3 +43,29 @@ This method returns TRUE if the node identified by the provided $nid is
 currently protected.
 
 Returns FALSE in all other cases (invalid $nid, SQL error, etc.)
+
+
+void hook_protected_node_hide(object &$node)
+============================================
+Request that $node parameters that are expected to be protected to somehow
+be removed from the $node.
+
+This function gives 3rd party modules adding content to a node a chance for
+hiding that content before displaying it gets displayed.
+
+The default implementation hides the body, teaser, and CCK content. It either
+replace the title with "Password protected page" or keeps it intact depending
+on the protected node Show Title flag.
+
+    function protected_node_protected_node_hide(&$node) {
+      // Core module fields
+      if (!$node->protected_node_show_title) {
+        $node->title = t('Password protected page');
+      }
+      $node->teaser = '';
+      $node->body = '';
+      $node->content = array();
+    }
+
+The hook is only invoked when the node is protected and the user did not yet
+provide the correct password.
