@@ -392,6 +392,8 @@ function protected_node_nodeapi(&$node, $op, $arg = 0, $page = 0) {
     return protected_node_load($node);
 
   case 'validate':
+    $_protected_node_emails = '';
+    $_protected_node_random_passwd = '';
     if ($node->protected_node_is_protected
     && (user_access('edit any password') || user_access('edit ' . $node->type . ' password'))) {
       $missing_password = FALSE;
@@ -435,12 +437,19 @@ function protected_node_nodeapi(&$node, $op, $arg = 0, $page = 0) {
         else {
           // the node is not published, forget about emails!
           form_error($arg['protected_node']['protected_node_emails'], t('Invalid email address: @m. Please correct this mistake and try again.', array('@m' => $m)));
-          $_protected_node_emails = '';
         }
       }
 
       if ($missing_password) {
-        switch (variable_get('protected_node_use_global_password', PROTECTED_NODE_PER_NODE_PASSWORD)) {
+        if ($user->uid == 0) {
+          // if anonymous user, then global password is not an option otherwise
+          // all the nodes could be edited by all the anonymous users!
+          $global_password = PROTECTED_NODE_PER_NODE_PASSWORD;
+        }
+        else {
+          $global_password = variable_get('protected_node_use_global_password', PROTECTED_NODE_PER_NODE_PASSWORD);
+        }
+        switch ($global_password) {
         case PROTECTED_NODE_PER_NODE_PASSWORD:
           // $arg is the form in this case
           form_error($arg['protected_node']['protected_node_passwd'], t('To protect this page, please enter a password.'));
@@ -457,7 +466,7 @@ function protected_node_nodeapi(&$node, $op, $arg = 0, $page = 0) {
   case 'insert':
   case 'update':
     if (user_access('edit any password') || user_access('edit ' . $node->type . ' password')) {
-      if (isset($_protected_node_random_passwd)) {
+      if (!empty($_protected_node_random_passwd)) {
         $node->protected_node_passwd = $_protected_node_random_passwd;
       }
       if (!empty($_protected_node_emails)) {
