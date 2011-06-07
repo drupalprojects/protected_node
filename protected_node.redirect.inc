@@ -17,7 +17,7 @@
  *
  * @todo
  * The redirection uses a destination and a protected_page parameter. The
- * protected_page can be infered from the destination since the destination
+ * protected_page can be inferred from the destination since the destination
  * represents a node. We want to remove the use of the protected_page because
  * that could be set to a node nid that has nothing to do with the destination
  * (which is not a security risk, but can make it confusing.)
@@ -165,6 +165,16 @@ function protected_node_enterpassword_validate($form, &$form_state) {
         $node_type_passwd = variable_get('protected_node_node_type_password_' . $node->type, '');
         if ($node_type_passwd == $passwd) {
           $nid = 1;
+        }
+      }
+      if (!empty($nid)) {
+        // the user found a global password
+        // was the protected node created by an anonymous user?
+        // if so, prevent the use of any global password
+        $sql = "SELECT created FROM {node} WHERE nid = %d AND uid = 0";
+        $created = db_result(db_query($sql, $form_state['values']['protected_node_nid']));
+        if ($created) {
+          $nid = FALSE;
         }
       }
       break;
