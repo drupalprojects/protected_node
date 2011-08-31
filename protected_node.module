@@ -521,7 +521,7 @@ function protected_node_nodeapi(&$node, $op, $arg = 0, $page = 0) {
     break;
 
   case 'delete':
-    db_query('DELETE FROM {protected_nodes} WHERE nid = %d', $nid);
+    db_query('DELETE FROM {protected_nodes} WHERE nid = %d', $node->nid);
     break;
 
   }
