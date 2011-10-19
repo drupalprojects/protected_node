@@ -997,4 +997,17 @@ function protected_node_unlock($nid) {
   return FALSE;
 }
 
+/** @brief WebFM support.
+ *
+ * Check webfm file access. In this case, we just check whether the
+ * node is protected for the current user.
+ *
+ * @param[out] $access  Variable whether the access result is saved.
+ * @param[in] $node  Node being checked.
+ * @param[in] $fid  File being checked.
+ */
+function protected_node_webfm_file_access_alter(&$access, $node, $fid) {
+  $access = !protected_node_is_locked($node->nid, 'view');
+}
+  
 // vim: ts=2 sw=2 et syntax=php
