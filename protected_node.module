@@ -436,7 +436,7 @@ function protected_node_nodeapi(&$node, $op, $arg = 0, $page = 0) {
         }
         else {
           // the node is not published, forget about emails!
-          form_error($arg['protected_node']['protected_node_emails'], t('Invalid email address: @m. Please correct this mistake and try again.', array('@m' => $m)));
+          form_error($arg['protected_node']['protected_node_emails'], t('Email addresses were specified even though the password is turned off.'));
         }
       }
 
@@ -1009,5 +1009,5 @@ function protected_node_unlock($nid) {
 function protected_node_webfm_file_access_alter(&$access, $node, $fid) {
   $access = !protected_node_is_locked($node->nid, 'view');
 }
-  
+
 // vim: ts=2 sw=2 et syntax=php
