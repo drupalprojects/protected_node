@@ -47,7 +47,7 @@ function protected_node_enterpassword() {
   }
 
   // some variable initialization
-  $types = node_get_types();
+  $types = node_type_get_types();
   $node_type = $types[$node->type];
   $has_token = module_exists('token');
 
@@ -55,8 +55,8 @@ function protected_node_enterpassword() {
   $title = variable_get('protected_node_title', NULL);
   if (!empty($title)) {
     if ($has_token) {
-      $title = token_replace($title, 'node', $node);
-      $title = token_replace($title, 'user', $user);
+      $title = token_replace($title, array('node' => $node));
+      $title = token_replace($title, array('user' => $user));
     }
     drupal_set_title($title);
   }
@@ -64,8 +64,8 @@ function protected_node_enterpassword() {
   // information appear between the title and the password form
   $info = variable_get('protected_node_info', '');
   if ($has_token) {
-    $info = token_replace($info, 'node', $node);
-    $info = token_replace($info, 'user', $user);
+    $info = token_replace($info, array('node' => $node));
+    $info = token_replace($info, array('user' => $user));
   }
   $form['protected_node'] = array(
     '#value' => $info,
@@ -77,7 +77,7 @@ function protected_node_enterpassword() {
     // TODO: this needs to move to {protected_node} and be loaded along the other information
     // in this case we assume the user may not have the token module
     // so we do conversions of the node type and title "by hand"
-    $node_title = variable_get('protected_node-'. $node->nid .'-show_title', FALSE);
+    $node_title = variable_get('protected_node-' . $node->nid . '-show_title', FALSE);
     if ($node_title) {
       // embellish the title with double quotes
       $node_title = '"' . $node_title . '"';
@@ -86,20 +86,20 @@ function protected_node_enterpassword() {
                      array('@node_type' => $node_type->name, '@node_title' => $node_title));
   }
   elseif ($has_token) {
-    $description = token_replace($description, 'node', $node);
-    $description = token_replace($description, 'user', $user);
+    $description = token_replace($description, array('node' => $node));
+    $description = token_replace($description, array('user' => $user));
   }
   $form['protected_node_enterpassword'] = array(
     '#type' => 'fieldset',
     '#description' => $description,
-    '#collapsible' => FALSE
+    '#collapsible' => FALSE,
   );
 
   // create the password widget
   $label = variable_get('protected_node_password_label', '');
   if ($label) {
-    $label = token_replace($label, 'node', $node);
-    $label = token_replace($label, 'user', $user);
+    $label = token_replace($label, array('node' => $node));
+    $label = token_replace($label, array('user' => $user));
   }
   else {
     $label = t('@node_type password', array('@node_type' => $node_type->name));
@@ -107,7 +107,7 @@ function protected_node_enterpassword() {
   $form['protected_node_enterpassword']['password'] = array(
     '#type' => 'password',
     '#title' => $label,
-    '#size' => 20
+    '#size' => 20,
   );
 
   // the node we're working on
@@ -146,38 +146,38 @@ function protected_node_enterpassword_validate($form, &$form_state) {
   //       password (i.e. extract local password instead of comparing!)
   // TODO: the protected_node_nid parameter should be extracted from the destination URI
   $sql = "SELECT nid FROM {protected_nodes} WHERE protected_node_passwd = '%s' AND nid = %d";
-  $passwd = sha1($form['#post']['password']);
-  $nid = db_result(db_query($sql, $passwd, $form_state['values']['protected_node_nid']));
+  $passwd = sha1($form_state['values']['password']);
+  $nid = db_query("SELECT nid FROM {protected_nodes} WHERE protected_node_passwd = :protected_node_passwd AND nid = :nid", array(':protected_node_passwd' => $passwd, ':nid' => $form_state['values']['protected_node_nid']))->fetchField();
   if (empty($nid)) {
     switch (variable_get('protected_node_use_global_password', PROTECTED_NODE_PER_NODE_PASSWORD)) {
-    case PROTECTED_NODE_PER_NODE_AND_GLOBAL_PASSWORD:
-    case PROTECTED_NODE_GLOBAL_PASSWORD:
-      $global_passwd = variable_get('protected_node_global_password', '');
-      if ($global_passwd == $passwd) {
-        $nid = 1;
-      }
-      else {
-        // this comes last so we avoid loading the node if another password matches
-        // although that means the main global password has priority which may, in the
-        // long run, be a problem (but since the result is the same, I don't foresee
-        // this being a problem at all.)
-        $node = node_load($form_state['values']['protected_node_nid']);
-        $node_type_passwd = variable_get('protected_node_node_type_password_' . $node->type, '');
-        if ($node_type_passwd == $passwd) {
+      case PROTECTED_NODE_PER_NODE_AND_GLOBAL_PASSWORD:
+      case PROTECTED_NODE_GLOBAL_PASSWORD:
+        $global_passwd = variable_get('protected_node_global_password', '');
+        if ($global_passwd == $passwd) {
+          $_SESSION['has_entered_global_password'] = 1;
           $nid = 1;
         }
-      }
-      if (!empty($nid)) {
-        // the user found a global password
-        // was the protected node created by an anonymous user?
-        // if so, prevent the use of any global password
-        $sql = "SELECT created FROM {node} WHERE nid = %d AND uid = 0";
-        $created = db_result(db_query($sql, $form_state['values']['protected_node_nid']));
-        if ($created) {
-          $nid = FALSE;
+        else {
+          // this comes last so we avoid loading the node if another password matches
+          // although that means the main global password has priority which may, in the
+          // long run, be a problem (but since the result is the same, I don't foresee
+          // this being a problem at all.)
+          $node = node_load($form_state['values']['protected_node_nid']);
+          $node_type_passwd = variable_get('protected_node_node_type_password_' . $node->type, '');
+          if ($node_type_passwd == $passwd) {
+            $nid = 1;
+          }
         }
-      }
-      break;
+        if (!empty($nid)) {
+          // the user found a global password
+          // was the protected node created by an anonymous user?
+          // if so, prevent the use of any global password
+          $created = db_query("SELECT created FROM {node} WHERE nid = :nid AND uid = :uid", array(':nid' => $form_state['values']['protected_node_nid'], ':uid' => 0))->fetchField();
+          if ($created) {
+            $nid = FALSE;
+          }
+        }
+        break;
 
     }
     if (empty($nid)) {
@@ -191,7 +191,7 @@ function protected_node_enterpassword_validate($form, &$form_state) {
  */
 function protected_node_enterpassword_submit($form, &$form_state) {
   // TODO: the protected_node_nid parameter should be extracted from the destination URI
-  $_SESSION['_protected_node']['passwords'][$form_state['values']['protected_node_nid']] = time();
+  $_SESSION['_protected_node']['passwords'][$form_state['values']['protected_node_nid']] = REQUEST_TIME;
 }
 
 // vim: ts=2 sw=2 et syntax=php

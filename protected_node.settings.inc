@@ -58,13 +58,13 @@ Thank you.
 function protected_node_menu_array() {
   $items = array();
 
-  $items['admin/settings/protected_node'] = array(
+  $items['admin/config/protected_node'] = array(
     'title' => 'Protected node',
     'description' => 'Edit the global Protected node settings',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('protected_node_admin_settings'),
     'access arguments' => array('administer site configuration'),
-    'file' => 'protected_node.settings.inc'
+    'file' => 'protected_node.settings.inc',
   );
   $items['protected-node'] = array(
     'title' => 'Protected page - Enter Password',
@@ -73,7 +73,7 @@ function protected_node_menu_array() {
     'page arguments' => array('protected_node_enterpassword'),
     'access callback' => 'protected_node_access_callback',
     'type' => MENU_CALLBACK,
-    'file' => 'protected_node.redirect.inc'
+    'file' => 'protected_node.redirect.inc',
   );
   $items['protected-nodes'] = array(
     'title' => 'Protected page - Enter Password',
@@ -82,7 +82,7 @@ function protected_node_menu_array() {
     'page arguments' => array('protected_node_enter_any_password'),
     'access arguments' => array('access protected content'),
     'type' => MENU_CALLBACK,
-    'file' => 'protected_node.fork.inc'
+    'file' => 'protected_node.fork.inc',
   );
 
   return $items;
@@ -106,27 +106,26 @@ function protected_node_node_form_alter(&$form) {
   // try to avoid pre-filled password forms
   $form['#attributes']['autocomplete'] = 'off';
 
-  $node_type = node_get_types('type', $form['type']['#value']);
+  $node_type = node_type_get_type($form['type']['#value']);
   $fieldset_mode = variable_get('protected_node_fieldset_' . $node_type->type, PROTECTED_NODE_FIELDSET_SMART);
   switch ($fieldset_mode) {
-  case PROTECTED_NODE_FIELDSET_OPEN:
-    $collapsed = FALSE;
-    break;
-
-  case PROTECTED_NODE_FIELDSET_CLOSE:
-    $collapsed = TRUE;
-    break;
-
-  default: //case PROTECTED_NODE_FIELDSET_SMART:
-    if ($protection == PROTECTED_NODE_PROTECTION_ALWAYS
-    || ($protection == PROTECTED_NODE_PROTECTION_PROTECTED && empty($form['nid']['#value']))) {
+    case PROTECTED_NODE_FIELDSET_OPEN:
       $collapsed = FALSE;
-    }
-    else {
-      $collapsed = empty($form['#node']->protected_node_is_protected);
-    }
-    break;
+      break;
 
+    case PROTECTED_NODE_FIELDSET_CLOSE:
+      $collapsed = TRUE;
+      break;
+
+    default: //case PROTECTED_NODE_FIELDSET_SMART:
+      if ($protection == PROTECTED_NODE_PROTECTION_ALWAYS
+      || ($protection == PROTECTED_NODE_PROTECTION_PROTECTED && empty($form['nid']['#value']))) {
+        $collapsed = FALSE;
+      }
+      else {
+        $collapsed = empty($form['#node']->protected_node_is_protected);
+      }
+      break;
   }
   $form['protected_node'] = array(
     '#type' => 'fieldset',
@@ -179,20 +178,16 @@ function protected_node_node_form_alter(&$form) {
 
   // define a password field unless only the global password should be used
   switch (variable_get('protected_node_use_global_password', PROTECTED_NODE_PER_NODE_PASSWORD)) {
-  case PROTECTED_NODE_PER_NODE_PASSWORD:
-  case PROTECTED_NODE_PER_NODE_AND_GLOBAL_PASSWORD:
-    $form['protected_node']['protected_node_passwd'] = array(
-      '#type' => 'password_confirm',
-      '#description' => t('Enter the @node password here. Remember that changing the password prevents all the users who knew the old password to continue to access the page.', array('@node' => $node_type->name)),
-      '#size' => 20,
-      '#after_build' => array('protected_node_autocomplete_off'),
-    );
+    case PROTECTED_NODE_PER_NODE_PASSWORD:
+    case PROTECTED_NODE_PER_NODE_AND_GLOBAL_PASSWORD:
+      $form['protected_node']['protected_node_passwd'] = array(
+        '#type' => 'password_confirm',
+        '#description' => t('Enter the @node password here. Remember that changing the password prevents all the users who knew the old password to continue to access the page.', array('@node' => $node_type->name)),
+        '#size' => 20,
+        '#after_build' => array('protected_node_autocomplete_off'),
+      );
 
-    if (variable_get('protected_node_show_password_strength', TRUE)) {
-      // yeah... we're calling a Core "private" function...
-      _user_password_dynamic_validation();
-    }
-    break;
+      break;
 
   }
 
@@ -243,14 +238,10 @@ function protected_node_admin_settings() {
     '#collapsible' => TRUE,
   );
 
-  $sql = "SELECT COUNT(n.nid) FROM {node} n LEFT JOIN {protected_nodes} pn ON pn.nid = n.nid WHERE pn.protected_node_is_protected = 0 OR pn.protected_node_is_protected IS NULL";
-  $unprotected_count = db_result(db_query($sql));
-  $sql = "SELECT COUNT(nid) FROM {protected_nodes} WHERE protected_node_is_protected = 1";
-  $protected_count = db_result(db_query($sql));
-  $sql = "SELECT COUNT(nid) FROM {protected_nodes} WHERE protected_node_is_protected = 1 AND protected_node_show_title = 1";
-  $title_count = db_result(db_query($sql));
-  $sql = "SELECT COUNT(nid) FROM {protected_nodes} WHERE protected_node_is_protected = 1 AND protected_node_passwd = ''";
-  $global_count = db_result(db_query($sql));
+  $unprotected_count = db_query("SELECT COUNT(n.nid) FROM {node} n LEFT JOIN {protected_nodes} pn ON pn.nid = n.nid WHERE pn.protected_node_is_protected = :protected_node_is_protected OR pn.protected_node_is_protected IS NULL", array(':protected_node_is_protected' => 0))->fetchField();
+  $protected_count = db_query("SELECT COUNT(nid) FROM {protected_nodes} WHERE protected_node_is_protected = :protected_node_is_protected", array(':protected_node_is_protected' => 1))->fetchField();
+  $title_count = db_query("SELECT COUNT(nid) FROM {protected_nodes} WHERE protected_node_is_protected = :protected_node_is_protected AND protected_node_show_title = :protected_node_show_title", array(':protected_node_is_protected' => 1, ':protected_node_show_title' => 1))->fetchField();
+  $global_count = db_query("SELECT COUNT(nid) FROM {protected_nodes} WHERE protected_node_is_protected = :protected_node_is_protected AND protected_node_passwd = :protected_node_passwd", array(':protected_node_is_protected' => 1, ':protected_node_passwd' => ''))->fetchField();
 
   // any nodes?
   if ($protected_count + $unprotected_count > 0) {
@@ -284,9 +275,9 @@ function protected_node_admin_settings() {
     '#title' => t('Global password handling'),
     '#default_value' => variable_get('protected_node_use_global_password', PROTECTED_NODE_PER_NODE_PASSWORD),
     '#options' => array(
-      PROTECTED_NODE_PER_NODE_PASSWORD            => 'Per node password',
+      PROTECTED_NODE_PER_NODE_PASSWORD => 'Per node password',
       PROTECTED_NODE_PER_NODE_AND_GLOBAL_PASSWORD => 'Per node password or Global password',
-      PROTECTED_NODE_GLOBAL_PASSWORD              => 'Global password only',
+      PROTECTED_NODE_GLOBAL_PASSWORD => 'Global password only',
     ),
     '#description' => t('When checked, the global password is used if the user doesn\'t enter a password when creating/editing nodes.')
                     . t('<strong>WARNING:</strong> removing the global password when many pages were not otherwise assigned a password will make those nodes unaccessible except for UID=1 and the author of the node.'),
@@ -299,7 +290,7 @@ function protected_node_admin_settings() {
     '#description' => t('The default password for all nodes. This password is necessary if you select the previous checkbox.'),
   );
   // yeah... we're calling a Core "private" function...
-  _user_password_dynamic_validation();
+  //_user_password_dynamic_validation();
 
   $form['protected_node_security']['protected_node_show_password_strength'] = array(
     '#type' => 'checkbox',
@@ -409,6 +400,7 @@ function protected_node_admin_settings() {
   );
 
   if (module_exists('token')) {
+    // TODO Please change this theme call to use an associative array for the $variables parameter.
     $form['protected_node_form']['protected_node_tokens'] = array(
       '#value' => theme('token_tree', array('global', 'node', 'user')),
       '#description' => t('WARNING: the user tokens should only be used if anonymous users cannot access protected nodes; otherwise the result may not be what you\'d expect.'),
@@ -528,14 +520,14 @@ function _protected_node_admin_settings_validate($form, &$form_state) {
   // make sure that a password is included if a global password is required
   // and none was ever submitted before
   switch ($form_state['values']['protected_node_use_global_password']) {
-  case PROTECTED_NODE_PER_NODE_AND_GLOBAL_PASSWORD:
-  case PROTECTED_NODE_GLOBAL_PASSWORD:
-    if (!$form_state['values']['protected_node_global_password_field']
-     && !variable_get('protected_node_global_password', '')) {
-      form_error($form['protected_node_security']['protected_node_global_password_field'],
-                 t('A global password is required to make use of the global password functionality.'));
-    }
-    break;
+    case PROTECTED_NODE_PER_NODE_AND_GLOBAL_PASSWORD:
+    case PROTECTED_NODE_GLOBAL_PASSWORD:
+      if (!$form_state['values']['protected_node_global_password_field']
+       && !variable_get('protected_node_global_password', '')) {
+        form_error($form['protected_node_security']['protected_node_global_password_field'],
+                   t('A global password is required to make use of the global password functionality.'));
+      }
+      break;
 
   }
 
@@ -584,7 +576,7 @@ function _protected_node_admin_settings_submit($form, &$form_state) {
  * before then is then considered out of date and will be ignored.
  */
 function protected_node_action_clear_sessions($form, &$form_state) {
-  variable_set('protected_node_session_timelimit', time());
+  variable_set('protected_node_session_timelimit', REQUEST_TIME);
   drupal_set_message('All the Protected Node sessions were cleared.');
 }
 
@@ -597,9 +589,12 @@ function protected_node_action_clear_sessions($form, &$form_state) {
 function protected_node_action_reset_passwords($form, &$form_state) {
   $passwd = $form_state['values']['protected_node_reset_passwords_password'];
   if ($passwd) {
-    $sql = "UPDATE {protected_nodes} SET protected_node_passwd = '%s'";
-    db_query($sql, sha1($passwd));
-    variable_set('protected_node_session_timelimit', time());
+    db_update('protected_nodes')
+      ->fields(array(
+        'protected_node_passwd' => sha1($passwd),
+      ))
+      ->execute();
+    variable_set('protected_node_session_timelimit', REQUEST_TIME);
     drupal_set_message('All protected nodes are now publicly visible unless protected by another module.');
   }
   else {
@@ -615,8 +610,12 @@ function protected_node_action_reset_passwords($form, &$form_state) {
  * of reseting the password to use the global password on all nodes.
  */
 function protected_node_action_remove_passwords($form, &$form_state) {
-  $sql = "UPDATE {protected_nodes} SET protected_node_passwd = '' WHERE protected_node_passwd <> ''";
-  db_query($sql);
+  db_update('protected_nodes')
+    ->fields(array(
+      'protected_node_passwd' =>  '',
+    ))
+    ->condition('protected_node_passwd', '', '<>')
+    ->execute();
 }
 
 /**
@@ -625,8 +624,12 @@ function protected_node_action_remove_passwords($form, &$form_state) {
  * This function sets all the protected_node_is_protected to 0.
  */
 function protected_node_action_unprotected_all($form, &$form_state) {
-  $sql = "UPDATE {protected_nodes} SET protected_node_is_protected = 0 WHERE protected_node_is_protected = 1";
-  db_query($sql);
+  db_update('protected_nodes')
+    ->fields(array(
+      'protected_node_is_protected' =>  0,
+    ))
+    ->condition('protected_node_is_protected', 1)
+    ->execute();
 }
 
 /**
@@ -637,8 +640,12 @@ function protected_node_action_unprotected_all($form, &$form_state) {
  */
 function protected_node_action_protect_all_nodes($form, &$form_state) {
   // first protect all nodes that already are in our table
-  $sql = "UPDATE {protected_nodes} SET protected_node_is_protected = 1 WHERE protected_node_is_protected = 0";
-  db_query($sql);
+  db_update('protected_nodes')
+    ->fields(array(
+      'protected_node_is_protected' =>  1,
+    ))
+    ->condition('protected_node_is_protected', 0)
+    ->execute();
 
   // then update the table with ALL the existing nodes and as we're at it
   // we mark them as protected
@@ -646,6 +653,7 @@ function protected_node_action_protect_all_nodes($form, &$form_state) {
        . " (SELECT n.nid, %d AS protected_node_show_title, 1 AS protected_node_is_protected, '' AS protected_node_passwd"
        . " FROM {node} n LEFT JOIN {protected_nodes} pn ON n.nid = pn.nid"
        . " WHERE pn.nid IS NULL)";
+  // TODO Please convert this statement to the D7 database API syntax.
   db_query($sql, $form_state['values']['protected_node_show_node_titles']);
 }
 
@@ -656,8 +664,13 @@ function protected_node_action_protect_all_nodes($form, &$form_state) {
  * restores those nodes protection (i.e. sets the is_protected to 1).
  */
 function protected_node_action_protect_nodes_with_password($form, &$form_state) {
-  $sql = "UPDATE {protected_nodes} SET protected_node_is_protected = 1 WHERE protected_node_is_protected = 0 AND protected_node_passwd <> ''";
-  db_query($sql);
+  db_update('protected_nodes')
+    ->fields(array(
+      'protected_node_is_protected' =>  1,
+    ))
+    ->condition('protected_node_is_protected', 0)
+    ->condition('protected_node_passwd', '', '<>')
+    ->execute();
   drupal_set_message('All nodes with an existing password (excluding the global password) are now protected.');
 }
 
@@ -681,10 +694,10 @@ function protected_node_node_type_form_alter(&$form) {
   );
 
   $options = array(
-    PROTECTED_NODE_PROTECTION_NEVER       => t('Never protected'),
+    PROTECTED_NODE_PROTECTION_NEVER => t('Never protected'),
     PROTECTED_NODE_PROTECTION_PROTECTABLE => t('Protectable (default is unprotected)'),
-    PROTECTED_NODE_PROTECTION_PROTECTED   => t('Protectable (default is protected)'),
-    PROTECTED_NODE_PROTECTION_ALWAYS      => t('Always protected'),
+    PROTECTED_NODE_PROTECTION_PROTECTED => t('Protectable (default is protected)'),
+    PROTECTED_NODE_PROTECTION_ALWAYS => t('Always protected'),
   );
   $form['protected_node']['protected_node_protection'] = array(
     '#type' => 'radios',
@@ -704,10 +717,10 @@ function protected_node_node_type_form_alter(&$form) {
     //'#default_value' => variable_get('protected_node_node_password_' . $form['#node_type']->type, ''),
   );
   // yeah... we're calling a Core "private" function...
-  _user_password_dynamic_validation();
+  //_user_password_dynamic_validation();
 
   $options = array(
-    PROTECTED_NODE_FIELDSET_OPEN  => t('Always open'),
+    PROTECTED_NODE_FIELDSET_OPEN => t('Always open'),
     PROTECTED_NODE_FIELDSET_SMART => t('Smart mode (Open when protected)'),
     PROTECTED_NODE_FIELDSET_CLOSE => t('Always closed'),
   );
@@ -765,5 +778,3 @@ function _protected_node_node_type_submit($form, &$form_state) {
     variable_del('protected_node_node_type_password_field_' . $old_node_type);
   }
 }
-
-// vim: ts=2 sw=2 et syntax=php

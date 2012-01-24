@@ -1,6 +1,7 @@
 name = Protected Node
 description = Controls whether selected nodes are protected with a password. Works even better with the Token module.
-core = 6.x
+core = 7.x
+version = 7.x-dev
 package = Access
 recommends[] = tokens
 recommends[] = upload

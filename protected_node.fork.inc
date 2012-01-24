@@ -13,8 +13,7 @@
  *
  * @return The array of nids.
  */
-function protected_node_password_nids()
-{
+function protected_node_password_nids() {
   $nids = array();
   $nids_list = explode(',', $_GET['protected_pages']);
   foreach ($nids_list as $nid) {
@@ -93,7 +92,7 @@ function protected_node_enter_any_password() {
   }
 
   // some variable initialization
-  $types = node_get_types();
+  $types = node_type_get_types();
   $node_type = $types[$node->type];
   $has_token = module_exists('token');
 
@@ -123,7 +122,7 @@ function protected_node_enter_any_password() {
     // TODO: this needs to move to {protected_node} and be loaded along the other information
     // in this case we assume the user may not have the token module
     // so we do conversions of the node type and title "by hand"
-    $node_title = variable_get('protected_node-'. $node->nid .'-show_title', FALSE);
+    $node_title = variable_get('protected_node-' . $node->nid . '-show_title', FALSE);
     if ($node_title) {
       // embellish the title with double quotes
       $node_title = '"' . $node_title . '"';
@@ -138,7 +137,7 @@ function protected_node_enter_any_password() {
   $form['protected_node_enterpassword'] = array(
     '#type' => 'fieldset',
     '#description' => $description,
-    '#collapsible' => FALSE
+    '#collapsible' => FALSE,
   );
 
   // create the password widget
@@ -153,7 +152,7 @@ function protected_node_enter_any_password() {
   $form['protected_node_enterpassword']['password'] = array(
     '#type' => 'password',
     '#title' => $label,
-    '#size' => 20
+    '#size' => 20,
   );
 
   // the node we're working on
@@ -205,7 +204,8 @@ function protected_node_enter_any_password_validate($form, &$form_state) {
   $sql = "SELECT nid FROM {protected_nodes} WHERE protected_node_passwd = '%s'"
         . " AND nid IN (" . db_placeholders($nids, 'int') . ")";
   $passwd = sha1($form['#post']['password']);
-  $nid = db_result(db_query_range($sql, array_merge(array($passwd), $nids), 0, 1));
+  // TODO Please convert this statement to the D7 database API syntax.
+  $nid = db_query_range($sql, array_merge(array($passwd), $nids))->fetchField();
   if (empty($nid)) {
     // note that global password cannot work here since we wouldn't know where
     // to send the user otherwise
@@ -225,7 +225,7 @@ function protected_node_enter_any_password_submit($form, &$form_state) {
   $nid = $form_state['values']['protected_node_selected_nid'];
   foreach ($nids as $n) {
     if ($n == $nid) {
-      $_SESSION['_protected_node']['passwords'][$n] = time();
+      $_SESSION['_protected_node']['passwords'][$n] = REQUEST_TIME;
     }
     else {
       unset($_SESSION['_protected_node']['passwords'][$n]);

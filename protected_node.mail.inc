@@ -35,7 +35,7 @@ function protected_node_send_mail($node) {
 }
 
 /**
- * Implementation of hook_mail().
+ * Implements hook_mail().
  *
  * This is the function that builds the actual message body.
  */
@@ -66,5 +66,3 @@ function protected_node_mail($key, &$message, $params) {
 
   }
 }
-
-// vim: ts=2 sw=2 et syntax=php

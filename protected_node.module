@@ -61,8 +61,8 @@ define('PROTECTED_NODE_PROTECTION_ALWAYS', 3);
 
 
 /**
- * Implementation of hook_help().
- * @link http://api.drupal.org/api/function/hook_help/6
+ * Implements hook_help().
+ * @link http://api.drupal.org/api/function/hook_help/7
  */
 function protected_node_help($path, $arg) {
   switch ($path) {
@@ -73,26 +73,41 @@ function protected_node_help($path, $arg) {
 }
 
 /**
- * Implementation of hook_perm().
- * @link http://api.drupal.org/api/function/hook_perm/6
+ * Implements hook_permission().
+ * @link http://api.drupal.org/api/function/hook_permission/7
  */
-function protected_node_perm() {
+function protected_node_permission() {
   $perms = array(
-    'access protected content',
-    'bypass password protection',
-    'edit any password',
-    'view protected content',
+    'access protected content' => array(
+      'title' => t('access protected content'),
+      'description' => t('Access password screen for protected content. Without this permission user will be denied access completely.'),
+    ),
+    'bypass password protection' => array(
+      'title' => t('bypass password protection'),
+      'description' => t('Bypass password protection'),
+    ),
+    'edit any password' => array(
+      'title' => t('edit any password'),
+      'description' => t('Edit any password'),
+    ),
+    'view protected content' => array(
+      'title' => t('view protected content'),
+      'description' => t('View potected content'),
+    ),
   );
-  foreach (array_keys(node_get_types()) as $type) {
-    $perms[] = 'edit ' . $type . ' password';
+  foreach (node_type_get_types() as $key => $type) {
+    $perms['edit ' . $key . ' password'] = array(
+      'title' => t('edit ' . $key . ' password'),
+      'description' => t('Edit password for ' . $type->name . ' nodes'),
+    );
   }
 
   return $perms;
 }
 
 /**
- * Implementation of hook_menu().
- * @link http://api.drupal.org/api/function/hook_menu/6
+ * Implements hook_menu().
+ * @link http://api.drupal.org/api/function/hook_menu/7
  */
 function protected_node_menu() {
   module_load_include('settings.inc', 'protected_node');
@@ -131,7 +146,7 @@ function protected_node_access_callback() {
         return FALSE;
       }
     }
-    else if(substr($_GET['destination'], -7) == '/delete') {
+    elseif (substr($_GET['destination'], -7) == '/delete') {
       if (!node_access('delete', $node)) {
         return FALSE;
       }
@@ -142,8 +157,8 @@ function protected_node_access_callback() {
 }
 
 /**
- * Implementation of hook_init().
- * @link http://api.drupal.org/api/function/hook_init/6
+ * Implements hook_init().
+ * @link http://api.drupal.org/api/function/hook_init/7
  */
 function protected_node_init() {
   global $user;
@@ -152,6 +167,10 @@ function protected_node_init() {
   // can user see all nodes anyway?
   if (user_access('bypass password protection')) {
     return;
+  }
+
+  if (variable_get('protected_node_use_global_password', PROTECTED_NODE_PER_NODE_PASSWORD) == PROTECTED_NODE_GLOBAL_PASSWORD && $_SESSION['has_entered_global_password']) {
+      return;
   }
 
   $nid = FALSE;
@@ -185,11 +204,11 @@ function protected_node_init() {
   if ($nid) {
     $query = drupal_get_destination();
     if (!empty($_SERVER['HTTP_REFERER'])) {
-      $query .= '&back=' . urlencode($_SERVER['HTTP_REFERER']);
+      $query['back'] = urlencode($_SERVER['HTTP_REFERER']);
     }
-    $query .= '&protected_page=' . $nid;
+    $query['protected_page'] = $nid;
 
-    drupal_goto('protected-node', $query);
+    drupal_goto('protected-node', array('query' => $query));
   }
 }
 
@@ -205,6 +224,8 @@ function protected_node_init() {
  *         to unlock this protected node by entering the password.
  */
 function protected_node_is_locked($nid, $op = 'access') {
+  global $user;
+
   // get the node
   $node = node_load($nid);
 
@@ -218,9 +239,9 @@ function protected_node_is_locked($nid, $op = 'access') {
     // do not cache anything for anonymous users as that could make
     // the content of the page available to people who never enter
     // the password (especially with aggressive caching.)
-    if (variable_get('cache', CACHE_DISABLED)) {
+    if (variable_get('cache', 1)) {
       // prevent caching (do NOT use variable_set() since this is temporary for this session.)
-      $GLOBALS['conf']['cache'] = CACHE_DISABLED;
+      $GLOBALS['conf']['cache'] = 0;
     }
   }
   else {
@@ -267,7 +288,7 @@ function protected_node_is_locked($nid, $op = 'access') {
   if (isset($_SESSION['_protected_node']['passwords'][$nid])) {
     $when = $_SESSION['_protected_node']['passwords'][$nid];
     if ($when > variable_get('protected_node_session_timelimit', 0) // global reset time
-     && $when > $node->protected_node_passwd_changed) {  // this page reset time
+     && $when > $node->protected_node_passwd_changed) { // this page reset time
       return FALSE;
     }
     // the session is out of date, we can as well get rid of it now
@@ -299,7 +320,8 @@ function protected_node_and_attachment($filename) {
         . " FROM {files} f, {upload} u, {protected_nodes} pn, {node} n"
         . " WHERE pn.nid = u.nid AND u.nid = n.nid AND f.filename = '%s' AND u.fid = f.fid"
             . " AND pn.protected_node_is_protected = 1";
-  $file_info = db_fetch_array(db_query($sql, $filename));
+  // TODO Please convert this statement to the D7 database API syntax.
+  $file_info = db_query($sql, $filename)->fetchAssoc();
   if ($file_info === FALSE  // row doesn't exist, it's not protected
    || ($user->uid && $user->uid == $file_info['uid'])) { // $user is the author
     return FALSE;
@@ -347,13 +369,13 @@ function protected_node_and_attachment($filename) {
  */
 function protected_node_invoke($hook, &$param) {
   foreach (module_implements($hook) as $module) {
-    call_user_func($module .'_'. $hook, $param);
+    call_user_func($module . '_' . $hook, $param);
   }
 }
 
 /**
- * Implementation of hook_form_alter().
- * @link http://api.drupal.org/api/function/hook_form_alter/6
+ * Implements hook_form_alter().
+ * @link http://api.drupal.org/api/function/hook_form_alter/7
  *
  * Add the protected node form widgets assuming the user editing this
  * node as permission to do so on this type of node.
@@ -366,11 +388,11 @@ function protected_node_invoke($hook, &$param) {
  * @param[in] $form_id  The name of the form being modified
  */
 function protected_node_form_alter(&$form, &$form_state, $form_id) {
-  if ($form_id == 'node_type_form' && isset($form['identity']['type'])) {
+  if ($form_id == 'node_type_form' && isset($form['#node_type'])) {
     module_load_include('settings.inc', 'protected_node');
     protected_node_node_type_form_alter($form);
   }
-  elseif (isset($form['type']['#value']) && $form['#id'] == 'node-form'
+  elseif (isset($form['type']['#value']) &&  substr($form['#id'], -9) == 'node-form'
   && (user_access('edit any password') || user_access('edit ' . $form['type']['#value'] . ' password'))) {
     module_load_include('settings.inc', 'protected_node');
     protected_node_node_form_alter($form);
@@ -378,158 +400,190 @@ function protected_node_form_alter(&$form, &$form_state, $form_id) {
 }
 
 /**
- * Implementation of hook_nodeapi().
- * @link http://api.drupal.org/api/function/hook_nodeapi/6
+ * Implements hook_node_load().
  */
-function protected_node_nodeapi(&$node, $op, $arg = 0, $page = 0) {
-  global $user;
-  // ugly but we want to keep some variables between the validation and insert/update
-  global $_protected_node_emails;
-  global $_protected_node_random_passwd;
+function protected_node_node_load($node, $types) {
+  return protected_node_load($node);
+}
 
-  switch ($op) {
-  case 'load':
-    return protected_node_load($node);
+/**
+ * Implements hook_node_validate().
+ */
+function protected_node_node_validate($node, $form) {
+  $_protected_node_emails = '';
+  $_protected_node_random_passwd = '';
+  if ($node->protected_node_is_protected
+     && (user_access('edit any password') || user_access('edit ' . $node->type . ' password'))) {
+    $missing_password = FALSE;
+    if (empty($node->protected_node_passwd)) {
+      // password missing in database too?
+      $sql = "SELECT protected_node_passwd FROM {protected_nodes} WHERE nid = %d";
+      $result = trim(db_query("SELECT protected_node_passwd FROM {protected_nodes} WHERE nid = :nid", array(':nid' => $node->nid))->fetchField()); // getting "    " (40 spaces) when empty
+      if (empty($result)) {
+        $missing_password = TRUE;
+       }
+    }
 
-  case 'validate':
-    $_protected_node_emails = '';
-    $_protected_node_random_passwd = '';
-    if ($node->protected_node_is_protected
-    && (user_access('edit any password') || user_access('edit ' . $node->type . ' password'))) {
-      $missing_password = FALSE;
-      if (empty($node->protected_node_passwd)) {
-        // password missing in database too?
-        $sql = "SELECT protected_node_passwd FROM {protected_nodes} WHERE nid = %d";
-        $result = trim(db_result(db_query($sql, $node->nid))); // getting "    " (40 spaces) when empty
-        if (empty($result)) {
-          $missing_password = TRUE;
-        }
-      }
-
-      if (!empty($node->protected_node_emails)) {
-        if ($node->status) {
-          // verify each email address
-          $emails = explode(',', str_replace(array("\r", "\n"), ',', $node->protected_node_emails));
-          foreach ($emails as $k => $m) {
-            $m = trim($m);
-            if ($m) {
-              if (!valid_email_address($m)) {
-                form_error($arg['protected_node']['protected_node_emails'], t('Invalid email address: @m. Please correct this mistake and try again.', array('@m' => $m)));
-                unset($emails[$k]); // unset just in case; should be useless though
-              }
-              else {
-                $emails[$k] = $m;
-              }
+    if (!empty($node->protected_node_emails)) {
+      if ($node->status) {
+        // verify each email address
+        $emails = explode(',', str_replace(array("\r", "\n"), ',', $node->protected_node_emails));
+        foreach ($emails as $k => $m) {
+          $m = trim($m);
+          if ($m) {
+            if (!valid_email_address($m)) {
+              form_error($arg['protected_node']['protected_node_emails'], t('Invalid email address: @m. Please correct this mistake and try again.', array('@m' => $m)));
+              unset($emails[$k]); // unset just in case; should be useless though
             }
             else {
-              // ignore empty entries
-              unset($emails[$k]);
+              $emails[$k] = $m;
             }
           }
-          $_protected_node_emails = implode(', ', $emails);
-          if ($_protected_node_emails && $missing_password && variable_get('protected_node_random_password', FALSE)) {
-            // automatically generate a password for the email (note that means the author won't know the password!)
-            $_protected_node_random_passwd = user_password();
-            $missing_password = FALSE; // not missing anymore
-            drupal_set_message('A random password was generated in order to send the email about this page. Remember that changing the password will prevent users you just emailed from accessing this page.', 'warning');
+          else {
+            // ignore empty entries
+            unset($emails[$k]);
           }
         }
-        else {
-          // the node is not published, forget about emails!
-          form_error($arg['protected_node']['protected_node_emails'], t('Email addresses were specified even though the password is turned off.'));
+        $_protected_node_emails = implode(', ', $emails);
+        if ($_protected_node_emails && $missing_password && variable_get('protected_node_random_password', FALSE)) {
+          // automatically generate a password for the email (note that means the author won't know the password!)
+          $_protected_node_random_passwd = user_password();
+          $missing_password = FALSE; // not missing anymore
+          drupal_set_message('A random password was generated in order to send the email about this page. Remember that changing the password will prevent users you just emailed from accessing this page.', 'warning');
         }
       }
-
-      if ($missing_password) {
-        if ($user->uid == 0) {
-          // if anonymous user, then global password is not an option otherwise
-          // all the nodes could be edited by all the anonymous users!
-          $global_password = PROTECTED_NODE_PER_NODE_PASSWORD;
-        }
-        else {
-          $global_password = variable_get('protected_node_use_global_password', PROTECTED_NODE_PER_NODE_PASSWORD);
-        }
-        switch ($global_password) {
+      else {
+        // the node is not published, forget about emails!
+        form_error($arg['protected_node']['protected_node_emails'], t('Invalid email address: @m. Please correct this mistake and try again.', array('@m' => $m)));
+      }
+    }
+    if ($missing_password) {
+      global $user;
+      if ($user->uid == 0) {
+        // if anonymous user, then global password is not an option otherwise
+        // all the nodes could be edited by all the anonymous users!
+        $global_password = PROTECTED_NODE_PER_NODE_PASSWORD;
+      }
+      else {
+        $global_password = variable_get('protected_node_use_global_password', PROTECTED_NODE_PER_NODE_PASSWORD);
+      }
+      switch ($global_password) {
         case PROTECTED_NODE_PER_NODE_PASSWORD:
           // $arg is the form in this case
           form_error($arg['protected_node']['protected_node_passwd'], t('To protect this page, please enter a password.'));
           break;
-
-        }
       }
     }
-    elseif (isset($node->protected_node_emails) && trim($node->protected_node_emails)) {
-      form_error($arg['protected_node']['protected_node_emails'], t('No email can be sent by the protected node module when the node is not protected or you do not have permission to set a password.'));
-    }
-    break;
-
-  case 'insert':
-  case 'update':
-    if (user_access('edit any password') || user_access('edit ' . $node->type . ' password')) {
-      if (!empty($_protected_node_random_passwd)) {
-        $node->protected_node_passwd = $_protected_node_random_passwd;
-      }
-      if (!empty($_protected_node_emails)) {
-        $node->protected_node_emails = $_protected_node_emails;
-      }
-      protected_node_save($node);
-      if ($node->protected_node_is_protected && !empty($node->protected_node_emails)) {
-        module_load_include('mail.inc', 'protected_node');
-        protected_node_send_mail($node);
-      }
-    }
-    break;
-
-  case 'view':
-    if (!empty($node->protected_node_is_protected)) {
-      // Accessed for search indexing? (usually by cron.php)
-      if ($node->build_mode == NODE_BUILD_SEARCH_INDEX) {
-        // "user" could see the node, but at this time, not its contents
-        // (the current user is Anonymous, so that statement is not exactly true,
-        // but at the time of the search index building we cannot know who will
-        // be searching so we let go without the access denied error.)
-        protected_node_invoke('protected_node_hide', $node);
-      }
-      elseif (!user_access('bypass password protection') && !user_access('view protected content')) {
-        if (!$user->uid && variable_get('cache', CACHE_DISABLED)) {
-          // prevent caching (do NOT use variable_set() since this is temporary for this session.)
-          $GLOBALS['conf']['cache'] = CACHE_DISABLED;
-        }
-
-        if ($node->uid !== $user->uid) {
-          // is there a password?
-          if (isset($_SESSION['_protected_node']['passwords'][$node->nid])) {
-            // is password out of date?
-            $when = $_SESSION['_protected_node']['passwords'][$node->nid];
-            if ($when <= variable_get('protected_node_session_timelimit', 0) // global reset time
-             || $when <= $node->protected_node_passwd_changed) {  // this page reset time
-              unset($_SESSION['_protected_node']['passwords'][$node->nid]);
-            }
-          }
-          if (!isset($_SESSION['_protected_node']['passwords'][$node->nid])) {
-            if (!user_access('access protected content')) {
-              // user will never be given access (no drupal_goto() call necessary)
-              drupal_access_denied();
-              exit();
-            }
-            // user could see the node, but at this time, not its contents
-            protected_node_invoke('protected_node_hide', $node);
-          }
-        }
-      }
-    }
-    break;
-
-  case 'delete':
-    db_query('DELETE FROM {protected_nodes} WHERE nid = %d', $node->nid);
-    break;
-
   }
+  elseif (isset($node->protected_node_emails) && trim($node->protected_node_emails)) {
+    form_error($arg['protected_node']['protected_node_emails'], t('No email can be sent by the protected node module when the node is not protected or you do not have permission to set a password.'));
+  }
+}
+
+/**
+ * Implements hook_node_insert().
+ */
+function protected_node_node_insert($node) {
+
+  // ugly but we want to keep some variables between the validation and insert/update
+  global $_protected_node_emails;
+  global $_protected_node_random_passwd;
+
+  if (user_access('edit any password') || user_access('edit ' . $node->type . ' password')) {
+    if (!empty($_protected_node_random_passwd)) {
+      $node->protected_node_passwd = $_protected_node_random_passwd;
+    }
+    if (!empty($_protected_node_emails)) {
+      $node->protected_node_emails = $_protected_node_emails;
+    }
+    _protected_node_save($node);
+    if ($node->protected_node_is_protected && !empty($node->protected_node_emails)) {
+      module_load_include('mail.inc', 'protected_node');
+      protected_node_send_mail($node);
+    }
+  }
+}
+
+/**
+ * Implements hook_node_update().
+ */
+function protected_node_node_update($node) {
+
+  // ugly but we want to keep some variables between the validation and insert/update
+  global $_protected_node_emails;
+  global $_protected_node_random_passwd;
+
+  if (user_access('edit any password') || user_access('edit ' . $node->type . ' password')) {
+    if (!empty($_protected_node_random_passwd)) {
+      $node->protected_node_passwd = $_protected_node_random_passwd;
+    }
+    if (!empty($_protected_node_emails)) {
+      $node->protected_node_emails = $_protected_node_emails;
+    }
+    _protected_node_save($node);
+    if ($node->protected_node_is_protected && !empty($node->protected_node_emails)) {
+      module_load_include('mail.inc', 'protected_node');
+      protected_node_send_mail($node);
+    }
+  }
+}
+
+/**
+ * Implements hook_node_view().
+ */
+function protected_node_node_view($node, $view_mode = 'full') {
+  global $user;
+  if (!empty($node->protected_node_is_protected)) {
+    // Accessed for search indexing? (usually by cron.php)
+    if ($view_mode == 'search_index') {
+      // "user" could see the node, but at this time, not its contents
+      // (the current user is Anonymous, so that statement is not exactly true,
+      // but at the time of the search index building we cannot know who will
+      // be searching so we let go without the access denied error.)
+      protected_node_invoke('protected_node_hide', $node);
+    }
+    elseif (!user_access('bypass password protection') && !user_access('view protected content')) {
+      if (!$user->uid && variable_get('cache', 1)) {
+        // prevent caching (do NOT use variable_set() since this is temporary for this session.)
+        $GLOBALS['conf']['cache'] = 0;
+      }
+
+      if ($node->uid !== $user->uid) {
+        // is there a password?
+        if (isset($_SESSION['_protected_node']['passwords'][$node->nid])) {
+          // is password out of date?
+          $when = $_SESSION['_protected_node']['passwords'][$node->nid];
+          if ($when <= variable_get('protected_node_session_timelimit', 0) // global reset time
+           || $when <= $node->protected_node_passwd_changed) {  // this page reset time
+            unset($_SESSION['_protected_node']['passwords'][$node->nid]);
+          }
+        }
+        if (!isset($_SESSION['_protected_node']['passwords'][$node->nid])) {
+          if (!user_access('access protected content')) {
+            // user will never be given access (no drupal_goto() call necessary)
+            drupal_access_denied();
+            exit();
+          }
+          // user could see the node, but at this time, not its contents
+          protected_node_invoke('protected_node_hide', $node);
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_node_delete().
+ */
+function protected_node_node_delete($node) {
+  db_delete('protected_nodes')
+    ->condition('nid', $node->nid)
+    ->execute();
 }
 
 
 /**
- * Implementation of hook_protected_node_hide().
+ * Implements hook_protected_node_hide().
  *
  * We implement this callback since it makes sense (I think) although
  * it makes the module a bit slower.
@@ -551,8 +605,7 @@ function protected_node_protected_node_hide(&$node) {
 
 
 /**
- * Implementation of hook_file_download().
- * @link http://api.drupal.org/api/function/hook_file_download/6
+ * Implements hook_file_download().
  */
 function protected_node_file_download($file) {
   global $user;
@@ -570,6 +623,7 @@ function protected_node_file_download($file) {
         . " FROM {files} f, {upload} u, {protected_nodes} pn, {node} n"
         . " WHERE pn.nid = u.nid AND u.nid = n.nid AND f.filename = '%s' AND u.fid = f.fid"
             . " AND pn.protected_node_is_protected = 1";
+  // TODO Please convert this statement to the D7 database API syntax.
   $file_info = db_fetch_array(db_query($sql, $file));
   if ($file_info === FALSE  // row doesn't exist, it's not protected
    || ($user->uid && $user->uid == $file_info['uid'])) { // $user is the author
@@ -603,12 +657,12 @@ function protected_node_file_download($file) {
  * @param[in,out] object $node The node to be saved.
  * @return boolean TRUE if the action was successful, FALSE otherwise.
  */
-function protected_node_save(&$node) {
+function _protected_node_save(&$node) {
   // we first test whether a protected_nodes entry exist so we can use UPDATE
   // or INSERT accordingly (UPDATE does not always properly report working
   // with MySQL.)
   // We also retrive nid because protected_node_passwd may exist and be empty
-  $result = db_fetch_array(db_query("SELECT nid, protected_node_passwd FROM {protected_nodes} WHERE nid = %d", $node->nid));
+  $result = db_query("SELECT nid, protected_node_passwd FROM {protected_nodes} WHERE nid = :nid", array(':nid' => $node->nid))->fetchAssoc();
   if (!empty($result)) {
     // note: the following test prevents the user from using "0"
     //       as a password.
@@ -628,43 +682,40 @@ function protected_node_save(&$node) {
       $changed = FALSE;
       $node->protected_node_passwd = $result['protected_node_passwd'];
     }
-    $sql = "UPDATE {protected_nodes} SET protected_node_is_protected = %d,"
-            . " protected_node_passwd = '%s', protected_node_show_title = %d,"
-            . " protected_node_hint = '%s'";
     $args = array(
-      $node->protected_node_is_protected,
-      $node->protected_node_passwd,
-      $node->protected_node_show_title,
-      isset($node->protected_node_hint) ? $node->protected_node_hint : '',
-    );
+      'protected_node_is_protected' => $node->protected_node_is_protected,
+      'protected_node_passwd' =>$node->protected_node_passwd,
+      'protected_node_show_title' => $node->protected_node_show_title,
+      'protected_node_hint' => isset($node->protected_node_hint) ? $node->protected_node_hint : '',
+     );
     if ($changed) {
-      $sql .= ", protected_node_passwd_changed = %d";
-      $args[] = time(); // last time the password was changed (i.e. invalidate all existing sessions)
+      $args['protected_node_passwd_changed'] = REQUEST_TIME;
     }
-    $sql .= " WHERE nid = %d";
-    $args[] = $node->nid;
-    db_query($sql, $args);
+    $num_updated = db_update('protected_nodes')
+      ->fields($args)
+      ->condition('nid', $node->nid)
+      ->execute();
   }
   else {
     if (!isset($node->protected_node_passwd)) {
       // this happens when the global password is to be used
       $node->protected_node_passwd = '';
     }
-    elseif($node->protected_node_passwd) {
+    elseif ($node->protected_node_passwd) {
       $node->protected_node_clear_passwd = $node->protected_node_passwd;
       $node->protected_node_passwd = sha1($node->protected_node_passwd);
     }
     // we don't need to set the protected_node_passwd_changed since no
     // one has ever entered a password for this node
-    $sql = "INSERT INTO {protected_nodes} (protected_node_is_protected,"
-            . " protected_node_passwd, protected_node_show_title, nid,"
-            . " protected_node_hint)"
-            . " VALUES (%d, '%s', %d, %d, '%s')";
-    db_query($sql, $node->protected_node_is_protected,
-                   $node->protected_node_passwd,
-                   $node->protected_node_show_title,
-                   $node->nid,
-                   isset($node->protected_node_hint) ? $node->protected_node_hint : '');
+    $nid = db_insert('protected_nodes')
+      ->fields(array(
+        'protected_node_is_protected' => $node->protected_node_is_protected,
+        'protected_node_passwd' => $node->protected_node_passwd,
+        'protected_node_show_title' => $node->protected_node_show_title,
+        'nid' => $node->nid,
+        'protected_node_hint' => isset($node->protected_node_hint) ? $node->protected_node_hint : ''
+      ))
+      ->execute();
   }
 }
 
@@ -675,56 +726,58 @@ function protected_node_save(&$node) {
  *
  * @return An array with the node extended fields or FALSE.
  */
-function protected_node_load($node) {
-  // valid input parameters?
-  if (!is_object($node) || !is_numeric($node->nid)) {
-    return FALSE;
+function protected_node_load($nodes) {
+  foreach ($nodes as $nid => &$node) {
+    // valid input parameters?
+    if (!is_object($node) || !is_numeric($node->nid)) {
+      return FALSE;
+    }
+
+    // default fields for protected nodes
+    static $default_fields = array(
+      'protected_node_is_protected' => FALSE,
+      'protected_node_passwd' => '',
+      'protected_node_passwd_changed' => 0,
+      'protected_node_show_title' => 0,
+      'protected_node_hint' => '',
+    );
+
+    // can the node be protected at all?
+    $protection = variable_get('protected_node_protection_' . $node->type, PROTECTED_NODE_PROTECTION_PROTECTABLE);
+    if ($protection == PROTECTED_NODE_PROTECTION_NEVER) {
+      // by default the node is not protected, return that
+      return $default_fields;
+    }
+
+    $result = db_query("SELECT protected_node_is_protected, protected_node_passwd, protected_node_passwd_changed, protected_node_show_title, protected_node_hint FROM {protected_nodes} WHERE nid = :nid", array(':nid' => $node->nid))->fetchAssoc();
+    if (!is_array($result)) {
+      // the SELECT failed, use the defaults
+      $result = $default_fields;
+    }
+    else {
+      // define any missing field
+      $result += $default_fields;
+    }
+
+    // the password is a CHAR(40) and when empty it's all spaces
+    // (this is possible when the global password is used)
+    $result['protected_node_passwd'] = trim($result['protected_node_passwd']);
+
+    // if the user changed the mode to "always protected" then we force that here
+    // it means the node may not be accessible to people without administration
+    // privileges since it may not have a default password
+    if ($protection == PROTECTED_NODE_PROTECTION_ALWAYS) {
+      $result['protected_node_is_protected'] = TRUE;
+    }
+
+    foreach ($result as $property => &$value) {
+      $node->$property = $value;
+    }
   }
-
-  // default fields for protected nodes
-  static $default_fields = array(
-    'protected_node_is_protected' => FALSE,
-    'protected_node_passwd' => '',
-    'protected_node_passwd_changed' => 0,
-    'protected_node_show_title' => 0,
-    'protected_node_hint' => '',
-  );
-
-  // can the node be protected at all?
-  $protection = variable_get('protected_node_protection_' . $node->type, PROTECTED_NODE_PROTECTION_PROTECTABLE);
-  if ($protection == PROTECTED_NODE_PROTECTION_NEVER) {
-    // by default the node is not protected, return that
-    return $default_fields;
-  }
-
-  $sql = "SELECT protected_node_is_protected, protected_node_passwd, protected_node_passwd_changed,"
-            . " protected_node_show_title, protected_node_hint FROM {protected_nodes} WHERE nid = %d";
-  $result = db_fetch_array(db_query($sql, $node->nid));
-  if (!is_array($result)) {
-    // the SELECT failed, use the defaults
-    $result = $default_fields;
-  }
-  else {
-    // define any missing field
-    $result += $default_fields;
-  }
-
-  // the password is a CHAR(40) and when empty it's all spaces
-  // (this is possible when the global password is used)
-  $result['protected_node_passwd'] = trim($result['protected_node_passwd']);
-
-  // if the user changed the mode to "always protected" then we force that here
-  // it means the node may not be accessible to people without administration
-  // privileges since it may not have a default password
-  if ($protection == PROTECTED_NODE_PROTECTION_ALWAYS) {
-    $result['protected_node_is_protected'] = TRUE;
-  }
-
-  return $result;
 }
 
 /**
- * Implementation of hook_token_list().
+ * Implements hook_token_list().
  *
  * This function defines some extras for the protected node (i.e. whether a
  * node is protected, title flag, last time the password was changed, etc.)
@@ -740,7 +793,7 @@ function protected_node_token_list($type = 'all') {
 }
 
 /**
- * Implementation of hook_node_type().
+ * Implements hook_node_type_delete().
  *
  * This function deletes the variables corresponding to the fields added
  * to the node type form.
@@ -748,20 +801,15 @@ function protected_node_token_list($type = 'all') {
  * @param[in] $op  The operation performed on the node type.
  * @param[in] $type  The type object concerned.
  */
-function protected_node_node_type($op, $type) {
-  switch ($op) {
-  case 'delete':
-    variable_del('protected_node_fieldset_' . $type->type);
-    variable_del('protected_node_protection_' . $type->type);
-    variable_del('protected_node_node_type_password_' . $type->type);
-    variable_del('protected_node_node_type_password_field_' . $type->type); // should already be deleted by the submit()
-    break;
-
-  }
+function protected_node_node_type_delete($info) {
+  variable_del('protected_node_fieldset_' . $info->type);
+  variable_del('protected_node_protection_' . $info->type);
+  variable_del('protected_node_node_type_password_' . $info->type);
+  variable_del('protected_node_node_type_password_field_' . $info->type); // should already be deleted by the submit()
 }
 
 /**
- * Implementation of hook_token_values().
+ * Implements hook_token_values().
  */
 function protected_node_token_values($type, $object = NULL, $options = array()) {
   if ($type == 'node' && $object) {
@@ -796,7 +844,7 @@ function protected_node_autocomplete_off($form_element, &$form_state) {
 }
 
 /**
- * Implementation of hook_db_rewrite_sql().
+ * Implements hook_db_rewrite_sql().
  *
  * This hook forbids end users from seeing a node they do not otherwise have
  * access to without a password.
@@ -880,18 +928,23 @@ function protected_node_set_protected($param, $passwd = NULL) {
 
   if (empty($node->protected_node_is_protected)) {
     // node exists in our table?
-    $r = db_result(db_query("SELECT nid FROM {protected_nodes} WHERE nid = %d", $node->nid));
+    $r = db_query("SELECT nid FROM {protected_nodes} WHERE nid = :nid", array(':nid' => $node->nid))->fetchField();
     if ($r) {
       if (empty($passwd)) {
         // in this case, an empty password is fine
-        $sql = "UPDATE {protected_nodes} SET protected_node_is_protected = 1 WHERE nid = %d";
-        $result = db_query($sql, $node->nid) !== FALSE;
+        $result = db_update('protected_nodes')
+          ->fields(array(
+            'protected_node_is_protected' => 1,
+          ))
+          ->condition('nid', $node->nid)
+          ->execute() !== FALSE;
       }
       else {
         // we have to also update the password in this case
         $sql = "UPDATE {protected_nodes} SET protected_node_is_protected = 1,"
             . " protected_node_passwd = '%s', protected_node_passwd_changed = %d WHERE nid = %d";
-        $result = db_query($sql, sha1($passwd), time(), $node->nid) !== FALSE;
+        // TODO Please convert this statement to the D7 database API syntax.
+        $result = db_query($sql, sha1($passwd), REQUEST_TIME, $node->nid) !== FALSE;
       }
     }
     else {
@@ -905,6 +958,7 @@ function protected_node_set_protected($param, $passwd = NULL) {
       $sql = "INSERT INTO {protected_nodes} (protected_node_is_protected,"
               . " protected_node_passwd, protected_node_show_title, nid)"
               . " VALUES (1, '%s', %d, %d)";
+      // TODO Please convert this statement to the D7 database API syntax.
       $result = db_query($sql, $passwd,
                      variable_get('protected_node_show_node_titles', FALSE),
                      $node->nid) !== FALSE;
@@ -917,8 +971,13 @@ function protected_node_set_protected($param, $passwd = NULL) {
       return TRUE;
     }
 
-    $sql = "UPDATE {protected_nodes} SET protected_node_passwd = '%s', protected_node_passwd_changed = %d WHERE nid = %d";
-    $result = db_query($sql, sha1($passwd), time(), $node->nid) !== FALSE;
+    $result = db_update('protected_nodes')
+      ->fields(array(
+          'protected_node_passwd' => sha1($passwd),
+          'protected_node_passwd_changed' => REQUEST_TIME,
+        ))
+      ->condition('nid', $node->nid)
+      ->execute() !== FALSE;
   }
 
   return $result;
@@ -932,9 +991,14 @@ function protected_node_set_protected($param, $passwd = NULL) {
  * @return TRUE if the node was protected before the call, FALSE otherwise.
  */
 function protected_node_unset_protected($nid) {
-  $r = db_result(db_query("SELECT protected_node_is_protected FROM {protected_nodes} WHERE nid = %d", $nid)) == 1;
+  $r = db_query("SELECT protected_node_is_protected FROM {protected_nodes} WHERE nid = :nid", array(':nid' => $nid))->fetchField() == 1;
 
-  db_query("UPDATE {protected_nodes} SET protected_node_is_protected = 0 WHERE nid = %d", $nid);
+  db_update('protected_nodes')
+    ->fields(array(
+      'protected_node_is_protected' => 0,
+    ))
+    ->condition('nid', $nid)
+    ->execute();
 
   return $r;
 }
@@ -954,7 +1018,7 @@ function protected_node_isset_protected($nid) {
     return FALSE;
   }
 
-  return db_result(db_query("SELECT protected_node_is_protected FROM {protected_nodes} WHERE nid = %d", $nid)) == 1;
+  return db_query("SELECT protected_node_is_protected FROM {protected_nodes} WHERE nid = :nid", array(':nid' => $nid))->fetchField() == 1;
 }
 
 /**
@@ -967,7 +1031,7 @@ function protected_node_isset_protected($nid) {
  *
  * @param[in] $nid  The node to lock.
  *
- * @return TRUE if the node gets unlocked. 
+ * @return TRUE if the node gets unlocked.
  */
 function protected_node_lock($nid) {
   if (is_numeric($nid) && isset($_SESSION['_protected_node']['passwords'][$nid])) {
@@ -990,24 +1054,9 @@ function protected_node_unlock($nid) {
     // make sure the node exists
     $node = node_load($nid);
     if ($node->protected_node_is_protected) {
-      $_SESSION['_protected_node']['passwords'][$nid] = time();
+      $_SESSION['_protected_node']['passwords'][$nid] = REQUEST_TIME;
       return TRUE;
     }
   }
   return FALSE;
 }
-
-/** @brief WebFM support.
- *
- * Check webfm file access. In this case, we just check whether the
- * node is protected for the current user.
- *
- * @param[out] $access  Variable whether the access result is saved.
- * @param[in] $node  Node being checked.
- * @param[in] $fid  File being checked.
- */
-function protected_node_webfm_file_access_alter(&$access, $node, $fid) {
-  $access = !protected_node_is_locked($node->nid, 'view');
-}
-
-// vim: ts=2 sw=2 et syntax=php
