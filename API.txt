@@ -5,7 +5,7 @@ data that has to be protected.
 
 bool protected_node_set_protected(int $nid, string $passwd = NULL)
 =============================================================
-Protected the specified node.
+Protect the specified node.
 
 $nid can be the node identifier or any other field that the node_load()
 function accepts.
