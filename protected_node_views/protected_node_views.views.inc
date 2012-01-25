@@ -9,12 +9,30 @@
  */
 function _protected_node_views_extended_dates(&$data, $field, $label) {
   $entries = array(
-    'fulldate' =>   array('help' => t('CCYYMMDD'),     'label' => t('full date')),
-    'year_month' => array('help' => t('CCYYMM'),       'label' => t('year + month')),
-    'year' =>       array('help' => t('CCYY'),         'label' => t('year')),
-    'month' =>      array('help' => t('MM (01 - 12)'), 'label' => t('month')),
-    'day' =>        array('help' => t('DD (01 - 31)'), 'label' => t('day')),
-    'week' =>       array('help' => t('WW (01 - 53)'), 'label' => t('week')),
+    'fulldate' => array(
+      'help' => t('CCYYMMDD'),
+      'label' => t('full date'),
+    ),
+    'year_month' => array(
+      'help' => t('CCYYMM'),
+      'label' => t('year + month'),
+    ),
+    'year' => array(
+      'help' => t('CCYY'),
+      'label' => t('year'),
+    ),
+    'month' => array(
+      'help' => t('MM (01 - 12)'),
+      'label' => t('month'),
+    ),
+    'day' => array(
+      'help' => t('DD (01 - 31)'),
+      'label' => t('day'),
+    ),
+    'week' => array(
+      'help' => t('WW (01 - 53)'),
+      'label' => t('week'),
+    ),
   );
 
   foreach ($entries as $f => $e) {
@@ -30,7 +48,7 @@ function _protected_node_views_extended_dates(&$data, $field, $label) {
 }
 
 /**
- * Implementation of hook_views_data().
+ * Implements hook_views_data().
  */
 function protected_node_views_views_data() {
   $data = array();
@@ -98,4 +116,3 @@ function protected_node_views_views_data() {
   return $data;
 }
 
-// vim: ts=2 sw=2 et syntax=php
