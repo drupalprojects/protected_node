@@ -400,9 +400,11 @@ function protected_node_admin_settings() {
   );
 
   if (module_exists('token')) {
-    // TODO Please change this theme call to use an associative array for the $variables parameter.
+    $vars = array(
+      'token_types' => array('global', 'node', 'user'),
+    );
     $form['protected_node_form']['protected_node_tokens'] = array(
-      '#value' => theme('token_tree', array('global', 'node', 'user')),
+      '#value' => theme('token_tree', $vars),
       '#description' => t('WARNING: the user tokens should only be used if anonymous users cannot access protected nodes; otherwise the result may not be what you\'d expect.'),
     );
   }
