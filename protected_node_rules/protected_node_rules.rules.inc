@@ -4,7 +4,7 @@
  */
 
 /**
- * Implementation of hook_rules_event_info().
+ * Implements of hook_rules_event_info().
  */
 //function protected_node_rules_event_info() {
 //  return array(
@@ -20,16 +20,16 @@
 /**
  * Implements hook_rules_condition_info().
  */
-function protected_node_rules_condition_info() {
+function protected_node_rules_rules_condition_info() {
   $items = array();
   $defaults = array(
-    'arguments' => array(
+    'parameter' => array(
       'node' => array(
         'type' => 'node',
         'label' => t('Content'),
       ),
     ),
-    'module' => 'Protected Node',
+    'group' => t('Protected Node'),
   );
   $items['protected_node_rules_condition_content_is_protected'] = array(
     'label' => t('Content is protected'),
@@ -57,23 +57,23 @@ function protected_node_rules_condition_content_is_locked($node) {
 }
 
 /**
- * List of protected node actions.
+ * Implements hook_rules_action_info().
  */
-function protected_node_rules_action_info() {
+function protected_node_rules_rules_action_info() {
   $defaults = array(
-    'arguments' => array(
+    'parameter' => array(
       'node' => array(
         'type' => 'node',
         'label' => t('Content'),
       ),
     ),
-    'module' => 'Protected node',
+    'group' => t('Protected node'),
   );
   $items['protected_node_rules_action_protect'] = array(
     'label' => t('Protect node'),
   ) + $defaults;
   $items['protected_node_rules_action_password_protect'] = array(
-    'arguments' => array(
+    'parameter' => array(
       'node' => array(
         'type' => 'node',
         'label' => t('Content'),
