@@ -18,13 +18,16 @@
 //}
 
 /**
- * Implementation of hook_rules_condition_info().
+ * Implements hook_rules_condition_info().
  */
 function protected_node_rules_condition_info() {
   $items = array();
   $defaults = array(
     'arguments' => array(
-      'node' => array('type' => 'node', 'label' => t('Content')),
+      'node' => array(
+        'type' => 'node',
+        'label' => t('Content'),
+      ),
     ),
     'module' => 'Protected Node',
   );
@@ -59,7 +62,10 @@ function protected_node_rules_condition_content_is_locked($node) {
 function protected_node_rules_action_info() {
   $defaults = array(
     'arguments' => array(
-      'node' => array('type' => 'node', 'label' => t('Content')),
+      'node' => array(
+        'type' => 'node',
+        'label' => t('Content'),
+      ),
     ),
     'module' => 'Protected node',
   );
@@ -68,8 +74,14 @@ function protected_node_rules_action_info() {
   ) + $defaults;
   $items['protected_node_rules_action_password_protect'] = array(
     'arguments' => array(
-      'node' => array('type' => 'node', 'label' => t('Content')),
-      'passwd' => array('type' => 'string', 'label' => t('Password')),
+      'node' => array(
+        'type' => 'node',
+        'label' => t('Content'),
+      ),
+      'passwd' => array(
+        'type' => 'string',
+        'label' => t('Password'),
+      ),
     ),
     'label' => t('Password protect node'),
   ) + $defaults;
@@ -125,5 +137,3 @@ function protected_node_rules_action_unlock($node) {
   protected_node_unlock($node->nid);
   return array();
 }
-
-// vim: ts=2 sw=2 et syntax=php
