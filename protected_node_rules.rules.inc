@@ -6,7 +6,7 @@
 /**
  * Implementation of hook_rules_event_info().
  */
-//function protected_node_rules_event_info() {
+//function protected_node_rules_rules_event_info() {
 //  return array(
 //    'protected_node_password_set' => array(
 //      'label' => t('The node is now protected'),
@@ -20,7 +20,7 @@
 /**
  * Implementation of hook_rules_condition_info().
  */
-function protected_node_rules_condition_info() {
+function protected_node_rules_rules_condition_info() {
   $items = array();
   $defaults = array(
     'arguments' => array(
@@ -54,9 +54,10 @@ function protected_node_rules_condition_content_is_locked($node) {
 }
 
 /**
+ * Implementation of hook_rules_action_info().
  * List of protected node actions.
  */
-function protected_node_rules_action_info() {
+function protected_node_rules_rules_action_info() {
   $defaults = array(
     'arguments' => array(
       'node' => array('type' => 'node', 'label' => t('Content')),
