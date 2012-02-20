@@ -643,7 +643,8 @@ function protected_node_action_protect_all_nodes($form, &$form_state) {
   // then update the table with ALL the existing nodes and as we're at it
   // we mark them as protected
   $sql = "INSERT INTO {protected_nodes}"
-       . " (SELECT n.nid, %d AS protected_node_show_title, 1 AS protected_node_is_protected, '' AS protected_node_passwd"
+       . " (nid, protected_node_show_title, protected_node_is_protected)"
+       . " (SELECT n.nid, %d, 1"
        . " FROM {node} n LEFT JOIN {protected_nodes} pn ON n.nid = pn.nid"
        . " WHERE pn.nid IS NULL)";
   db_query($sql, $form_state['values']['protected_node_show_node_titles']);
