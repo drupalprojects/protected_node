@@ -585,7 +585,7 @@ function _protected_node_admin_settings_submit($form, &$form_state) {
  */
 function protected_node_action_clear_sessions($form, &$form_state) {
   variable_set('protected_node_session_timelimit', time());
-  drupal_set_message('All the Protected Node sessions were cleared.');
+  drupal_set_message(t('All the Protected Node sessions were cleared.'));
 }
 
 /**
@@ -600,7 +600,7 @@ function protected_node_action_reset_passwords($form, &$form_state) {
     $sql = "UPDATE {protected_nodes} SET protected_node_passwd = '%s'";
     db_query($sql, sha1($passwd));
     variable_set('protected_node_session_timelimit', time());
-    drupal_set_message('All protected nodes are now publicly visible unless protected by another module.');
+    drupal_set_message(t('All protected nodes are now publicly visible unless protected by another module.'));
   }
   else {
     form_error($form['protected_node_actions']['protected_node_reset_passwords']['protected_node_reset_passwords_password'],
@@ -659,7 +659,7 @@ function protected_node_action_protect_all_nodes($form, &$form_state) {
 function protected_node_action_protect_nodes_with_password($form, &$form_state) {
   $sql = "UPDATE {protected_nodes} SET protected_node_is_protected = 1 WHERE protected_node_is_protected = 0 AND protected_node_passwd <> ''";
   db_query($sql);
-  drupal_set_message('All nodes with an existing password (excluding the global password) are now protected.');
+  drupal_set_message(t('All nodes with an existing password (excluding the global password) are now protected.'));
 }
 
 /**

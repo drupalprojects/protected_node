@@ -13,8 +13,7 @@
  *
  * @return The array of nids.
  */
-function protected_node_password_nids()
-{
+function protected_node_password_nids() {
   $nids = array();
   $nids_list = explode(',', $_GET['protected_pages']);
   foreach ($nids_list as $nid) {
@@ -103,8 +102,13 @@ function protected_node_enter_any_password() {
     if ($has_token) {
       $title = token_replace($title, 'node', $node);
       $title = token_replace($title, 'user', $user);
+      // in this case other user's data can be introduce in the title
+      drupal_set_title(filter_xss($title));
     }
-    drupal_set_title($title);
+    else {
+      // only administrators can enter this title
+      drupal_set_title($title);
+    }
   }
 
   // information appear between the title and the password form
@@ -177,7 +181,7 @@ function protected_node_enter_any_password() {
   }
   if ($cancel) {
     $form['protected_node_enterpassword']['cancel'] = array(
-      '#value' => l('Cancel', $cancel),
+      '#value' => l(t('Cancel'), $cancel),
     );
   }
 

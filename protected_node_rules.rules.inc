@@ -1,6 +1,7 @@
 <?php
 /**
- * @file Rules integration for the protected_node module.
+ * @file
+ * Rules integration for the protected_node module.
  */
 
 /**

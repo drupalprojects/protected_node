@@ -131,7 +131,7 @@ function protected_node_access_callback() {
         return FALSE;
       }
     }
-    else if(substr($_GET['destination'], -7) == '/delete') {
+    elseif (substr($_GET['destination'], -7) == '/delete') {
       if (!node_access('delete', $node)) {
         return FALSE;
       }
@@ -431,7 +431,7 @@ function protected_node_nodeapi(&$node, $op, $arg = 0, $page = 0) {
             // automatically generate a password for the email (note that means the author won't know the password!)
             $_protected_node_random_passwd = user_password();
             $missing_password = FALSE; // not missing anymore
-            drupal_set_message('A random password was generated in order to send the email about this page. Remember that changing the password will prevent users you just emailed from accessing this page.', 'warning');
+            drupal_set_message(t('A random password was generated in order to send the email about this page. Remember that changing the password will prevent users you just emailed from accessing this page.'), 'warning');
           }
         }
         else {
@@ -650,7 +650,7 @@ function protected_node_save(&$node) {
       // this happens when the global password is to be used
       $node->protected_node_passwd = '';
     }
-    elseif($node->protected_node_passwd) {
+    elseif ($node->protected_node_passwd) {
       $node->protected_node_clear_passwd = $node->protected_node_passwd;
       $node->protected_node_passwd = sha1($node->protected_node_passwd);
     }
@@ -967,7 +967,7 @@ function protected_node_isset_protected($nid) {
  *
  * @param[in] $nid  The node to lock.
  *
- * @return TRUE if the node gets unlocked. 
+ * @return TRUE if the node gets unlocked.
  */
 function protected_node_lock($nid) {
   if (is_numeric($nid) && isset($_SESSION['_protected_node']['passwords'][$nid])) {

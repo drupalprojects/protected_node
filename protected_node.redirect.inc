@@ -57,8 +57,13 @@ function protected_node_enterpassword() {
     if ($has_token) {
       $title = token_replace($title, 'node', $node);
       $title = token_replace($title, 'user', $user);
+      // in this case other user's data can be introduce in the title
+      drupal_set_title(filter_xss($title));
     }
-    drupal_set_title($title);
+    else {
+      // only administrators can enter this title
+      drupal_set_title($title);
+    }
   }
 
   // information appear between the title and the password form
@@ -131,7 +136,7 @@ function protected_node_enterpassword() {
   }
   if ($cancel) {
     $form['protected_node_enterpassword']['cancel'] = array(
-      '#value' => l('Cancel', $cancel),
+      '#value' => l(t('Cancel'), $cancel),
     );
   }
 
