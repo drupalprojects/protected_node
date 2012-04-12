@@ -134,7 +134,7 @@ function protected_node_enterpassword() {
   elseif (variable_get('protected_node_cancel', 0)) {
     $cancel = '<front>';
   }
-  if ($cancel) {
+  if (!empty($cancel)) {
     $form['protected_node_enterpassword']['cancel'] = array(
       '#value' => l(t('Cancel'), $cancel),
     );
