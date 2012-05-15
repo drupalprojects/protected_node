@@ -812,7 +812,7 @@ function protected_node_db_rewrite_sql($query, $primary_table, $primary_field, $
   // Prevent query from finding nodes the current user may not have permission to see.
   // (i.e. if the user doesn't know the password, then it shouldn't be shown)
   $join = "LEFT JOIN {protected_nodes} protected_nd ON $primary_table.nid = protected_nd.nid";
-  $where = "protected_nd.nid IS NULL";
+  $where = "(protected_nd.nid IS NULL OR protected_nd.protected_node_is_protected = 0)";
 
   return array('join' => $join, 'where' => $where);
 }
