@@ -230,7 +230,7 @@ function protected_node_is_locked($nid, $op = 'access') {
   $node = node_load($nid);
 
   // is the node protected?
-  if (!$node->protected_node_is_protected) {
+  if (!isset($node->protected_node_is_protected) || !$node->protected_node_is_protected) {
     return FALSE;
   }
 
@@ -410,6 +410,11 @@ function protected_node_node_load($node, $types) {
  * Implements hook_node_validate().
  */
 function protected_node_node_validate($node, $form) {
+  // The node type is never protected if $node->protected_node_is_protected is not set.
+  if (!isset($node->protected_node_is_protected)) {
+    return;
+  }
+
   $_protected_node_emails = '';
   $_protected_node_random_passwd = '';
   if ($node->protected_node_is_protected
@@ -484,6 +489,10 @@ function protected_node_node_validate($node, $form) {
  * Implements hook_node_insert().
  */
 function protected_node_node_insert($node) {
+  // The node type is never protected if $node->protected_node_is_protected is not set.
+  if (!isset($node->protected_node_is_protected)) {
+    return;
+  }
 
   // ugly but we want to keep some variables between the validation and insert/update
   global $_protected_node_emails;
@@ -508,6 +517,10 @@ function protected_node_node_insert($node) {
  * Implements hook_node_update().
  */
 function protected_node_node_update($node) {
+  // The node type is never protected if $node->protected_node_is_protected is not set.
+  if (!isset($node->protected_node_is_protected)) {
+    return;
+  }
 
   // ugly but we want to keep some variables between the validation and insert/update
   global $_protected_node_emails;
@@ -658,6 +671,11 @@ function protected_node_file_download($file) {
  * @return boolean TRUE if the action was successful, FALSE otherwise.
  */
 function _protected_node_save(&$node) {
+  // The node type is never protected if $node->protected_node_is_protected is not set.
+  if (!isset($node->protected_node_is_protected)) {
+    return;
+  }
+
   // we first test whether a protected_nodes entry exist so we can use UPDATE
   // or INSERT accordingly (UPDATE does not always properly report working
   // with MySQL.)
