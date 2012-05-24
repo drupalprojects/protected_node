@@ -3,5 +3,6 @@ description = Controls whether selected nodes are protected with a password. Wor
 core = 7.x
 version = 7.x-dev
 package = Access
+configure = admin/config/content/protected_node
 recommends[] = tokens
 recommends[] = upload

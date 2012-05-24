@@ -58,7 +58,7 @@ Thank you.
 function protected_node_menu_array() {
   $items = array();
 
-  $items['admin/config/protected_node'] = array(
+  $items['admin/config/content/protected_node'] = array(
     'title' => 'Protected node',
     'description' => 'Edit the global Protected node settings',
     'page callback' => 'drupal_get_form',
