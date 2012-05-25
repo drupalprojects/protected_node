@@ -222,6 +222,9 @@ function protected_node_init() {
  *         Return TRUE if it is protected and cannot be viewed by
  *         the current user. Return $nid if the user has a chance
  *         to unlock this protected node by entering the password.
+ *         Return -1 if the user is trying to view the node and has
+ *         both access to view nodes of that type and the 'view protected
+ *         content' permission.
  */
 function protected_node_is_locked($nid, $op = 'access') {
   global $user;
