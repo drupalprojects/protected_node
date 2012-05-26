@@ -550,7 +550,7 @@ function _protected_node_admin_settings_validate($form, &$form_state) {
   }
 
   if ($form_state['values']['protected_node_email_from']) {
-    if (!valid_email_address($m)) {
+    if (!valid_email_address($form_state['values']['protected_node_email_from'])) {
       form_error($form['protected_node_auto_email']['protected_node_email_from'],
                  t('The From email address is not valid.'));
     }
