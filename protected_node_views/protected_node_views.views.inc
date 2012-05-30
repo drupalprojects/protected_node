@@ -53,7 +53,7 @@ function _protected_node_views_extended_dates(&$data, $field, $label) {
 function protected_node_views_views_data() {
   $data = array();
 
-  // Views: protected node
+  // Views: protected node.
   $data['protected_nodes']['table']['group'] = t('Protected node list');
 
   $data['protected_nodes']['table']['join'] = array(
@@ -115,4 +115,3 @@ function protected_node_views_views_data() {
 
   return $data;
 }
-

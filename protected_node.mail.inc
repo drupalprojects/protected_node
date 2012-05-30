@@ -1,5 +1,5 @@
 <?php
-/*
+/**
  * @file
  * Protected node mail handling.
  */
@@ -24,7 +24,7 @@ function protected_node_send_mail($node) {
 
   $from = variable_get('protected_node_email_from', '');
   if (!$from) {
-    // needs to be null to work properly inside drupal_mail()
+    // Needs to be null to work properly inside drupal_mail().
     $from = NULL;
   }
   drupal_mail('protected_node', 'password',
@@ -46,23 +46,22 @@ function protected_node_mail($key, &$message, $params) {
   $node = $params['node'];
 
   switch ($key) {
-  case 'password':
-    module_load_include('settings.inc', 'protected_node');
+    case 'password':
+      module_load_include('settings.inc', 'protected_node');
 
-    $subject = variable_get('protected_node_email_subject', protected_node_email_subject());
-    if ($has_token) {
-      $subject = token_replace($subject, 'node', $node);
-      $subject = token_replace($subject, 'user', $user);
-    }
-    $message['subject'] = $subject;
+      $subject = variable_get('protected_node_email_subject', protected_node_email_subject());
+      if ($has_token) {
+        $subject = token_replace($subject, 'node', $node);
+        $subject = token_replace($subject, 'user', $user);
+      }
+      $message['subject'] = $subject;
 
-    $body = variable_get('protected_node_email_body', protected_node_email_body());
-    if ($has_token) {
-      $body = token_replace($body, 'node', $node);
-      $body = token_replace($body, 'user', $user);
-    }
-    $message['body'] = $body;
-    break;
-
+      $body = variable_get('protected_node_email_body', protected_node_email_body());
+      if ($has_token) {
+        $body = token_replace($body, 'node', $node);
+        $body = token_replace($body, 'user', $user);
+      }
+      $message['body'] = $body;
+      break;
   }
 }

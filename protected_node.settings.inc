@@ -36,8 +36,8 @@ function protected_node_email_subject() {
  * a protected node.
  */
 function protected_node_email_body() {
-  return t(
-"Dear friend,
+  // @todo This should go in a variable.
+  return t("Dear friend,
 
 I just created a new page on my website and wanted to invite you to
 visit. The page is protected by the following password:
@@ -94,16 +94,17 @@ function protected_node_menu_array() {
  * It was moved here to optimize the module (so the .module is smaller)
  * This is really only necessary when some edits a node.
  *
- * @param[in,out] $form  The form to be altered with the protected node field set.
+ * @param[in,out] $form The form to be altered with the protected node field
+ *   set.
  */
 function protected_node_node_form_alter(&$form) {
   $protection = variable_get('protected_node_protection_' . $form['type']['#value'], PROTECTED_NODE_PROTECTION_PROTECTABLE);
   if ($protection == PROTECTED_NODE_PROTECTION_NEVER) {
-    // never protecting, do nothing
+    // Never protecting, do nothing.
     return;
   }
 
-  // try to avoid pre-filled password forms
+  // Try to avoid pre-filled password forms.
   $form['#attributes']['autocomplete'] = 'off';
 
   $node_type = node_type_get_type($form['type']['#value']);
@@ -117,7 +118,8 @@ function protected_node_node_form_alter(&$form) {
       $collapsed = TRUE;
       break;
 
-    default: //case PROTECTED_NODE_FIELDSET_SMART:
+    /* case PROTECTED_NODE_FIELDSET_SMART: */
+    default:
       if ($protection == PROTECTED_NODE_PROTECTION_ALWAYS
       || ($protection == PROTECTED_NODE_PROTECTION_PROTECTED && empty($form['nid']['#value']))) {
         $collapsed = FALSE;
@@ -135,20 +137,21 @@ function protected_node_node_form_alter(&$form) {
     '#collapsed' => $collapsed,
   );
   if ($protection == PROTECTED_NODE_PROTECTION_ALWAYS) {
-    // always protected, don't show anything to the user
+    // Always protected, don't show anything to the user.
     $form['protected_node']['protected_node_is_protected'] = array(
       '#type' => 'value',
       '#value' => TRUE,
     );
   }
   else {
-    // define the current default value
+    // Define the current default value.
     if (empty($form['nid']['#value'])) {
-      // a new node is being created, use the protection mode
-      // to determine the default
-      // (no need to test for NEVER, we're already out of this function in that case;
-      // no need to test for ALWAYS, we went through the previous level if() in that
-      // case.)
+      // A new node is being created, use the protection mode to determine the
+      // default.
+      // No need to test for NEVER, we're already out of this function in that
+      // case.
+      // No need to test for ALWAYS, we went through the previous level if() in
+      // that case.
       $protected = $protection == PROTECTED_NODE_PROTECTION_PROTECTED;
     }
     else {
@@ -176,7 +179,7 @@ function protected_node_node_form_alter(&$form) {
     '#default_value' => $show_title,
   );
 
-  // define a password field unless only the global password should be used
+  // Define a password field unless only the global password should be used.
   switch (variable_get('protected_node_use_global_password', PROTECTED_NODE_PER_NODE_PASSWORD)) {
     case PROTECTED_NODE_PER_NODE_PASSWORD:
     case PROTECTED_NODE_PER_NODE_AND_GLOBAL_PASSWORD:
@@ -208,7 +211,7 @@ function protected_node_node_form_alter(&$form) {
     );
   }
 
-  // include the email box?
+  // Include the email box?
   $width_height = variable_get('protected_node_email_box', '');
   if ($width_height) {
     list($width, $height) = explode('x', $width_height);
@@ -228,10 +231,11 @@ function protected_node_node_form_alter(&$form) {
 /**
  * Define the settings form
  *
- * @return $form The settings form
+ * @return array
+ *   $form The settings form
  */
 function protected_node_admin_settings() {
-  // statistics
+  // Statistics.
   $form['protected_node_stats'] = array(
     '#type' => 'fieldset',
     '#title' => t('Protected node statistics'),
@@ -243,18 +247,18 @@ function protected_node_admin_settings() {
   $title_count = db_query("SELECT COUNT(nid) FROM {protected_nodes} WHERE protected_node_is_protected = :protected_node_is_protected AND protected_node_show_title = :protected_node_show_title", array(':protected_node_is_protected' => 1, ':protected_node_show_title' => 1))->fetchField();
   $global_count = db_query("SELECT COUNT(nid) FROM {protected_nodes} WHERE protected_node_is_protected = :protected_node_is_protected AND protected_node_passwd = :protected_node_passwd", array(':protected_node_is_protected' => 1, ':protected_node_passwd' => ''))->fetchField();
 
-  // any nodes?
+  // Any nodes?
   if ($protected_count + $unprotected_count > 0) {
-    $stats = '<table><tr><th style="text-align: center;">Label</th><th style="text-align: center;">Count</th><th style="text-align: center;">Percent</th></tr>'
-           . '<tr><td>Total nodes</td><td align="right">' . ($protected_count + $unprotected_count) . '</td><td align="right">100%</td></tr>'
-           . '<tr><td>Unprotected nodes</td><td align="right">' . $unprotected_count . '</td><td align="right">' . round($unprotected_count * 100 / ($unprotected_count + $protected_count), 2) . '%</td></tr>'
-           . '<tr><td>Protected nodes</td><td align="right">' . $protected_count . '</td><td align="right">' . round($protected_count * 100 / ($unprotected_count + $protected_count), 2) . '%</td></tr>';
-    // any protected nodes?
+    $stats = '<table><tr><th style="text-align: center;">Label</th><th style="text-align: center;">Count</th><th style="text-align: center;">Percent</th></tr>';
+    $stats .= '<tr><td>Total nodes</td><td align="right">' . ($protected_count + $unprotected_count) . '</td><td align="right">100%</td></tr>';
+    $stats .= '<tr><td>Unprotected nodes</td><td align="right">' . $unprotected_count . '</td><td align="right">' . round($unprotected_count * 100 / ($unprotected_count + $protected_count), 2) . '%</td></tr>';
+    $stats .= '<tr><td>Protected nodes</td><td align="right">' . $protected_count . '</td><td align="right">' . round($protected_count * 100 / ($unprotected_count + $protected_count), 2) . '%</td></tr>';
+    // Any protected nodes?
     if ($protected_count > 0) {
-      $stats .= '<tr><td>&raquo; Showing title</td><td align="right">' . $title_count . '</td><td align="right">' . round($title_count * 100 / $protected_count, 2) . '%</td></tr>'
-              . '<tr><td>&raquo; Hiding title</td><td align="right">' . ($protected_count - $title_count) . '</td><td align="right">' . round(($protected_count - $title_count) * 100 / $protected_count, 2) . '%</td></tr>'
-              . '<tr><td>&raquo; Global passwords</td><td align="right">' . $global_count . '</td><td align="right">' . round($global_count * 100 / $protected_count, 2) . '%</td></tr>'
-              . '<tr><td>&raquo; Node passwords</td><td align="right">' . ($protected_count - $global_count) . '</td><td align="right">' . round(($protected_count - $global_count) * 100 / $protected_count, 2) . '%</td></tr>';
+      $stats .= '<tr><td>&raquo; Showing title</td><td align="right">' . $title_count . '</td><td align="right">' . round($title_count * 100 / $protected_count, 2) . '%</td></tr>';
+      $stats .= '<tr><td>&raquo; Hiding title</td><td align="right">' . ($protected_count - $title_count) . '</td><td align="right">' . round(($protected_count - $title_count) * 100 / $protected_count, 2) . '%</td></tr>';
+      $stats .= '<tr><td>&raquo; Global passwords</td><td align="right">' . $global_count . '</td><td align="right">' . round($global_count * 100 / $protected_count, 2) . '%</td></tr>';
+      $stats .= '<tr><td>&raquo; Node passwords</td><td align="right">' . ($protected_count - $global_count) . '</td><td align="right">' . round(($protected_count - $global_count) * 100 / $protected_count, 2) . '%</td></tr>';
     }
     $stats .= '</table>';
 
@@ -263,7 +267,7 @@ function protected_node_admin_settings() {
     );
   }
 
-  // security related options
+  // Security related options.
   $form['protected_node_security'] = array(
     '#type' => 'fieldset',
     '#title' => t('Protected node security'),
@@ -279,18 +283,18 @@ function protected_node_admin_settings() {
       PROTECTED_NODE_PER_NODE_AND_GLOBAL_PASSWORD => 'Per node password or Global password',
       PROTECTED_NODE_GLOBAL_PASSWORD => 'Global password only',
     ),
-    '#description' => t('When checked, the global password is used if the user doesn\'t enter a password when creating/editing nodes.')
-                    . t('<strong>WARNING:</strong> removing the global password when many pages were not otherwise assigned a password will make those nodes unaccessible except for UID=1 and the author of the node.'),
+    '#description' => t("When checked, the global password is used if the user doesn't enter a password when creating/editing nodes.")
+                    . t("<strong>WARNING:</strong> removing the global password when many pages were not otherwise assigned a password will make those nodes unaccessible except for UID=1 and the author of the node."),
   );
 
   $form['protected_node_security']['protected_node_global_password_field'] = array(
     '#type' => 'password_confirm',
     '#title' => t('Global password'),
-    //'#default_value' => variable_get('protected_node_global_password', ''),
+    /* '#default_value' => variable_get('protected_node_global_password', ''), */
     '#description' => t('The default password for all nodes. This password is necessary if you select the previous checkbox.'),
   );
-  // yeah... we're calling a Core "private" function...
-  //_user_password_dynamic_validation();
+  // Yeah... we're calling a Core "private" function...
+  _user_password_dynamic_validation();
 
   $form['protected_node_security']['protected_node_show_password_strength'] = array(
     '#type' => 'checkbox',
@@ -405,11 +409,11 @@ function protected_node_admin_settings() {
     );
     $form['protected_node_form']['protected_node_tokens'] = array(
       '#value' => theme('token_tree', $vars),
-      '#description' => t('WARNING: the user tokens should only be used if anonymous users cannot access protected nodes; otherwise the result may not be what you\'d expect.'),
+      '#description' => t("WARNING: the user tokens should only be used if anonymous users cannot access protected nodes; otherwise the result may not be what you'd expect."),
     );
   }
 
-  // a few actions to do some "mass work"
+  // A few actions to do some "mass work".
   $form['protected_node_actions'] = array(
     '#type' => 'fieldset',
     '#title' => t('Protected node actions'),
@@ -417,7 +421,7 @@ function protected_node_admin_settings() {
     '#collapsed' => TRUE,
   );
 
-  // Clear Sessions button
+  // Clear Sessions button.
   $form['protected_node_actions']['protected_node_clear_sessions'] = array(
     '#type' => 'fieldset',
     '#title' => t('Clear sessions'),
@@ -431,7 +435,7 @@ function protected_node_admin_settings() {
     '#submit' => array('protected_node_action_clear_sessions'),
   );
 
-  // Reset passwords button
+  // Reset passwords button.
   $form['protected_node_actions']['protected_node_reset_passwords'] = array(
     '#type' => 'fieldset',
     '#title' => t('Reset passwords'),
@@ -450,7 +454,7 @@ function protected_node_admin_settings() {
     '#submit' => array('protected_node_action_reset_passwords'),
   );
 
-  // Remove passwords button
+  // Remove passwords button.
   $form['protected_node_actions']['protected_node_remove_passwords'] = array(
     '#type' => 'fieldset',
     '#title' => t('Use global password'),
@@ -464,7 +468,7 @@ function protected_node_admin_settings() {
     '#submit' => array('protected_node_action_remove_passwords'),
   );
 
-  // Remove protection button
+  // Remove protection button.
   $form['protected_node_actions']['protected_node_remove_protection'] = array(
     '#type' => 'fieldset',
     '#title' => t('Remove protection'),
@@ -478,7 +482,7 @@ function protected_node_admin_settings() {
     '#submit' => array('protected_node_action_unprotected_all'),
   );
 
-  // Protect ALL nodes buttons
+  // Protect ALL nodes buttons.
   $form['protected_node_actions']['protected_node_protect_nodes'] = array(
     '#type' => 'fieldset',
     '#title' => t('Protect nodes'),
@@ -492,7 +496,7 @@ function protected_node_admin_settings() {
     '#submit' => array('protected_node_action_protect_all_nodes'),
   );
 
-  // Re-protect nodes buttons
+  // Re-protect nodes buttons.
   $form['protected_node_actions']['protected_node_protect_password'] = array(
     '#type' => 'fieldset',
     '#title' => t('Restore protection'),
@@ -519,8 +523,8 @@ function protected_node_admin_settings() {
  * defines that the global password should be used by default.
  */
 function _protected_node_admin_settings_validate($form, &$form_state) {
-  // make sure that a password is included if a global password is required
-  // and none was ever submitted before
+  // Make sure that a password is included if a global password is required
+  // and none was ever submitted before.
   switch ($form_state['values']['protected_node_use_global_password']) {
     case PROTECTED_NODE_PER_NODE_AND_GLOBAL_PASSWORD:
     case PROTECTED_NODE_GLOBAL_PASSWORD:
@@ -533,7 +537,7 @@ function _protected_node_admin_settings_validate($form, &$form_state) {
 
   }
 
-  // if defined, the email box parameter must be a valid size
+  // If defined, the email box parameter must be a valid size.
   $email_box = trim($form_state['values']['protected_node_email_box']);
   if ($email_box) {
     if (!preg_match('/[0-9]+x[0-9]+/', $email_box)) {
@@ -568,14 +572,14 @@ function _protected_node_admin_settings_submit($form, &$form_state) {
     unset($form_state['values']['protected_node_global_password_field']);
     variable_del('protected_node_global_password_field');
   }
-  // never reset the password...
+  // Never reset the password...
 }
 
 /**
  * "Clear" all the sessions.
  *
- * This function sets the session variable date to now. Any session that was created
- * before then is then considered out of date and will be ignored.
+ * This function sets the session variable date to now. Any session that was
+ * created before then is then considered out of date and will be ignored.
  */
 function protected_node_action_clear_sessions($form, &$form_state) {
   variable_set('protected_node_session_timelimit', REQUEST_TIME);
@@ -641,7 +645,7 @@ function protected_node_action_unprotected_all($form, &$form_state) {
  * and marks ALL nodes as protected.
  */
 function protected_node_action_protect_all_nodes($form, &$form_state) {
-  // first protect all nodes that already are in our table
+  // First protect all nodes that already are in our table.
   db_update('protected_nodes')
     ->fields(array(
       'protected_node_is_protected' =>  1,
@@ -649,12 +653,12 @@ function protected_node_action_protect_all_nodes($form, &$form_state) {
     ->condition('protected_node_is_protected', 0)
     ->execute();
 
-  // then update the table with ALL the existing nodes and as we're at it
-  // we mark them as protected
-  $sql = "INSERT INTO {protected_nodes}"
-       . " (SELECT n.nid, %d AS protected_node_show_title, 1 AS protected_node_is_protected, '' AS protected_node_passwd"
-       . " FROM {node} n LEFT JOIN {protected_nodes} pn ON n.nid = pn.nid"
-       . " WHERE pn.nid IS NULL)";
+  // Then update the table with ALL the existing nodes and as we're at it
+  // we mark them as protected.
+  $sql = "INSERT INTO {protected_nodes}";
+  $sql .= " (SELECT n.nid, %d AS protected_node_show_title, 1 AS protected_node_is_protected, '' AS protected_node_passwd";
+  $sql .= " FROM {node} n LEFT JOIN {protected_nodes} pn ON n.nid = pn.nid";
+  $sql .= " WHERE pn.nid IS NULL)";
   // TODO Please convert this statement to the D7 database API syntax.
   db_query($sql, $form_state['values']['protected_node_show_node_titles']);
 }
@@ -662,8 +666,8 @@ function protected_node_action_protect_all_nodes($form, &$form_state) {
 /**
  * Make sure all nodes with a password are protected.
  *
- * It is possible to unprotect a node and still have a password on it. This function
- * restores those nodes protection (i.e. sets the is_protected to 1).
+ * It is possible to unprotect a node and still have a password on it. This
+ * function restores those nodes protection (i.e. sets the is_protected to 1).
  */
 function protected_node_action_protect_nodes_with_password($form, &$form_state) {
   db_update('protected_nodes')
@@ -715,11 +719,9 @@ function protected_node_node_type_form_alter(&$form) {
     '#size' => 20,
     '#after_build' => array('protected_node_autocomplete_off'),
     '#title' => t('A default (global) password for nodes of this type'),
-    // No default value
-    //'#default_value' => variable_get('protected_node_node_password_' . $form['#node_type']->type, ''),
+    // No default value.
+    /* '#default_value' => variable_get('protected_node_node_password_' . $form['#node_type']->type, ''), */
   );
-  // yeah... we're calling a Core "private" function...
-  //_user_password_dynamic_validation();
 
   $options = array(
     PROTECTED_NODE_FIELDSET_OPEN => t('Always open'),
@@ -753,7 +755,7 @@ function _protected_node_node_type_validate($form, &$form_state) {
     if ($node_type != $old_node_type) {
       $passwd = variable_get('protected_node_node_type_password_' . $old_node_type, '');
       if ($passwd) {
-        // save only if available, we don't need an empty password
+        // Save only if available, we don't need an empty password.
         $form_state['values']['protected_node_node_type_password'] = $passwd;
       }
       variable_del('protected_node_node_type_password_' . $old_node_type);
@@ -766,16 +768,16 @@ function _protected_node_node_type_validate($form, &$form_state) {
  * Do a little extra work on submission.
  */
 function _protected_node_node_type_submit($form, &$form_state) {
-  // make doubly sure the unencrypted field doesn't get saved
-  // (it should already be removed in the validate() function.)
+  // Make doubly sure the unencrypted field doesn't get saved
+  // (it should already be removed in the validate() function).
   unset($form_state['values']['protected_node_node_type_password_field']);
 
-  // delete the current password_field variable if it exists
+  // Delete the current password_field variable if it exists.
   $node_type = trim($form_state['values']['type']);
   variable_del('protected_node_node_type_password_field_' . $node_type);
 
   if (!empty($form_state['values']['old_type'])) {
-    // delete the old password field variable if it exists
+    // Delete the old password field variable if it exists.
     $old_node_type = $form_state['values']['old_type'];
     variable_del('protected_node_node_type_password_field_' . $old_node_type);
   }

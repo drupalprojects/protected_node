@@ -11,7 +11,8 @@
  * isn't at least 1 then the function generates an access
  * denied error and exits.
  *
- * @return The array of nids.
+ * @return array
+ *   The array of nids.
  */
 function protected_node_password_nids() {
   $nids = array();
@@ -23,9 +24,10 @@ function protected_node_password_nids() {
     }
   }
 
-  // make sure we have at least one destination otherwise there is no password to check
+  // Make sure we have at least one destination otherwise there is no password
+  // to check.
   if (count($nids) == 0) {
-    // Illegal call
+    // Illegal call.
     watchdog('protected_node', 'Illegal call to /protected-node', array(), WATCHDOG_WARNING);
     drupal_access_denied();
     exit();
@@ -55,7 +57,7 @@ function protected_node_enter_any_password() {
   global $user;
 
   if (isset($_GET['destination'])) {
-    // Illegal call
+    // Illegal call.
     watchdog('protected_node', 'Illegal call to /protected-nodes', array(), WATCHDOG_WARNING);
     drupal_access_denied();
     exit();
@@ -63,40 +65,43 @@ function protected_node_enter_any_password() {
 
   $nids = protected_node_password_nids();
 
-  // check, in reverse order, whether a node password was specified;
-  // if so, use that node
+  // Check, in reverse order, whether a node password was specified;
+  // if so, use that node.
   foreach (array_reverse($nids) as $nid) {
     if (!empty($_SESSION['_protected_node']['passwords'][$nid])) {
       $when = $_SESSION['_protected_node']['passwords'][$nid];
-      if ($when > variable_get('protected_node_session_timelimit', 0)) { // global reset time
+      // Global reset time.
+      if ($when > variable_get('protected_node_session_timelimit', 0)) {
         $node = node_load($nid);
-        if ($when > $node->protected_node_passwd_changed) {  // this page reset time
-          // the password is still known, go to the page
+        // This page reset time.
+        if ($when > $node->protected_node_passwd_changed) {
+          // The password is still known, go to the page.
           drupal_goto('node/' . $nid);
         }
       }
-      // if the "best" node had a password and it's gone, we don't test the
+      // If the "best" node had a password and it's gone, we don't test the
       // other pages; instead we accept this one as is...
       break;
     }
   }
 
-  // make sure the first node exists, the others we don't care as much at this point
-  // they are tested when the user submits the password and used as the destination
+  // Make sure the first node exists, the others we don't care as much at this
+  // point they are tested when the user submits the password and used as the
+  // destination.
   $node = node_load($nids[0]);
   if (!is_object($node)) {
-    // Illegal nid
+    // Illegal nid.
     watchdog('protected_node', 'Illegal nids[0] (@nid) to /protected-node', array('@nid' => $nids[0]), WATCHDOG_WARNING);
     drupal_access_denied();
     exit();
   }
 
-  // some variable initialization
+  // Some variable initialization.
   $types = node_type_get_types();
   $node_type = $types[$node->type];
   $has_token = module_exists('token');
 
-  // setup the title of this page
+  // Setup the title of this page.
   $title = variable_get('protected_node_title', NULL);
   if (!empty($title)) {
     if ($has_token) {
@@ -106,7 +111,7 @@ function protected_node_enter_any_password() {
     drupal_set_title($title);
   }
 
-  // information appear between the title and the password form
+  // Information appear between the title and the password form.
   $info = variable_get('protected_node_info', '');
   if ($has_token) {
     $info = token_replace($info, 'node', $node);
@@ -116,15 +121,16 @@ function protected_node_enter_any_password() {
     '#value' => $info,
   );
 
-  // enter the detailed description of the protected node password
+  // Enter the detailed description of the protected node password.
   $description = variable_get('protected_node_description', '');
   if (!$description) {
-    // TODO: this needs to move to {protected_node} and be loaded along the other information
-    // in this case we assume the user may not have the token module
-    // so we do conversions of the node type and title "by hand"
+    // @todo This needs to move to {protected_node} and be loaded along the
+    // other information.
+    // In this case we assume the user may not have the token module
+    // so we do conversions of the node type and title "by hand".
     $node_title = variable_get('protected_node-' . $node->nid . '-show_title', FALSE);
     if ($node_title) {
-      // embellish the title with double quotes
+      // Embellish the title with double quotes.
       $node_title = '"' . $node_title . '"';
     }
     $description = t('The @node_type @node_title you are trying to view is password protected. Please enter the password below to proceed.',
@@ -140,7 +146,7 @@ function protected_node_enter_any_password() {
     '#collapsible' => FALSE,
   );
 
-  // create the password widget
+  // Create the password widget.
   $label = variable_get('protected_node_password_label', '');
   if ($label) {
     $label = token_replace($label, 'node', $node);
@@ -155,19 +161,22 @@ function protected_node_enter_any_password() {
     '#size' => 20,
   );
 
-  // the node we're working on
-  //$form['protected_node_nid'] = array(
-  //  '#type' => 'hidden',
-  //  '#value' => implode(',', $nids);
-  //);
+  // The node we're working on.
+  /*
+  $form['protected_node_nid'] = array(
+    '#type' => 'hidden',
+    '#value' => implode(',', $nids);
+  );
+  */
 
-  // add a submit button
+  // Add a submit button.
   $form['protected_node_enterpassword']['submit'] = array(
     '#type' => 'submit',
     '#value' => t('OK'),
   );
 
-  // add a cancel link when 'back' is defined (i.e. referer on the previous page)
+  // Add a cancel link when 'back' is defined (i.e. referer on the previous
+  // page).
   if (isset($_GET['back'])) {
     $cancel = $_GET['back'];
   }
@@ -194,21 +203,21 @@ function protected_node_enter_any_password() {
  * protected-node page.
  *
  * @param[in] $form  An array representing the protected node form.
- * @param[in,out] $form_state  An array representing the current state of the form.
+ * @param[in,out] $form_state  An array representing the current state of the
+ *   form.
  */
 function protected_node_enter_any_password_validate($form, &$form_state) {
-  // TODO: we do not want to check the global password if there is a local
-  //       password (i.e. extract local password instead of comparing!)
+  // @todo We do not want to check the global password if there is a local
+  // password (i.e. extract local password instead of comparing!).
   $nids = protected_node_password_nids();
 
-  $sql = "SELECT nid FROM {protected_nodes} WHERE protected_node_passwd = '%s'"
-        . " AND nid IN (" . db_placeholders($nids, 'int') . ")";
+  $sql = "SELECT nid FROM {protected_nodes} WHERE protected_node_passwd = '%s' AND nid IN (" . db_placeholders($nids, 'int') . ")";
   $passwd = sha1($form['#post']['password']);
-  // TODO Please convert this statement to the D7 database API syntax.
+  // @todo Please convert this statement to the D7 database API syntax.
   $nid = db_query_range($sql, array_merge(array($passwd), $nids))->fetchField();
   if (empty($nid)) {
-    // note that global password cannot work here since we wouldn't know where
-    // to send the user otherwise
+    // Note that global password cannot work here since we wouldn't know where
+    // to send the user otherwise.
     form_set_error('password', t('Incorrect password!'));
   }
   else {
@@ -220,7 +229,7 @@ function protected_node_enter_any_password_validate($form, &$form_state) {
  * Allow the user to see this node.
  */
 function protected_node_enter_any_password_submit($form, &$form_state) {
-  // switch the session to the newly unlocked page
+  // Switch the session to the newly unlocked page.
   $nids = protected_node_password_nids();
   $nid = $form_state['values']['protected_node_selected_nid'];
   foreach ($nids as $n) {
@@ -233,5 +242,3 @@ function protected_node_enter_any_password_submit($form, &$form_state) {
   }
   drupal_goto('node/' . $nid);
 }
-
-// vim: ts=2 sw=2 et syntax=php

@@ -11,24 +11,25 @@
  *
  * @link http://api.drupal.org/api/function/hook_requirements/7
  *
- * @param string $phase  The current phase.
+ * @param string $phase
+ *   The current phase.
  */
 function protected_node_requirements($phase) {
   $reqs = array();
 
   if ($phase == 'runtime') {
-    // test whether any roles were given rights to the handle protected nodes
-
-    // Note: since this is the runtime phase we do not have to force a
-    //       load of the .module file.
-    /*$perms = protected_node_perm();
+    // Test whether any roles were given rights to the handle protected nodes.
+    // Note: since this is the runtime phase we do not have to force a load of
+    // the .module file.
+    /*
+    $perms = protected_node_perm();
 
     $likes = array();
     foreach ($perms as $perm) {
       $likes[] = "perm LIKE '%%%s%%'";
     }
     $sql = "SELECT COUNT(rid) FROM {permission} WHERE " . implode(' OR ', $likes);
-    // TODO Please convert this statement to the D7 database API syntax.
+    // @todo Please convert this statement to the D7 database API syntax.
     $roles = db_query($sql, $perms)->fetchField();
     if ($roles) {
       $reqs['protected_node_rights'] = array(
@@ -55,8 +56,8 @@ function protected_node_requirements($phase) {
       );
     }*/
 
-    // File attachment are not currently protected
-    /**
+    // File attachment are not currently protected.
+    /*
     switch (variable_get('file_downloads', FILE_DOWNLOADS_PUBLIC)) {
     case FILE_DOWNLOADS_PRIVATE:
       if (!module_exists('upload')) {
