@@ -774,7 +774,7 @@ function protected_node_token_values($type, $object = NULL, $options = array()) 
     else {
       $tokens['node-is-protected'] = t('yes');
       $tokens['node-password'] = empty($object->protected_node_clear_passwd) ? '' : $object->protected_node_clear_passwd;
-      $tokens['node-protected-title'] = empty($object->protected_node_show_title) ? t('yes') : t('no');
+      $tokens['node-protected-title'] = empty($object->protected_node_show_title) ? t('no') : t('yes');
       $tokens['node-password-hint'] = $object->protected_node_hint;
     }
     return $tokens;

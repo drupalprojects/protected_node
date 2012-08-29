@@ -79,15 +79,14 @@ function protected_node_enterpassword() {
   // enter the detailed description of the protected node password
   $description = variable_get('protected_node_description', '');
   if (!$description) {
-    // TODO: this needs to move to {protected_node} and be loaded along the other information
-    // in this case we assume the user may not have the token module
-    // so we do conversions of the node type and title "by hand"
-    $node_title = variable_get('protected_node-'. $node->nid .'-show_title', FALSE);
-    if ($node_title) {
+    if ($node->protected_node_show_title) {
       // embellish the title with double quotes
-      $node_title = '"' . $node_title . '"';
+      $node_title = ' "' . $node_title . '"';
     }
-    $description = t('The @node_type @node_title you are trying to view is password protected. Please enter the password below to proceed.',
+    else {
+      $node_title = '';
+    }
+    $description = t('The @node_type@node_title you are trying to view is password protected. Please enter the password below to proceed.',
                      array('@node_type' => $node_type->name, '@node_title' => $node_title));
   }
   elseif ($has_token) {
