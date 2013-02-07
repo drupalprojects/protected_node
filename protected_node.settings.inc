@@ -293,8 +293,6 @@ function protected_node_admin_settings() {
     /* '#default_value' => variable_get('protected_node_global_password', ''), */
     '#description' => t('The default password for all nodes. This password is necessary if you select the previous checkbox.'),
   );
-  // Yeah... we're calling a Core "private" function...
-  _user_password_dynamic_validation();
 
   $form['protected_node_security']['protected_node_show_password_strength'] = array(
     '#type' => 'checkbox',
