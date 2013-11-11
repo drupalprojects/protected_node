@@ -766,7 +766,7 @@ function protected_node_load($nodes) {
 
     // Default fields for protected nodes.
     static $default_fields = array(
-      'protected_node_is_protected' => FALSE,
+      'protected_node_is_protected' => 0,
       'protected_node_passwd' => '',
       'protected_node_passwd_changed' => 0,
       'protected_node_show_title' => 0,
