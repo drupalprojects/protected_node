@@ -42,10 +42,10 @@ function protected_node_email_body() {
 I just created a new page on my website and wanted to invite you to
 visit. The page is protected by the following password:
 
-[node-password]
+[node:password]
 
 Thank you.
-[site-name]"
+[site:name]"
   );
 }
 

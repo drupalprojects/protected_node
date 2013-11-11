@@ -808,19 +808,32 @@ function protected_node_load($nodes) {
 }
 
 /**
- * Implements hook_token_list().
+ * Implements hook_token_info().
  *
  * This function defines some extras for the protected node (i.e. whether a
  * node is protected, title flag, last time the password was changed, etc.)
  */
-function protected_node_token_list($type = 'all') {
-  if ($type == 'node' || $type == 'all') {
-    $tokens['node']['node-is-protected']        = t('Whether the node is protected (yes/no).');
-    $tokens['node']['node-password']            = t('The password in clear (only if available, empty otherwise).');
-    $tokens['node']['node-protected-title']     = t('Whether the title node of the node is protected (yes/no).');
-    $tokens['node']['node-password-hint']       = t('The password hint as entered in this node.');
-    return $tokens;
-  }
+function protected_node_token_info() {
+  $info['tokens']['node'] = array(
+    'is-protected' => array(
+      'name' => t('Node protected status'),
+      'description' => t("Whether the node is protected (yes/no)."),
+    ),
+    'password' => array(
+      'name' => t('Node protected password'),
+      'description' => t("The password in clear (only if available, empty otherwise)."),
+    ),
+    'protected-title' => array(
+      'name' => t('Node protected show title'),
+      'description' => t("Whether the title node of the node is protected (yes/no)."),
+    ),
+    'password-hint' => array(
+      'name' => t('Node protected pasword hint'),
+      'description' => t("The password hint as entered in this node."),
+    ),
+  );
+
+  return $info;
 }
 
 /**
@@ -841,24 +854,33 @@ function protected_node_node_type_delete($info) {
 }
 
 /**
- * Implements hook_token_values().
+ * Implements hook_tokens().
  */
-function protected_node_token_values($type, $object = NULL, $options = array()) {
-  if ($type == 'node' && $object) {
-    if (empty($object->protected_node_is_protected)) {
-      $tokens['node-is-protected'] = t('no');
-      $tokens['node-password'] = '';
-      $tokens['node-protected-title'] = '';
-      $tokens['node-password-hint'] = '';
+function protected_node_tokens($type, $tokens, array $data = array(), array $options = array()) {
+  $replacements = array();
+  if ($type == 'node' && !empty($data['node'])) {
+    $node = $data['node'];
+    if (!empty($node->protected_node_is_protected)) {
+      foreach ($tokens as $name => $original) {
+        switch ($name) {
+          case 'is-protected':
+            $replacements[$original] = t('yes');
+            break;
+          case 'password':
+            $replacements[$original] = empty($node->protected_node_clear_passwd) ? '' : $node->protected_node_clear_passwd;
+            break;
+          case 'protected-title':
+            $replacements[$original] = empty($node->protected_node_show_title) ? t('yes') : t('no');
+            break;
+          case 'password-hint':
+            $replacements[$original] = $node->protected_node_hint;
+            break;
+        }
+      }
     }
-    else {
-      $tokens['node-is-protected'] = t('yes');
-      $tokens['node-password'] = empty($object->protected_node_clear_passwd) ? '' : $object->protected_node_clear_passwd;
-      $tokens['node-protected-title'] = empty($object->protected_node_show_title) ? t('yes') : t('no');
-      $tokens['node-password-hint'] = $object->protected_node_hint;
-    }
-    return $tokens;
   }
+
+  return $replacements;
 }
 
 /**

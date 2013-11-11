@@ -40,9 +40,6 @@ function protected_node_send_mail($node) {
  * This is the function that builds the actual message body.
  */
 function protected_node_mail($key, &$message, $params) {
-  global $user;
-
-  $has_token = module_exists('token');
   $node = $params['node'];
 
   switch ($key) {
@@ -50,18 +47,12 @@ function protected_node_mail($key, &$message, $params) {
       module_load_include('settings.inc', 'protected_node');
 
       $subject = variable_get('protected_node_email_subject', protected_node_email_subject());
-      if ($has_token) {
-        $subject = token_replace($subject, 'node', $node);
-        $subject = token_replace($subject, 'user', $user);
-      }
+      $subject = token_replace($subject, array('node' => $node));
       $message['subject'] = $subject;
 
       $body = variable_get('protected_node_email_body', protected_node_email_body());
-      if ($has_token) {
-        $body = token_replace($body, 'node', $node);
-        $body = token_replace($body, 'user', $user);
-      }
-      $message['body'] = $body;
+      $body = token_replace($body, array('node' => $node));
+      $message['body'][] = $body;
       break;
   }
 }
