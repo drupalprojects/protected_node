@@ -166,7 +166,7 @@ function protected_node_init() {
     return;
   }
 
-  if (variable_get('protected_node_use_global_password', PROTECTED_NODE_PER_NODE_PASSWORD) == PROTECTED_NODE_GLOBAL_PASSWORD && $_SESSION['has_entered_global_password']) {
+  if (variable_get('protected_node_use_global_password', PROTECTED_NODE_PER_NODE_PASSWORD) == PROTECTED_NODE_GLOBAL_PASSWORD && isset($_SESSION['has_entered_global_password'])) {
       return;
   }
 
