@@ -135,6 +135,7 @@ function protected_node_node_form_alter(&$form) {
     '#title' => t('Password protect this @node', array('@node' => $node_type->name)),
     '#collapsible' => TRUE,
     '#collapsed' => $collapsed,
+    '#group' => 'additional_settings',
   );
   if ($protection == PROTECTED_NODE_PROTECTION_ALWAYS) {
     // Always protected, don't show anything to the user.
