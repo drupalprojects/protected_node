@@ -82,7 +82,7 @@ function protected_node_rules_rules_action_info() {
         'label' => t('Content'),
       ),
       'passwd' => array(
-        'type' => 'string',
+        'type' => 'text',
         'label' => t('Password'),
       ),
     ),
