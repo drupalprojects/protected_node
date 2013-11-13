@@ -635,35 +635,38 @@ function protected_node_protected_node_hide(&$node) {
 /**
  * Implements hook_file_download().
  */
-function protected_node_file_download($file) {
+function protected_node_file_download($uri) {
   global $user;
 
   // The upload module glues the attachments and nodes together
   // without that module, we cannot test anything here
   // (it is not required anyway if the user is going to the /node/#
   // page itself.)
-  if (user_access('bypass password protection') || !module_exists('upload')) {
+  if (user_access('bypass password protection')) {
     return array();
   }
 
-  // Check whether the node linked to this file attachment is protected.
-  $sql = "SELECT u.nid, n.uid, pn.protected_node_passwd_changed";
-  $sql .= " FROM {files} f, {upload} u, {protected_nodes} pn, {node} n";
-  $sql .= " WHERE pn.nid = u.nid AND u.nid = n.nid AND f.filename = '%s' AND u.fid = f.fid";
-  $sql .= " AND pn.protected_node_is_protected = 1";
-  // @todo Please convert this statement to the D7 database API syntax.
-  $file_info = db_fetch_array(db_query($sql, $file));
-  if ($file_info === FALSE /* row doesn't exist, it's not protected */
-   || ($user->uid && $user->uid == $file_info['uid']) /* $user is the author */ ) {
-    return array();
-  }
+  $files = file_load_multiple(array(), array('uri' => $uri));
+  if (count($files)) {
+    $file = reset($files);
+    if ($file->status) {
+      $query = "SELECT n.nid, n.uid, pn.protected_node_passwd_changed FROM {file_usage} fu, {protected_nodes} pn, {node} n WHERE pn.nid = fu.id";
+      $query .= " AND fu.fid = :fid AND pn.nid = n.nid AND n.nid = fu.id AND fu.type = 'node' AND pn.protected_node_is_protected = 1";
 
-  // Got the password?
-  if (isset($_SESSION['_protected_node']['passwords'][$file_info['nid']])) {
-    $when = $_SESSION['_protected_node']['passwords'][$file_info['nid']];
-    if ($when > $file_info['protected_node_passwd_changed']  /* this page reset time */
-     && $when > variable_get('protected_node_session_timelimit', 0)) { /* global reset time */
-      return array();
+      $result = db_query($query, array(':fid' => $file->fid));
+      while($file_info = $result->fetchAssoc()) {
+        if($file_info === FALSE || ($user->uid && $user->uid == $file_info['uid'])) {
+          return array();
+        }
+
+        if (isset($_SESSION['_protected_node']['passwords'][$file_info['nid']])) {
+          $when = $_SESSION['_protected_node']['passwords'][$file_info['nid']];
+          if ($when > $file_info['protected_node_passwd_changed']  /* this page reset time */
+           && $when > variable_get('protected_node_session_timelimit', 0)) { /* global reset time */
+            return array();
+          }
+        }
+      }
     }
   }
 
