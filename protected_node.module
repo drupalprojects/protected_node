@@ -160,6 +160,11 @@ function protected_node_access_callback() {
 function protected_node_init() {
   global $user;
 
+  // Let Drush bypass password protection.
+  if (function_exists('drush_main')) {
+    return;
+  }
+
   // Are we about to display a node?
   // Can user see all nodes anyway?
   if (user_access('bypass password protection')) {
