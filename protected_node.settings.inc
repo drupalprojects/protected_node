@@ -293,7 +293,7 @@ function protected_node_admin_settings() {
     );
     if ($protected_count > 0) {
       $rows[] = array(
-        '&raquo;' . t('Showing title'),
+        t('Showing title'),
         array(
           'data' => $title_count,
           'style' => 'text-align:right'
@@ -304,7 +304,7 @@ function protected_node_admin_settings() {
         ),
       );
       $rows[] = array(
-        '&raquo;' . t('Hiding title'),
+        t('Hiding title'),
         array(
           'data' => $protected_count - $title_count,
           'style' => 'text-align:right'
@@ -315,7 +315,7 @@ function protected_node_admin_settings() {
         ),
       );
       $rows[] = array(
-        '&raquo;' . t('Global passwords'),
+        t('Global passwords'),
         array(
           'data' => $global_count,
           'style' => 'text-align:right'
@@ -326,7 +326,7 @@ function protected_node_admin_settings() {
         ),
       );
       $rows[] = array(
-        '&raquo;' . t('Node passwords'),
+        t('Node passwords'),
         array(
           'data' => $protected_count - $global_count,
           'style' => 'text-align:right'
