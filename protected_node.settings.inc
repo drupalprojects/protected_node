@@ -236,12 +236,6 @@ function protected_node_node_form_alter(&$form) {
  *   $form The settings form
  */
 function protected_node_admin_settings() {
-  // Statistics.
-  $form['protected_node_stats'] = array(
-    '#type' => 'fieldset',
-    '#title' => t('Protected node statistics'),
-    '#collapsible' => TRUE,
-  );
 
   $unprotected_count = db_query("SELECT COUNT(n.nid) FROM {node} n LEFT JOIN {protected_nodes} pn ON pn.nid = n.nid WHERE pn.protected_node_is_protected = :protected_node_is_protected OR pn.protected_node_is_protected IS NULL", array(':protected_node_is_protected' => 0))->fetchField();
   $protected_count = db_query("SELECT COUNT(nid) FROM {protected_nodes} WHERE protected_node_is_protected = :protected_node_is_protected", array(':protected_node_is_protected' => 1))->fetchField();
@@ -250,21 +244,103 @@ function protected_node_admin_settings() {
 
   // Any nodes?
   if ($protected_count + $unprotected_count > 0) {
-    $stats = '<table><tr><th style="text-align: center;">Label</th><th style="text-align: center;">Count</th><th style="text-align: center;">Percent</th></tr>';
-    $stats .= '<tr><td>Total nodes</td><td align="right">' . ($protected_count + $unprotected_count) . '</td><td align="right">100%</td></tr>';
-    $stats .= '<tr><td>Unprotected nodes</td><td align="right">' . $unprotected_count . '</td><td align="right">' . round($unprotected_count * 100 / ($unprotected_count + $protected_count), 2) . '%</td></tr>';
-    $stats .= '<tr><td>Protected nodes</td><td align="right">' . $protected_count . '</td><td align="right">' . round($protected_count * 100 / ($unprotected_count + $protected_count), 2) . '%</td></tr>';
-    // Any protected nodes?
+    // Statistics
+    $form['protected_node_stats'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Protected node statistics'),
+      '#collapsible' => TRUE,
+    );
+
+    $column_labels = array(
+      array('data' => t('Label'), 'style' => 'text-align:center'),
+      array('data' => t('Count'), 'style' => 'text-align:center'),
+      array('data' => t('Percent'), 'style' => 'text-align:center'),
+    );
+
+    $rows = array();
+    $rows[] = array(
+      t('Total nodes'),
+      array(
+        'data' => $protected_count + $unprotected_count,
+        'style' => 'text-align:right'
+      ),
+      array(
+        'data' => t('100%'),
+        'style' => 'text-align:right'
+      ),
+    );
+    $rows[] = array(
+      t('Unprotected nodes'),
+      array(
+        'data' => $unprotected_count,
+        'style' => 'text-align:right'
+      ),
+      array(
+        'data' => round($unprotected_count * 100 / ($unprotected_count + $protected_count), 2) . '%',
+        'style' => 'text-align:right'
+      ),
+    );
+    $rows[] = array(
+      t('Protected nodes'),
+      array(
+        'data' => $protected_count,
+        'style' => 'text-align:right'
+      ),
+      array(
+        'data' => round($protected_count * 100 / ($unprotected_count + $protected_count), 2) . '%',
+        'style' => 'text-align:right'
+      ),
+    );
     if ($protected_count > 0) {
-      $stats .= '<tr><td>&raquo; Showing title</td><td align="right">' . $title_count . '</td><td align="right">' . round($title_count * 100 / $protected_count, 2) . '%</td></tr>';
-      $stats .= '<tr><td>&raquo; Hiding title</td><td align="right">' . ($protected_count - $title_count) . '</td><td align="right">' . round(($protected_count - $title_count) * 100 / $protected_count, 2) . '%</td></tr>';
-      $stats .= '<tr><td>&raquo; Global passwords</td><td align="right">' . $global_count . '</td><td align="right">' . round($global_count * 100 / $protected_count, 2) . '%</td></tr>';
-      $stats .= '<tr><td>&raquo; Node passwords</td><td align="right">' . ($protected_count - $global_count) . '</td><td align="right">' . round(($protected_count - $global_count) * 100 / $protected_count, 2) . '%</td></tr>';
+      $rows[] = array(
+        '&raquo;' . t('Showing title'),
+        array(
+          'data' => $title_count,
+          'style' => 'text-align:right'
+        ),
+        array(
+          'data' => round($title_count * 100 / $protected_count, 2) . '%',
+          'style' => 'text-align:right'
+        ),
+      );
+      $rows[] = array(
+        '&raquo;' . t('Hiding title'),
+        array(
+          'data' => $protected_count - $title_count,
+          'style' => 'text-align:right'
+        ),
+        array(
+          'data' => round(($protected_count - $title_count) * 100 / $protected_count, 2) . '%',
+          'style' => 'text-align:right'
+        ),
+      );
+      $rows[] = array(
+        '&raquo;' . t('Global passwords'),
+        array(
+          'data' => $global_count,
+          'style' => 'text-align:right'
+        ),
+        array(
+          'data' => round($global_count * 100 / $protected_count, 2) . '%',
+          'style' => 'text-align:right'
+        ),
+      );
+      $rows[] = array(
+        '&raquo;' . t('Node passwords'),
+        array(
+          'data' => $protected_count - $global_count,
+          'style' => 'text-align:right'
+        ),
+        array(
+          'data' => round(($protected_count - $global_count) * 100 / $protected_count, 2) . '%',
+          'style' => 'text-align:right'
+        ),
+      );
     }
-    $stats .= '</table>';
 
     $form['protected_node_stats']['protected_node_statistics'] = array(
-      '#value' => $stats,
+      '#type' => 'markup',
+      '#markup' => theme('table', array('header' => $column_labels, 'rows' => $rows)),
     );
   }
 
