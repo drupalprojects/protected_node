@@ -289,18 +289,30 @@ function protected_node_is_locked($nid, $op = 'access') {
     return TRUE;
   }
 
-  // User already entered the password?
-  if (isset($_SESSION['_protected_node']['passwords'][$nid])) {
-    $when = $_SESSION['_protected_node']['passwords'][$nid];
-    if ($when > variable_get('protected_node_session_timelimit', 0) /* Global reset time. */
-      && $when > $node->protected_node_passwd_changed /* This page reset time. */
-    ) {
-      return FALSE;
-    }
-    // The session is out of date, we can as well get rid of it now.
-    unset($_SESSION['_protected_node']['passwords'][$nid]);
+  // User already entered the global password?
+  if (isset($_SESSION['_protected_node']['passwords']['global'])) {
+	  $when = $_SESSION['_protected_node']['passwords']['global'];
+	  if ($when > variable_get('protected_node_session_timelimit', 0) /* Global reset time. */
+	    && $when > $node->protected_node_passwd_changed /* This page reset time. */
+      ) {
+        return FALSE;
+      }
+	  // The session is out of date, we can as well get rid of it now.
+	  unset($_SESSION['_protected_node']['passwords']['global']);
   }
-
+  else {
+    // User already entered the password?
+    if (isset($_SESSION['_protected_node']['passwords'][$nid])) {
+      $when = $_SESSION['_protected_node']['passwords'][$nid];
+      if ($when > variable_get('protected_node_session_timelimit', 0) /* Global reset time. */
+        && $when > $node->protected_node_passwd_changed /* This page reset time. */
+      ) {
+        return FALSE;
+      }
+      // The session is out of date, we can as well get rid of it now.
+      unset($_SESSION['_protected_node']['passwords'][$nid]);
+    }
+  }
   return $nid;
 }
 
@@ -332,15 +344,27 @@ function protected_node_and_attachment($filename) {
     return FALSE;
   }
 
-  // Got the password?
-  if (isset($_SESSION['_protected_node']['passwords'][$file_info['nid']])) {
-    $when = $_SESSION['_protected_node']['passwords'][$file_info['nid']];
+  // Got the global password?
+  if (isset($_SESSION['_protected_node']['passwords']['global'])) {
+    $when = $_SESSION['_protected_node']['passwords']['global'];
     if ($when > $file_info['protected_node_passwd_changed']  /* this page reset time */
      && $when > variable_get('protected_node_session_timelimit', 0)) { /* global reset time */
       return FALSE;
     }
     // The session is out of date, we can as well get rid of it now.
-    unset($_SESSION['_protected_node']['passwords'][$file_info['nid']]);
+    unset($_SESSION['_protected_node']['passwords']['global']);
+  }
+  else {
+    // Got the password?
+    if (isset($_SESSION['_protected_node']['passwords'][$file_info['nid']])) {
+      $when = $_SESSION['_protected_node']['passwords'][$file_info['nid']];
+      if ($when > $file_info['protected_node_passwd_changed']  /* this page reset time */
+       && $when > variable_get('protected_node_session_timelimit', 0)) { /* global reset time */
+        return FALSE;
+      }
+      // The session is out of date, we can as well get rid of it now.
+      unset($_SESSION['_protected_node']['passwords'][$file_info['nid']]);
+    }
   }
 
   // Avoid the drupal_goto() if another module anyway forbids access
@@ -576,25 +600,34 @@ function protected_node_node_view($node, $view_mode = 'full') {
       }
 
       if ($node->uid !== $user->uid) {
-        // Is there a password?
-        if (isset($_SESSION['_protected_node']['passwords'][$node->nid])) {
+        // Is there a global password?
+        if (isset($_SESSION['_protected_node']['passwords']['global'])) {
           // Is password out of date?
-          $when = $_SESSION['_protected_node']['passwords'][$node->nid];
+          $when = $_SESSION['_protected_node']['passwords']['global'];
           if ($when <= variable_get('protected_node_session_timelimit', 0) /* global reset time */
            || $when <= $node->protected_node_passwd_changed  /* this page reset time */ ) {
-            unset($_SESSION['_protected_node']['passwords'][$node->nid]);
+            unset($_SESSION['_protected_node']['passwords']['global']);
           }
         }
-        if (!isset($_SESSION['_protected_node']['passwords'][$node->nid])) {
-          if (!user_access('access protected content')) {
-            // User will never be given access (no drupal_goto() call
-            // necessary).
-            drupal_access_denied();
-            exit();
-          }
-          // User could see the node, but at this time, not its contents.
-          protected_node_invoke('protected_node_hide', $node);
-        }
+	    // Is there a password?
+		if (isset($_SESSION['_protected_node']['passwords'][$node->nid])) {
+		  // Is password out of date?
+		  $when = $_SESSION['_protected_node']['passwords'][$node->nid];
+		  if ($when <= variable_get('protected_node_session_timelimit', 0) /* global reset time */
+		   || $when <= $node->protected_node_passwd_changed  /* this page reset time */ ) {
+		     unset($_SESSION['_protected_node']['passwords'][$node->nid]);
+		  }
+		}
+		if (!isset($_SESSION['_protected_node']['passwords'][$node->nid]) && !isset($_SESSION['_protected_node']['passwords']['global'])) {
+		  if (!user_access('access protected content')) {
+		    // User will never be given access (no drupal_goto() call
+			// necessary).
+			drupal_access_denied();
+			exit();
+		  }
+		  // User could see the node, but at this time, not its contents.
+		  protected_node_invoke('protected_node_hide', $node);
+		}
       }
     }
   }
@@ -659,7 +692,16 @@ function protected_node_file_download($uri) {
           return array();
         }
 
-        if (isset($_SESSION['_protected_node']['passwords'][$file_info['nid']])) {
+        // Got the global password?
+        if (isset($_SESSION['_protected_node']['passwords']['global'])) {
+          $when = $_SESSION['_protected_node']['passwords']['global'];
+          if ($when > $file_info['protected_node_passwd_changed']  /* this page reset time */
+            && $when > variable_get('protected_node_session_timelimit', 0)) { /* global reset time */
+              return array();
+          }
+        }
+
+        elseif (isset($_SESSION['_protected_node']['passwords'][$file_info['nid']])) {
           $when = $_SESSION['_protected_node']['passwords'][$file_info['nid']];
           if ($when > $file_info['protected_node_passwd_changed']  /* this page reset time */
            && $when > variable_get('protected_node_session_timelimit', 0)) { /* global reset time */
@@ -1101,6 +1143,10 @@ function protected_node_isset_protected($nid) {
  *   TRUE if the node gets unlocked.
  */
 function protected_node_lock($nid) {
+  if (is_numeric($nid) && isset($_SESSION['_protected_node']['passwords']['global'])) {
+    unset($_SESSION['_protected_node']['passwords']['global']);
+    return TRUE;
+  }
   if (is_numeric($nid) && isset($_SESSION['_protected_node']['passwords'][$nid])) {
     unset($_SESSION['_protected_node']['passwords'][$nid]);
     return TRUE;
@@ -1122,7 +1168,12 @@ function protected_node_unlock($nid) {
     // Make sure the node exists.
     $node = node_load($nid);
     if ($node->protected_node_is_protected) {
-      $_SESSION['_protected_node']['passwords'][$nid] = REQUEST_TIME;
+      if ($_SESSION['has_entered_global_password'] == 1) {
+		$_SESSION['_protected_node']['passwords']['global'] = REQUEST_TIME;
+	  }
+	  else {
+	    $_SESSION['_protected_node']['passwords'][$nid] = REQUEST_TIME;
+	  }
       return TRUE;
     }
   }
