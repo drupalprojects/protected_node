@@ -212,10 +212,9 @@ function protected_node_node_form_alter(&$form) {
     );
   }
 
-  // Include the email box?
-  $width_height = variable_get('protected_node_email_box', '');
-  if ($width_height) {
-    list($width, $height) = explode('x', $width_height);
+  // Email support
+  $email_activation = variable_get('protected_node_email_activation', FALSE);
+  if ($email_activation) {
     $form['protected_node']['protected_node_emails'] = array(
       '#type' => 'textarea',
       '#description' => t('Enter a list of email addresses separated by newlines and/or commas. At the time you save the page, each one of those users will be sent an email with a link back to this page and optionally the password.')
@@ -223,8 +222,8 @@ function protected_node_node_form_alter(&$form) {
         . t('<strong>WARNING</strong>: for an email to be sent you MUST (1) protect the node; (2) re-enter the password; (3) publish the page.')
         . '<br />'
         . t('The password is necessary only if you used [node-password] in the email message. It is necessary to re-enter it because it is otherwise encrypted in the database.'),
-      '#cols' => $width,
-      '#rows' => $height,
+      '#cols' => variable_get('protected_node_email_box_width', '10'),
+      '#rows' => variable_get('protected_node_email_box_height', '2'),
     );
   }
 }
@@ -397,16 +396,30 @@ function protected_node_admin_settings() {
     '#title' => t('Protected node email support'),
     '#description' => t('The following allows the users who can protect a node to send an email about the protected node to their friends.'),
     '#collapsible' => TRUE,
-    '#collapsed' => TRUE,
   );
 
-  $form['protected_node_auto_email']['protected_node_email_box'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Email node information'),
-    '#size' => 12,
-    '#default_value' => variable_get('protected_node_email_box', ''),
-    '#description' => t('Enter the width x height of the email box text area (i.e. 60x5). Leave empty to disable this feature.'),
+  $form['protected_node_auto_email']['protected_node_email_activation'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Enable protected node email support'),
+    '#default_value' => variable_get('protected_node_email_activation', FALSE),
+    '#description' => t('Check this box to enable the protected node email support'),
   );
+
+  $form['protected_node_auto_email']['protected_node_email_box_width'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Email box width'),
+    '#size' => 10,
+    '#default_value' => variable_get('protected_node_email_box_width', '10'),
+    '#description' => t('Enter the width (number of columns) of the email box text area. Must be a positive integer. Default value : 10.'),
+  );
+
+  $form['protected_node_auto_email']['protected_node_email_box_height'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Email box height'),
+    '#size' => 10,
+    '#default_value' => variable_get('protected_node_email_box_height', '2'),
+    '#description' => t('Enter the height (number of rows) of the email box text area. Must be a positive integer. Default value : 2.'),
+   );
 
   $form['protected_node_auto_email']['protected_node_email_from'] = array(
     '#type' => 'textfield',
@@ -612,20 +625,22 @@ function _protected_node_admin_settings_validate($form, &$form_state) {
 
   }
 
-  // If defined, the email box parameter must be a valid size.
-  $email_box = trim($form_state['values']['protected_node_email_box']);
-  if ($email_box) {
-    if (!preg_match('/[0-9]+x[0-9]+/', $email_box)) {
-      form_error($form['protected_node_security']['protected_node_email_box'],
-                 t('The email box must be two numbers separated by the letter x in lowercase.'));
-    }
-    else {
-      list($width, $height) = explode('x', $email_box);
-      if ($width < 10 || $height < 2) {
-        form_error($form['protected_node_security']['protected_node_email_box'],
-                   t('The email box must have a width of at least 10 and a height of at least 2.'));
-      }
-    }
+  // Email box width.
+  $width = $form_state['values']['protected_node_email_box_width'];
+  if (!is_numeric($width)){
+    form_set_error('protected_node_email_box_width', t('You must enter a number for the width of the email box.'));
+  }
+  else if ($width < 0){
+    form_set_error('protected_node_email_box_width', t('The width of the email box must be positive.'));
+  }
+
+  // Email box height.
+  $height = $form_state['values']['protected_node_email_box_height'];
+  if (!is_numeric($height)){
+    form_set_error('protected_node_email_box_height', t('You must enter a number for the height of the email box.'));
+  }
+  else if ($height < 0){
+    form_set_error('protected_node_email_box_height', t('The height of the email box must be positive.'));
   }
 
   if ($form_state['values']['protected_node_email_from']) {
