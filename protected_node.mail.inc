@@ -15,9 +15,9 @@ function protected_node_send_mail($node) {
   module_load_include('settings.inc', 'protected_node');
 
   $body = variable_get('protected_node_email_body', protected_node_email_body());
-  if (strpos('[node-password]', $body) !== FALSE) {
+  if (strpos('[node:password]', $body) !== FALSE) {
     if (empty($node->protected_node_clear_passwd)) {
-      drupal_set_message(t('The protected node email was not sent because the [node-password] is undefined. You must re-enter the password before saving in order to send the password.'), 'error');
+      drupal_set_message(t('The protected node email was not sent because the [node:password] is undefined. You must re-enter the password before saving in order to send the password.'), 'error');
       return;
     }
   }

@@ -205,7 +205,7 @@ function protected_node_node_form_alter(&$form) {
     $form['protected_node']['protected_node_hint'] = array(
       '#type' => 'textarea',
       '#title' => t('Password hint'),
-      '#description' => t('Enter a password hint. This information is displayed in the password form using the [node-password-hint] token.'),
+      '#description' => t('Enter a password hint. This information is displayed in the password form using the [node:password-hint] token.'),
       '#default_value' => $hint,
       '#cols' => 45,
       '#rows' => 5,
@@ -221,7 +221,7 @@ function protected_node_node_form_alter(&$form) {
         . '<br />'
         . t('<strong>WARNING</strong>: for an email to be sent you MUST (1) protect the node; (2) re-enter the password; (3) publish the page.')
         . '<br />'
-        . t('The password is necessary only if you used [node-password] in the email message. It is necessary to re-enter it because it is otherwise encrypted in the database.'),
+        . t('The password is necessary only if you used [node:password] in the email message. It is necessary to re-enter it because it is otherwise encrypted in the database.'),
       '#cols' => variable_get('protected_node_email_box_width', '10'),
       '#rows' => variable_get('protected_node_email_box_height', '2'),
     );
@@ -388,7 +388,7 @@ function protected_node_admin_settings() {
     '#type' => 'checkbox',
     '#title' => t('Allow author to enter a password hint'),
     '#default_value' => variable_get('protected_node_allow_hint', FALSE),
-    '#description' => t('By default, the password is kept as secret as possible. This option allows the author to enter a hint about the password of a node. The hint is later shown using the [node-password-hint] token.'),
+    '#description' => t('By default, the password is kept as secret as possible. This option allows the author to enter a hint about the password of a node. The hint is later shown using the [node:password-hint] token.'),
   );
 
   $form['protected_node_auto_email'] = array(
