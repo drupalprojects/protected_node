@@ -1168,7 +1168,7 @@ function protected_node_unlock($nid) {
     // Make sure the node exists.
     $node = node_load($nid);
     if ($node->protected_node_is_protected) {
-      if ($_SESSION['has_entered_global_password'] == 1) {
+      if (isset($_SESSION['has_entered_global_password'])) {
 		$_SESSION['_protected_node']['passwords']['global'] = REQUEST_TIME;
 	  }
 	  else {

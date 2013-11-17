@@ -193,7 +193,7 @@ function protected_node_enterpassword_validate($form, &$form_state) {
 function protected_node_enterpassword_submit($form, &$form_state) {
   // @todo The protected_node_nid parameter should be extracted from the
   // destination URI.
-  if ($_SESSION['has_entered_global_password'] == 1) {
+  if (isset($_SESSION['has_entered_global_password'])) {
     $_SESSION['_protected_node']['passwords']['global'] = REQUEST_TIME;
   }
   else {
