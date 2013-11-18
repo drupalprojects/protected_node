@@ -421,7 +421,7 @@ function protected_node_form_alter(&$form, &$form_state, $form_id) {
     module_load_include('settings.inc', 'protected_node');
     protected_node_node_type_form_alter($form);
   }
-  elseif (isset($form['type']['#value']) &&  substr($form['#id'], -9) == 'node-form'
+  elseif (isset($form['type']['#value']) &&  substr($form_id, -9) == 'node_form'
   && (user_access('edit any password') || user_access('edit ' . $form['type']['#value'] . ' password'))) {
     module_load_include('settings.inc', 'protected_node');
     protected_node_node_form_alter($form);
