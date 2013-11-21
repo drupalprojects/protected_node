@@ -134,6 +134,11 @@ function protected_node_schema() {
         'not null' => TRUE,
         'default' => 0,
       ),
+      'protected_node_emails' => array(
+        'description' => 'List of email addresses which received the last notification.',
+        'type' => 'text',
+        'size' => 'normal',
+      ),
       'protected_node_hint' => array(
         'description' => 'A hint about the password on this node.',
         'type' => 'text',
@@ -169,4 +174,15 @@ function protected_node_uninstall() {
   db_delete('variable')
     ->condition('name', 'protected_node_%%', 'LIKE')
     ->execute();
+}
+
+/**
+ * Adds a protected_node_emails field to the protected_nodes table.
+ */
+function protected_node_update_7100() {
+  db_add_field('protected_nodes', 'protected_node_emails', array(
+    'type' => 'text',
+    'size' => 'normal',
+    'description' => 'List of email addresses which received the last notification.'
+  ));
 }

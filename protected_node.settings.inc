@@ -215,6 +215,14 @@ function protected_node_node_form_alter(&$form) {
   // Email support
   $email_activation = variable_get('protected_node_email_activation', FALSE);
   if ($email_activation) {
+
+    if (isset($form['#node']->protected_node_emails)) {
+      $previous_emails = $form['#node']->protected_node_emails;
+    }
+    else {
+      $previous_emails = '';
+    }
+
     $form['protected_node']['protected_node_emails'] = array(
       '#type' => 'textarea',
       '#description' => t('Enter a list of email addresses separated by newlines and/or commas. At the time you save the page, each one of those users will be sent an email with a link back to this page and optionally the password.')
@@ -222,6 +230,7 @@ function protected_node_node_form_alter(&$form) {
         . t('<strong>WARNING</strong>: for an email to be sent you MUST (1) protect the node; (2) re-enter the password; (3) publish the page.')
         . '<br />'
         . t('The password is necessary only if you used [node:password] in the email message. It is necessary to re-enter it because it is otherwise encrypted in the database.'),
+      '#default_value' => $previous_emails,
       '#cols' => variable_get('protected_node_email_box_width', '10'),
       '#rows' => variable_get('protected_node_email_box_height', '2'),
     );

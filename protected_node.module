@@ -541,6 +541,8 @@ function protected_node_node_insert($node) {
       $node->protected_node_emails = $_protected_node_emails;
     }
     _protected_node_save($node);
+
+    // Send notifications if there is at least one email
     if ($node->protected_node_is_protected && !empty($node->protected_node_emails)) {
       module_load_include('mail.inc', 'protected_node');
       protected_node_send_mail($node);
@@ -571,6 +573,8 @@ function protected_node_node_update($node) {
       $node->protected_node_emails = $_protected_node_emails;
     }
     _protected_node_save($node);
+
+    // Send notifications if there is at least one email.
     if ($node->protected_node_is_protected && !empty($node->protected_node_emails)) {
       module_load_include('mail.inc', 'protected_node');
       protected_node_send_mail($node);
@@ -742,7 +746,7 @@ function _protected_node_save(&$node) {
   // or INSERT accordingly (UPDATE does not always properly report working
   // with MySQL).
   // We also retrive nid because protected_node_passwd may exist and be empty.
-  $result = db_query("SELECT nid, protected_node_passwd FROM {protected_nodes} WHERE nid = :nid", array(':nid' => $node->nid))->fetchAssoc();
+  $result = db_query("SELECT nid, protected_node_passwd, protected_node_emails FROM {protected_nodes} WHERE nid = :nid", array(':nid' => $node->nid))->fetchAssoc();
   if (!empty($result)) {
     // Note: the following test prevents the user from using "0" as a password.
     if (isset($node->protected_node_passwd)) {
@@ -761,10 +765,26 @@ function _protected_node_save(&$node) {
       $changed = FALSE;
       $node->protected_node_passwd = $result['protected_node_passwd'];
     }
+
+    // Check if the email addresses is empty.
+    if (empty($node->protected_node_emails)) {
+      if (!empty($result['protected_node_emails'])) {
+        // Keep the addresses.
+        $saved_emails = $result['protected_node_emails'];
+      }
+      else {
+        $saved_emails = '';
+      }
+    }
+    else {
+      $saved_emails = $node->protected_node_emails;
+    }
+
     $args = array(
       'protected_node_is_protected' => $node->protected_node_is_protected,
       'protected_node_passwd' => $node->protected_node_passwd,
       'protected_node_show_title' => $node->protected_node_show_title,
+      'protected_node_emails' => $saved_emails,
       'protected_node_hint' => isset($node->protected_node_hint) ? $node->protected_node_hint : '',
      );
     if ($changed) {
@@ -792,6 +812,7 @@ function _protected_node_save(&$node) {
         'protected_node_passwd' => $node->protected_node_passwd,
         'protected_node_show_title' => $node->protected_node_show_title,
         'nid' => $node->nid,
+        'protected_node_emails' => $node->protected_node_emails,
         'protected_node_hint' => isset($node->protected_node_hint) ? $node->protected_node_hint : '',
       ))
       ->execute();
@@ -820,6 +841,7 @@ function protected_node_load($nodes) {
       'protected_node_passwd' => '',
       'protected_node_passwd_changed' => 0,
       'protected_node_show_title' => 0,
+      'protected_node_emails' => '',
       'protected_node_hint' => '',
     );
 
@@ -830,7 +852,7 @@ function protected_node_load($nodes) {
       return $default_fields;
     }
 
-    $result = db_query("SELECT protected_node_is_protected, protected_node_passwd, protected_node_passwd_changed, protected_node_show_title, protected_node_hint FROM {protected_nodes} WHERE nid = :nid", array(':nid' => $node->nid))->fetchAssoc();
+    $result = db_query("SELECT protected_node_is_protected, protected_node_passwd, protected_node_passwd_changed, protected_node_show_title, protected_node_emails, protected_node_hint FROM {protected_nodes} WHERE nid = :nid", array(':nid' => $node->nid))->fetchAssoc();
     if (!is_array($result)) {
       // The SELECT failed, use the defaults.
       $result = $default_fields;
