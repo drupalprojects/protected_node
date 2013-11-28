@@ -540,6 +540,9 @@ function protected_node_node_insert($node) {
     if (!empty($_protected_node_emails)) {
       $node->protected_node_emails = $_protected_node_emails;
     }
+    else {
+      $node->protected_node_emails = '';
+    }
     _protected_node_save($node);
 
     // Send notifications if there is at least one email
