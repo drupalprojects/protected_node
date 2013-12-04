@@ -187,6 +187,10 @@ function protected_node_init() {
     elseif ($param2 == 'edit' || $param2 == 'delete') {
       $nid = protected_node_is_locked(arg(1), $param2);
     }
+    // Support for webform to access the confirmation message.
+    elseif ($param2 == 'done') {
+      $nid = protected_node_is_locked(arg(1), 'view');
+    }
     else {
       // Any access right?
       $nid = protected_node_is_locked(arg(1));
@@ -754,14 +758,16 @@ function _protected_node_save(&$node) {
     // Note: the following test prevents the user from using "0" as a password.
     if (isset($node->protected_node_passwd)) {
       $changed = $node->protected_node_passwd != $result['protected_node_passwd'];
-      if (empty($node->protected_node_passwd)) {
-        // Keep result if it's empty ...
-        $node->protected_node_passwd = $result['protected_node_passwd'];
-        $changed = FALSE;
-      }
-      else {
-        $node->protected_node_clear_passwd = $node->protected_node_passwd;
-        $node->protected_node_passwd = sha1($node->protected_node_passwd);
+      if ($changed) {
+        if (empty($node->protected_node_passwd)) {
+          // Keep result if it's empty ...
+          $node->protected_node_passwd = $result['protected_node_passwd'];
+          $changed = FALSE;
+        }
+        else {
+          $node->protected_node_clear_passwd = $node->protected_node_passwd;
+          $node->protected_node_passwd = sha1($node->protected_node_passwd);
+        }
       }
     }
     else {
