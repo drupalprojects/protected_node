@@ -796,6 +796,7 @@ function protected_node_node_type_form_alter(&$form) {
     '#title' => t('Protected node settings'),
     '#collapsible' => TRUE,
     '#collapsed' => TRUE,
+    '#group' => 'additional_settings',
   );
 
   $options = array(
