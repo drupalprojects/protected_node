@@ -488,9 +488,9 @@ function protected_node_admin_settings() {
 
   $form['protected_node_form']['protected_node_description'] = array(
     '#type' => 'textarea',
-    '#title' => t('Password page description (inside the field set)'),
+    '#title' => t('Password page description (inside the field set with the password form)'),
     '#default_value' => variable_get('protected_node_description', ''),
-    '#description' => t('Enter specific description for the protected node page. This description is displayed inside the fieldset. HTML is accepted. You can use node type tokens from the token module when installed.'),
+    '#description' => t('Enter specific description for the protected node page. This description is displayed inside the fieldset with the password form. HTML is accepted. You can use node type tokens from the token module when installed.'),
   );
 
   $form['protected_node_form']['protected_node_password_label'] = array(

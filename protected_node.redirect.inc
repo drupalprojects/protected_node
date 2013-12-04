@@ -67,9 +67,13 @@ function protected_node_enterpassword() {
     $info = token_replace($info, array('node' => $node));
     $info = token_replace($info, array('user' => $user));
   }
-  $form['protected_node'] = array(
-    '#value' => $info,
-  );
+  if ($info) {
+    $form['protected_node'] = array(
+      '#type' => 'fieldset',
+      '#description' => $info,
+      '#collapsible' => FALSE,
+    );
+  }
 
   // Enter the detailed description of the protected node password.
   $description = variable_get('protected_node_description', '');
