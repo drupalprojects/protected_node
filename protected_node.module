@@ -187,8 +187,7 @@ function protected_node_init() {
     elseif ($param2 == 'edit' || $param2 == 'delete') {
       $nid = protected_node_is_locked(arg(1), $param2);
     }
-    // Support for webform to access the confirmation message.
-    elseif ($param2 == 'done') {
+    elseif (($param2 == 'done' && modules_exists('webform')) || ($param2 == 'mid' && modules_exists('nodesymlinks'))) {
       $nid = protected_node_is_locked(arg(1), 'view');
     }
     else {
