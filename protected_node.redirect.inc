@@ -150,41 +150,51 @@ function protected_node_enterpassword_validate($form, &$form_state) {
   // password (i.e. extract local password instead of comparing).
   // @todo The protected_node_nid parameter should be extracted from the
   // destination URI.
-  $sql = "SELECT nid FROM {protected_nodes} WHERE protected_node_passwd = '%s' AND nid = %d";
   $passwd = sha1($form_state['values']['password']);
-  $nid = db_query("SELECT nid FROM {protected_nodes} WHERE protected_node_passwd = :protected_node_passwd AND nid = :nid", array(':protected_node_passwd' => $passwd, ':nid' => $form_state['values']['protected_node_nid']))->fetchField();
+  $protected_node_nid = $form_state['values']['protected_node_nid'];
+  $nid = db_query("SELECT nid FROM {protected_nodes} WHERE protected_node_passwd = :protected_node_passwd AND nid = :nid", array(':protected_node_passwd' => $passwd, ':nid' => $protected_node_nid))->fetchField();
+  $node = node_load($protected_node_nid);
   if (empty($nid)) {
-    switch (variable_get('protected_node_use_global_password', PROTECTED_NODE_PER_NODE_PASSWORD)) {
-      case PROTECTED_NODE_PER_NODE_AND_GLOBAL_PASSWORD:
-      case PROTECTED_NODE_GLOBAL_PASSWORD:
-        $global_passwd = variable_get('protected_node_global_password', '');
-        if ($global_passwd == $passwd) {
-          $_SESSION['has_entered_global_password'] = 1;
-          $nid = 1;
+    // Global content type password exists ?
+    $global_content_type_password = variable_get('protected_node_node_type_password_' . $node->type, '');
+    if ($global_content_type_password != '') {
+      if ($global_content_type_password != $passwd) {
+        switch (variable_get('protected_node_use_global_password', PROTECTED_NODE_PER_NODE_PASSWORD)) {
+          case PROTECTED_NODE_PER_NODE_AND_GLOBAL_PASSWORD:
+          case PROTECTED_NODE_GLOBAL_PASSWORD:
+            $global_passwd = variable_get('protected_node_global_password', '');
+            if ($global_passwd == $passwd) {
+              $_SESSION['has_entered_global_password'] = 1;
+              $nid = 1;
+            }
+            else {
+              // This comes last so we avoid loading the node if another password
+              // matches although that means the main global password has priority
+              // which may, in the long run, be a problem (but since the result is
+              // the same, I don't foresee this being a problem at all).
+              $node_type_passwd = variable_get('protected_node_node_type_password_' . $node->type, '');
+              if ($node_type_passwd == $passwd) {
+                $nid = 1;
+              }
+            }
+            if (!empty($nid)) {
+              // The user found a global password.
+              // Was the protected node created by an anonymous user?
+              // If so, prevent the use of any global password.
+              $created = db_query("SELECT created FROM {node} WHERE nid = :nid AND uid = :uid", array(':nid' => $protected_node_nid, ':uid' => 0))->fetchField();
+              if ($created) {
+                $nid = FALSE;
+              }
+            }
+          break;
         }
-        else {
-          // This comes last so we avoid loading the node if another password
-          // matches although that means the main global password has priority
-          // which may, in the long run, be a problem (but since the result is
-          // the same, I don't foresee this being a problem at all).
-          $node = node_load($form_state['values']['protected_node_nid']);
-          $node_type_passwd = variable_get('protected_node_node_type_password_' . $node->type, '');
-          if ($node_type_passwd == $passwd) {
-            $nid = 1;
-          }
-        }
-        if (!empty($nid)) {
-          // The user found a global password.
-          // Was the protected node created by an anonymous user?
-          // If so, prevent the use of any global password.
-          $created = db_query("SELECT created FROM {node} WHERE nid = :nid AND uid = :uid", array(':nid' => $form_state['values']['protected_node_nid'], ':uid' => 0))->fetchField();
-          if ($created) {
-            $nid = FALSE;
-          }
-        }
-        break;
-
+      }
+      // The global content type password match.
+      else {
+        $nid = $protected_node_nid;
+      }
     }
+
     if (empty($nid)) {
       form_set_error('password', t('Incorrect password!'));
     }

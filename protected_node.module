@@ -454,12 +454,19 @@ function protected_node_node_validate($node, $form) {
      && (user_access('edit any password') || user_access('edit ' . $node->type . ' password'))) {
     $missing_password = FALSE;
     if (empty($node->protected_node_passwd)) {
-      // Password missing in database too?
-      $sql = "SELECT protected_node_passwd FROM {protected_nodes} WHERE nid = %d";
-      // Getting "    " (40 spaces) when empty.
-      $result = trim(db_query("SELECT protected_node_passwd FROM {protected_nodes} WHERE nid = :nid", array(':nid' => $node->nid))->fetchField());
-      if (empty($result)) {
-        $missing_password = TRUE;
+      // Global content type password exists ?
+      $global_content_type_password = variable_get('protected_node_node_type_password_' . $node->type, '');
+      if ($global_content_type_password != '') {
+        // it's ok.
+      }
+      else {
+        // Password missing in database too?
+        $sql = "SELECT protected_node_passwd FROM {protected_nodes} WHERE nid = %d";
+        // Getting "    " (40 spaces) when empty.
+        $result = trim(db_query("SELECT protected_node_passwd FROM {protected_nodes} WHERE nid = :nid", array(':nid' => $node->nid))->fetchField());
+        if (empty($result)) {
+          $missing_password = TRUE;
+        }
       }
     }
 
