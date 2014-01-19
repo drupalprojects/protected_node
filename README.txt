@@ -2,7 +2,8 @@
 Protected Node Documentation
 ----------------------------
 
- * Original : http://www.m2osw.com/doc-protected-node
+ * Original :   http://www.m2osw.com/doc-protected-node
+ * Drupal.org : https://drupal.org/node/2176627
 
 
 Description
