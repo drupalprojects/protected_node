@@ -1007,6 +1007,8 @@ function protected_node_db_rewrite_sql($query, $primary_table, $primary_field, $
 }
 
 /**
+ * Implements hook_boost_is_cacheable().
+ *
  * Prevent boost from caching protected nodes.
  *
  * @todo
@@ -1014,17 +1016,11 @@ function protected_node_db_rewrite_sql($query, $primary_table, $primary_field, $
  * the protection is turned on.
  */
 function protected_node_boost_is_cacheable($path) {
-  // The $path may be an alias, unalias first.
-  $url = drupal_lookup_path('source', $path);
-  if (!$url) {
-    // $path is not an alias, use $path as is for our test.
-    $url = $path;
+  if (arg(0) == 'node' && is_numeric(arg(1))) {
+    // if protected, do not cache (i.e. not caching == return FALSE)
+    return !protected_node_isset_protected(arg(1));
   }
-  $p = explode('/', $url);
-  if (count($p) == 2 && $p[0] == 'node' && is_numeric($p[1])) {
-    // If protected, do not cache (i.e. not caching == return FALSE).
-    return !protected_node_isset_protected($p[1]);
-  }
+  return TRUE;
 }
 
 /**
