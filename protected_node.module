@@ -695,7 +695,25 @@ function protected_node_file_download($uri) {
   if (user_access('bypass password protection')) {
     return array();
   }
+  $path = file_uri_target($uri);
 
+  // Private file access for image style derivatives.
+  if (strpos($path, 'styles/') === 0) {
+    $original_uri = _protected_node_get_original_uri($path, $uri);
+
+    // Check that the file exists and is an image.
+    if ($info = image_get_info($uri)) {
+      // Check the permissions of the original to grant access to this image.
+      $headers = module_invoke_all('file_download', $original_uri);
+      // Confirm there's at least one module granting access and none denying access.
+      if (!empty($headers) && !in_array(-1, $headers)) {
+        return array();
+      }
+    }
+    return -1;
+  }
+
+  // Private file access for the original files.
   $files = file_load_multiple(array(), array('uri' => $uri));
   if (count($files)) {
     $file = reset($files);
@@ -736,6 +754,25 @@ function protected_node_file_download($uri) {
 /*
  * Helper functions
  */
+
+/**
+ * Helper function used to return the original uri from a path and an uri.
+ *
+ * @see protected_node_file_download()
+ */
+function _protected_node_get_original_uri($path, $uri) {
+  $args = explode('/', $path);
+  // Discard the first part of the path (styles).
+  array_shift($args);
+  // Get the style name from the second part.
+  $style_name = array_shift($args);
+  // Remove the scheme from the path.
+  array_shift($args);
+  // Then the remaining parts are the path to the image.
+  $original_uri = file_uri_scheme($uri) . '://' . implode('/', $args);
+
+  return $original_uri;
+}
 
 /**
  * Sets the given node to protected with the provided password.
