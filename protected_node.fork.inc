@@ -212,11 +212,15 @@ function protected_node_enter_any_password_validate($form, &$form_state) {
   // @todo We do not want to check the global password if there is a local
   // password (i.e. extract local password instead of comparing!).
   $nids = protected_node_password_nids();
-
-  $sql = "SELECT nid FROM {protected_nodes} WHERE protected_node_passwd = '%s' AND nid IN (" . db_placeholders($nids, 'int') . ")";
   $passwd = sha1($form['#post']['password']);
-  // @todo Please convert this statement to the D7 database API syntax.
-  $nid = db_query_range($sql, array_merge(array($passwd), $nids))->fetchField();
+
+  $nid = db_query_range('protected_nodes', '')
+    ->fields(array('nid'))
+    ->condition('protected_node_passwd', $passwd)
+    ->condition('nid', $nids, 'IN')
+    ->execute()
+    ->fetchField();
+
   if (empty($nid)) {
     // Note that global password cannot work here since we wouldn't know where
     // to send the user otherwise.

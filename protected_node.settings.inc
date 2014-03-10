@@ -245,13 +245,45 @@ function protected_node_node_form_alter(&$form) {
  */
 function protected_node_admin_settings() {
 
-  $unprotected_count = db_query("SELECT COUNT(n.nid) FROM {node} n LEFT JOIN {protected_nodes} pn ON pn.nid = n.nid WHERE pn.protected_node_is_protected = :protected_node_is_protected OR pn.protected_node_is_protected IS NULL", array(':protected_node_is_protected' => 0))->fetchField();
-  $protected_count = db_query("SELECT COUNT(nid) FROM {protected_nodes} WHERE protected_node_is_protected = :protected_node_is_protected", array(':protected_node_is_protected' => 1))->fetchField();
-  $title_count = db_query("SELECT COUNT(nid) FROM {protected_nodes} WHERE protected_node_is_protected = :protected_node_is_protected AND protected_node_show_title = :protected_node_show_title", array(':protected_node_is_protected' => 1, ':protected_node_show_title' => 1))->fetchField();
-  $global_count = db_query("SELECT COUNT(nid) FROM {protected_nodes} WHERE protected_node_is_protected = :protected_node_is_protected AND protected_node_passwd = :protected_node_passwd", array(':protected_node_is_protected' => 1, ':protected_node_passwd' => ''))->fetchField();
+  // Total
+  $total_count = db_select('node')
+    ->fields('node', array('nid'))
+    ->countQuery()
+    ->execute()
+    ->fetchField();
+
+  // Protected
+  $protected_count = db_select('protected_nodes')
+    ->fields('protected_nodes', array('nid'))
+    ->condition('protected_node_is_protected', 1)
+    ->countQuery()
+    ->execute()
+    ->fetchField();
+
+  // Title
+  $title_count = db_select('protected_nodes')
+    ->fields('protected_nodes', array('nid'))
+    ->condition('protected_node_is_protected', 1)
+    ->condition('protected_node_show_title', 1)
+    ->countQuery()
+    ->execute()
+    ->fetchField();
+
+  // Global
+  $global_count = db_select('protected_nodes')
+    ->fields('protected_nodes', array('nid'))
+    ->condition('protected_node_is_protected', 1)
+    ->condition('protected_node_passwd', '')
+    ->countQuery()
+    ->execute()
+    ->fetchField();
+
+  $unprotected_count = $total_count - $protected_count;
+  $hiding_count = $protected_count - $title_count;
+  $node_password_count = $protected_count - $global_count;
 
   // Any nodes?
-  if ($protected_count + $unprotected_count > 0) {
+  if ($total_count > 0) {
     // Statistics
     $form['protected_node_stats'] = array(
       '#type' => 'fieldset',
@@ -269,7 +301,7 @@ function protected_node_admin_settings() {
     $rows[] = array(
       t('Total nodes'),
       array(
-        'data' => $protected_count + $unprotected_count,
+        'data' => $total_count,
         'style' => 'text-align:right'
       ),
       array(
@@ -284,7 +316,7 @@ function protected_node_admin_settings() {
         'style' => 'text-align:right'
       ),
       array(
-        'data' => round($unprotected_count * 100 / ($unprotected_count + $protected_count), 2) . '%',
+        'data' => round($unprotected_count * 100 / ($total_count), 2) . '%',
         'style' => 'text-align:right'
       ),
     );
@@ -295,7 +327,7 @@ function protected_node_admin_settings() {
         'style' => 'text-align:right'
       ),
       array(
-        'data' => round($protected_count * 100 / ($unprotected_count + $protected_count), 2) . '%',
+        'data' => round($protected_count * 100 / ($total_count), 2) . '%',
         'style' => 'text-align:right'
       ),
     );
@@ -314,11 +346,11 @@ function protected_node_admin_settings() {
       $rows[] = array(
         t('Hiding title'),
         array(
-          'data' => $protected_count - $title_count,
+          'data' => $hiding_count,
           'style' => 'text-align:right'
         ),
         array(
-          'data' => round(($protected_count - $title_count) * 100 / $protected_count, 2) . '%',
+          'data' => round($hiding_count * 100 / $protected_count, 2) . '%',
           'style' => 'text-align:right'
         ),
       );
@@ -336,11 +368,11 @@ function protected_node_admin_settings() {
       $rows[] = array(
         t('Node passwords'),
         array(
-          'data' => $protected_count - $global_count,
+          'data' => $node_password_count,
           'style' => 'text-align:right'
         ),
         array(
-          'data' => round(($protected_count - $global_count) * 100 / $protected_count, 2) . '%',
+          'data' => round($node_password_count * 100 / $protected_count, 2) . '%',
           'style' => 'text-align:right'
         ),
       );
@@ -752,14 +784,31 @@ function protected_node_action_protect_all_nodes($form, &$form_state) {
     ->condition('protected_node_is_protected', 0)
     ->execute();
 
-  // Then update the table with ALL the existing nodes and as we're at it
-  // we mark them as protected.
-  $sql = "INSERT INTO {protected_nodes}";
-  $sql .= " (SELECT n.nid, %d AS protected_node_show_title, 1 AS protected_node_is_protected, '' AS protected_node_passwd";
-  $sql .= " FROM {node} n LEFT JOIN {protected_nodes} pn ON n.nid = pn.nid";
-  $sql .= " WHERE pn.nid IS NULL)";
-  // TODO Please convert this statement to the D7 database API syntax.
-  db_query($sql, $form_state['values']['protected_node_show_node_titles']);
+  // Add never protected nodes to protected_nodes.
+  $nodes = db_select('node')
+    ->fields('node', array('nid'))
+    ->execute();
+
+  foreach($nodes as $node) {
+    $nid = $node->nid;
+
+    $nid_in_protected_node = db_select('protected_nodes')
+      ->fields('protected_nodes', array('nid'))
+      ->condition('nid', $nid)
+      ->execute()
+      ->fetchfield();
+
+    if (!$nid_in_protected_node) {
+      // Add the node in protected_nodes
+      db_insert('protected_nodes')
+        ->fields(array(
+          'nid' => $nid,
+          'protected_node_is_protected' => '1',
+          'protected_node_show_title' => $form_state['values']['protected_node_show_node_titles']
+        ))
+        ->execute();
+    }
+  }
 }
 
 /**

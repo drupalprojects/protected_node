@@ -336,57 +336,64 @@ function protected_node_and_attachment($filename) {
   }
 
   // Check whether the node linked to this file attachment is protected.
-  $sql = "SELECT u.nid, n.uid, pn.protected_node_passwd_changed";
-  $sql .= " FROM {files} f, {upload} u, {protected_nodes} pn, {node} n";
-  $sql .= " WHERE pn.nid = u.nid AND u.nid = n.nid AND f.filename = '%s' AND u.fid = f.fid";
-  $sql .= " AND pn.protected_node_is_protected = 1";
-  // @todo Please convert this statement to the D7 database API syntax.
-  $file_info = db_query($sql, $filename)->fetchAssoc();
-  if ($file_info === FALSE  /* Row doesn't exist, it's not protected */
-   || ($user->uid && $user->uid == $file_info['uid'])) { /* $user is the author */
-    return FALSE;
-  }
+  $query = db_select('node', 'n');
+  $query->join('file_usage', 'fu', 'n.nid = fu.id');
+  $query->join('file_managed', 'fm', 'fm.fid = fu.fid');
+  $query->join('protected_nodes', 'pn', 'n.nid = pn.nid');
+  $query->fields('n', array('nid', 'uid'));
+  $query->fields('pn', array('protected_node_passwd_changed'));
+  $query->condition('fu.type', 'node');
+  $query->condition('fm.filename', $filename);
+  $query->condition('pn.protected_node_is_protected', '1');
+  $result = $query->execute();
 
-  // Got the global password?
-  if (isset($_SESSION['_protected_node']['passwords']['global'])) {
-    $when = $_SESSION['_protected_node']['passwords']['global'];
-    if ($when > $file_info['protected_node_passwd_changed']  /* this page reset time */
-     && $when > variable_get('protected_node_session_timelimit', 0)) { /* global reset time */
+  foreach ($result as $file_info) {
+    if ($file_info === FALSE  /* Row doesn't exist, it's not protected */
+     || ($user->uid && $user->uid == $file_info->uid)) { /* $user is the author */
       return FALSE;
     }
-    // The session is out of date, we can as well get rid of it now.
-    unset($_SESSION['_protected_node']['passwords']['global']);
-  }
-  else {
-    // Got the password?
-    if (isset($_SESSION['_protected_node']['passwords'][$file_info['nid']])) {
-      $when = $_SESSION['_protected_node']['passwords'][$file_info['nid']];
-      if ($when > $file_info['protected_node_passwd_changed']  /* this page reset time */
+
+    // Got the global password?
+    if (isset($_SESSION['_protected_node']['passwords']['global'])) {
+      $when = $_SESSION['_protected_node']['passwords']['global'];
+      if ($when > $file_info->protected_node_passwd_changed  /* this page reset time */
        && $when > variable_get('protected_node_session_timelimit', 0)) { /* global reset time */
         return FALSE;
       }
       // The session is out of date, we can as well get rid of it now.
-      unset($_SESSION['_protected_node']['passwords'][$file_info['nid']]);
+      unset($_SESSION['_protected_node']['passwords']['global']);
     }
-  }
-
-  // Avoid the drupal_goto() if another module anyway forbids access
-  // to the file.
-  foreach (module_implements('file_download') as $module) {
-    // Skip ourself, we already know the answer!
-    if ($module != 'protected_node') {
-      $function = $module . '_file_download';
-      $result = call_user_func_array($function, array($filename));
-      if (isset($result) && $result == -1) {
-        // This $module forbids the file download, forget it a password won't
-        // help.
-        return FALSE;
+    else {
+      // Got the password?
+      if (isset($_SESSION['_protected_node']['passwords'][$file_info->nid])) {
+        $when = $_SESSION['_protected_node']['passwords'][$file_info->nid];
+        if ($when > $file_info->protected_node_passwd_changed  /* this page reset time */
+         && $when > variable_get('protected_node_session_timelimit', 0)) { /* global reset time */
+          return FALSE;
+        }
+        // The session is out of date, we can as well get rid of it now.
+        unset($_SESSION['_protected_node']['passwords'][$file_info->nid]);
       }
     }
-  }
 
-  // No password, access denied.
-  return $file_info['nid'];
+    // Avoid the drupal_goto() if another module anyway forbids access
+    // to the file.
+    foreach (module_implements('file_download') as $module) {
+      // Skip ourself, we already know the answer!
+      if ($module != 'protected_node') {
+        $function = $module . '_file_download';
+        $result = call_user_func_array($function, array($filename));
+        if (isset($result) && $result == -1) {
+          // This $module forbids the file download, forget it a password won't
+          // help.
+          return FALSE;
+        }
+      }
+    }
+
+    // No password, access denied.
+    return $file_info->nid;
+  }
 }
 
 
@@ -718,27 +725,33 @@ function protected_node_file_download($uri) {
   if (count($files)) {
     $file = reset($files);
     if ($file->status) {
-      $query = "SELECT n.nid, n.uid, pn.protected_node_passwd_changed FROM {file_usage} fu, {protected_nodes} pn, {node} n WHERE pn.nid = fu.id";
-      $query .= " AND fu.fid = :fid AND pn.nid = n.nid AND n.nid = fu.id AND fu.type = 'node' AND pn.protected_node_is_protected = 1";
+      $query = db_select('node', 'n');
+      $query->join('file_usage', 'fu', 'n.nid = fu.id');
+      $query->join('protected_nodes', 'pn', 'n.nid = pn.nid');
+      $query->fields('n', array('nid', 'uid'));
+      $query->fields('pn', array('protected_node_passwd_changed'));
+      $query->condition('fu.fid', $file->fid);
+      $query->condition('fu.type', 'node');
+      $query->condition('pn.protected_node_is_protected', '1');
+      $result = $query->execute();
 
-      $result = db_query($query, array(':fid' => $file->fid));
-      while($file_info = $result->fetchAssoc()) {
-        if($file_info === FALSE || ($user->uid && $user->uid == $file_info['uid'])) {
+      foreach ($result as $file_info) {
+        if($file_info === FALSE || ($user->uid && $user->uid == $file_info->uid)) {
           return array();
         }
 
         // Got the global password?
         if (isset($_SESSION['_protected_node']['passwords']['global'])) {
           $when = $_SESSION['_protected_node']['passwords']['global'];
-          if ($when > $file_info['protected_node_passwd_changed']  /* this page reset time */
+          if ($when > $file_info->protected_node_passwd_changed  /* this page reset time */
             && $when > variable_get('protected_node_session_timelimit', 0)) { /* global reset time */
               return array();
           }
         }
 
-        elseif (isset($_SESSION['_protected_node']['passwords'][$file_info['nid']])) {
-          $when = $_SESSION['_protected_node']['passwords'][$file_info['nid']];
-          if ($when > $file_info['protected_node_passwd_changed']  /* this page reset time */
+        elseif (isset($_SESSION['_protected_node']['passwords'][$file_info->nid])) {
+          $when = $_SESSION['_protected_node']['passwords'][$file_info->nid];
+          if ($when > $file_info->protected_node_passwd_changed  /* this page reset time */
            && $when > variable_get('protected_node_session_timelimit', 0)) { /* global reset time */
             return array();
           }
@@ -796,7 +809,12 @@ function _protected_node_save(&$node) {
   // or INSERT accordingly (UPDATE does not always properly report working
   // with MySQL).
   // We also retrive nid because protected_node_passwd may exist and be empty.
-  $result = db_query("SELECT nid, protected_node_passwd, protected_node_emails FROM {protected_nodes} WHERE nid = :nid", array(':nid' => $node->nid))->fetchAssoc();
+  $result = db_select('protected_nodes')
+    ->fields('protected_nodes', array('nid', 'protected_node_passwd', 'protected_node_emails'))
+    ->condition('nid', $node->nid)
+    ->execute()
+    ->fetchAssoc();
+
   if (!empty($result)) {
     // Note: the following test prevents the user from using "0" as a password.
     if (isset($node->protected_node_passwd)) {
@@ -904,7 +922,19 @@ function protected_node_load($nodes) {
       return $default_fields;
     }
 
-    $result = db_query("SELECT protected_node_is_protected, protected_node_passwd, protected_node_passwd_changed, protected_node_show_title, protected_node_emails, protected_node_hint FROM {protected_nodes} WHERE nid = :nid", array(':nid' => $node->nid))->fetchAssoc();
+    $result = db_select('protected_nodes')
+      ->fields('protected_nodes', array(
+          'protected_node_is_protected',
+          'protected_node_passwd',
+          'protected_node_passwd_changed',
+          'protected_node_show_title',
+          'protected_node_emails',
+          'protected_node_hint'
+        ))
+      ->condition('nid', $node->nid)
+      ->execute()
+      ->fetchAssoc();
+
     if (!is_array($result)) {
       // The SELECT failed, use the defaults.
       $result = $default_fields;
@@ -1104,8 +1134,13 @@ function protected_node_set_protected($param, $passwd = NULL) {
 
   if (empty($node->protected_node_is_protected)) {
     // Node exists in our table?
-    $r = db_query("SELECT nid FROM {protected_nodes} WHERE nid = :nid", array(':nid' => $node->nid))->fetchField();
-    if ($r) {
+    $select = db_select('protected_nodes')
+      ->fields('protected_nodes', array('nid'))
+      ->condition('nid', $node->nid)
+      ->execute()
+      ->fetchField();
+
+    if ($select) {
       if (empty($passwd)) {
         // In this case, an empty password is fine.
         $result = db_update('protected_nodes')
@@ -1117,9 +1152,14 @@ function protected_node_set_protected($param, $passwd = NULL) {
       }
       else {
         // We have to also update the password in this case.
-        $sql = "UPDATE {protected_nodes} SET protected_node_is_protected = 1, protected_node_passwd = '%s', protected_node_passwd_changed = %d WHERE nid = %d";
-        // @todo Please convert this statement to the D7 database API syntax.
-        $result = db_query($sql, sha1($passwd), REQUEST_TIME, $node->nid) !== FALSE;
+        $result = db_update('protected_nodes')
+          ->fields(array(
+            'protected_node_is_protected' => 1,
+            'protected_node_passwd' => sha1($passwd),
+            'protected_node_passwd_changed' => REQUEST_TIME
+          ))
+          ->condition('nid', $node->nid)
+          ->execute() !== FALSE;
       }
     }
     else {
@@ -1130,13 +1170,14 @@ function protected_node_set_protected($param, $passwd = NULL) {
       else {
         $passwd = sha1($passwd);
       }
-      $sql = "INSERT INTO {protected_nodes} (protected_node_is_protected,";
-      $sql .= " protected_node_passwd, protected_node_show_title, nid)";
-      $sql .= " VALUES (1, '%s', %d, %d)";
-      // @todo Please convert this statement to the D7 database API syntax.
-      $result = db_query($sql, $passwd,
-                     variable_get('protected_node_show_node_titles', FALSE),
-                     $node->nid) !== FALSE;
+      $result = db_insert('protected_nodes')
+        ->fields(array(
+          'nid' => $node->nid,
+          'protected_node_is_protected' => 1,
+          'protected_node_passwd' => $passwd,
+          'protected_node_show_title' => variable_get('protected_node_show_node_titles', FALSE)
+        ))
+        ->execute() !== FALSE;
     }
   }
   else {
@@ -1167,16 +1208,20 @@ function protected_node_set_protected($param, $passwd = NULL) {
  *   TRUE if the node was protected before the call, FALSE otherwise.
  */
 function protected_node_unset_protected($nid) {
-  $r = db_query("SELECT protected_node_is_protected FROM {protected_nodes} WHERE nid = :nid", array(':nid' => $nid))->fetchField() == 1;
-
-  db_update('protected_nodes')
-    ->fields(array(
-      'protected_node_is_protected' => 0,
-    ))
+  $result = db_select('protected_nodes')
+    ->fields('protected_nodes', array('protected_node_is_protected'))
     ->condition('nid', $nid)
-    ->execute();
+    ->execute()
+    ->fetchField() == 1;
 
-  return $r;
+   db_update('protected_nodes')
+     ->fields(array(
+       'protected_node_is_protected' => 0,
+     ))
+     ->condition('nid', $nid)
+     ->execute();
+
+  return $result;
 }
 
 /**
@@ -1196,7 +1241,13 @@ function protected_node_isset_protected($nid) {
     return FALSE;
   }
 
-  return db_query("SELECT protected_node_is_protected FROM {protected_nodes} WHERE nid = :nid", array(':nid' => $nid))->fetchField() == 1;
+  $result = db_select('protected_nodes')
+  ->fields('protected_nodes', array('protected_node_is_protected'))
+  ->condition('nid', $nid)
+  ->execute()
+  ->fetchField() == 1;
+
+  return $result;
 }
 
 /**
