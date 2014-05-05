@@ -539,41 +539,20 @@ function protected_node_node_validate($node, $form) {
  * Implements hook_node_insert().
  */
 function protected_node_node_insert($node) {
-  // The node type is never protected if $node->protected_node_is_protected
-  // is not set.
-  if (!isset($node->protected_node_is_protected)) {
-    return;
-  }
-
-  // Ugly but we want to keep some variables between the validation and
-  // insert/update.
-  global $_protected_node_emails;
-  global $_protected_node_random_passwd;
-
-  if (user_access('edit any password') || user_access('edit ' . $node->type . ' password')) {
-    if (!empty($_protected_node_random_passwd)) {
-      $node->protected_node_passwd = $_protected_node_random_passwd;
-    }
-    if (!empty($_protected_node_emails)) {
-      $node->protected_node_emails = $_protected_node_emails;
-    }
-    else {
-      $node->protected_node_emails = '';
-    }
-    _protected_node_save($node);
-
-    // Send notifications if there is at least one email
-    if ($node->protected_node_is_protected && !empty($node->protected_node_emails)) {
-      module_load_include('mail.inc', 'protected_node');
-      protected_node_send_mail($node);
-    }
-  }
+  _protected_node_node_create_or_update($node);
 }
 
 /**
  * Implements hook_node_update().
  */
 function protected_node_node_update($node) {
+  _protected_node_node_create_or_update($node);
+}
+
+/**
+ * Helper function to do protected node actions when creating or updating a node.
+ */
+function _protected_node_node_create_or_update($node) {
   // The node type is never protected if $node->protected_node_is_protected
   // is not set.
   if (!isset($node->protected_node_is_protected)) {
@@ -595,7 +574,8 @@ function protected_node_node_update($node) {
     _protected_node_save($node);
 
     // Send notifications if there is at least one email.
-    if ($node->protected_node_is_protected && !empty($node->protected_node_emails)) {
+    if ($node->protected_node_is_protected && !empty($node->protected_node_emails) &&
+        $node->status == 1 && isset($node->protected_node_clear_passwd)) {
       module_load_include('mail.inc', 'protected_node');
       protected_node_send_mail($node);
     }
