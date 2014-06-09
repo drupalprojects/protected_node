@@ -152,7 +152,12 @@ function protected_node_enterpassword_validate($form, &$form_state) {
   // destination URI.
   $passwd = sha1($form_state['values']['password']);
   $protected_node_nid = $form_state['values']['protected_node_nid'];
-  $nid = db_query("SELECT nid FROM {protected_nodes} WHERE protected_node_passwd = :protected_node_passwd AND nid = :nid", array(':protected_node_passwd' => $passwd, ':nid' => $protected_node_nid))->fetchField();
+  $nid = db_select('protected_nodes')
+    ->fields('protected_nodes', array('nid'))
+    ->condition('protected_node_passwd', $passwd)
+    ->condition('nid', $protected_node_nid)
+    ->execute()
+    ->fetchField();
   $node = node_load($protected_node_nid);
   if (empty($nid)) {
     // Global content type password exists ?
@@ -181,7 +186,12 @@ function protected_node_enterpassword_validate($form, &$form_state) {
               // The user found a global password.
               // Was the protected node created by an anonymous user?
               // If so, prevent the use of any global password.
-              $created = db_query("SELECT created FROM {node} WHERE nid = :nid AND uid = :uid", array(':nid' => $protected_node_nid, ':uid' => 0))->fetchField();
+              $created = db_select('node')
+                ->fields('node', array('created'))
+                ->condition('nid', $protected_node_nid)
+                ->condition('uid', 0)
+                ->execute()
+                ->fetchField();
               if ($created) {
                 $nid = FALSE;
               }
