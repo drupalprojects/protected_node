@@ -862,7 +862,7 @@ function _protected_node_save(&$node) {
         'protected_node_passwd' => $node->protected_node_passwd,
         'protected_node_show_title' => $node->protected_node_show_title,
         'nid' => $node->nid,
-        'protected_node_emails' => $node->protected_node_emails,
+        'protected_node_emails' => isset($node->protected_node_emails) ? $node->protected_node_emails : '',
         'protected_node_hint' => isset($node->protected_node_hint) ? $node->protected_node_hint : '',
       ))
       ->execute();

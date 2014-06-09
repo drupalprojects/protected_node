@@ -6,3 +6,6 @@ package = Access
 configure = admin/config/content/protected_node
 recommends[] = tokens
 recommends[] = upload
+
+files[] = tests/protected_node.test
+files[] = tests/protected_node.per_node.test
