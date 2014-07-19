@@ -25,7 +25,6 @@ class ProtectedNodePerNodePassword extends ProtectedNodeBaseTestCase {
    */
   public function setUp() {
     parent::setUp();
-    $this->group = 'Protected node';
 
     // Log in an Admin.
     $this->drupalLogin($this->adminUser);

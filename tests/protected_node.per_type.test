@@ -25,13 +25,11 @@ class ProtectedNodePerTypePassword extends ProtectedNodeBaseTestCase {
    */
   public function setUp() {
     parent::setUp();
-    $this->group = 'Protected node';
 
     // Log in an Admin.
     $this->drupalLogin($this->adminUser);
-    /**
-     * Configure protected node.
-     */
+
+    // Configure protected node.
     // Generate random password for form validation. This password is not used.
     $another_password = $this->randomName(12);
     // Submit the configuration form.
@@ -42,9 +40,7 @@ class ProtectedNodePerTypePassword extends ProtectedNodeBaseTestCase {
     );
     $this->drupalPost('admin/config/content/protected_node', $protected_node_settings, t('Save configuration'));
 
-    /**
-     * Configure page content type.
-     */
+    // Configure page content type.
     // Generate random password.
     $this->page_content_type_password = $this->randomName(10);
     // Submit the configuration form.

@@ -15,9 +15,11 @@ class ProtectedNodeBaseTestCase extends DrupalWebTestCase {
    */
   public function setUp() {
     parent::setUp('protected_node');
-    /**
-     * User with all needed permissions.
-     */
+
+    // Set the group.
+    $this->group = 'Protected node';
+
+    // User with all needed permissions.
     $this->adminUser = $this->drupalCreateUser(array(
       'access protected content',
       'edit any password',
@@ -28,13 +30,11 @@ class ProtectedNodeBaseTestCase extends DrupalWebTestCase {
       'bypass node access',
       'administer content types',
     ));
-    /**
-     * User with access protected node permission.
-     */
+
+    // User with access protected node permission.
     $this->normalAccessAllowedUser = $this->drupalCreateUser(array('access protected content'));
-    /**
-     * User with view published content permission.
-     */
+
+    // User with view published content permission.
     $this->normalNonAccessAllowedUser = $this->drupalCreateUser(array('access content'));
   }
 
