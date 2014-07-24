@@ -345,6 +345,10 @@ function protected_node_and_attachment($filename) {
   $query->condition('fu.type', 'node');
   $query->condition('fm.filename', $filename);
   $query->condition('pn.protected_node_is_protected', '1');
+  $number_of_results = $query->countQuery()->execute()->fetchField();
+  if (0 == $number_of_results) {
+    return FALSE; /* Row doesn't exist, it's not protected */
+  }
   $result = $query->execute();
 
   foreach ($result as $file_info) {
@@ -716,6 +720,10 @@ function protected_node_file_download($uri) {
       $query->condition('fu.fid', $file->fid);
       $query->condition('fu.type', 'node');
       $query->condition('pn.protected_node_is_protected', '1');
+      $number_of_results = $query->countQuery()->execute()->fetchField();
+      if (0 == $number_of_results) {
+        return array(); /* Row doesn't exist, it's not protected */
+      }
       $result = $query->execute();
 
       foreach ($result as $file_info) {
