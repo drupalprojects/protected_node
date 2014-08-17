@@ -161,9 +161,6 @@ function protected_node_enterpassword_validate($form, &$form_state) {
   $node = node_load($protected_node_nid);
   if (empty($nid)) {
     // Global content type password exists ?
-    $global_content_type_password = variable_get('protected_node_node_type_password_' . $node->type, '');
-    if ($global_content_type_password != '') {
-      if ($global_content_type_password != $passwd) {
         switch (variable_get('protected_node_use_global_password', PROTECTED_NODE_PER_NODE_PASSWORD)) {
           case PROTECTED_NODE_PER_NODE_AND_GLOBAL_PASSWORD:
           case PROTECTED_NODE_GLOBAL_PASSWORD:
@@ -198,12 +195,6 @@ function protected_node_enterpassword_validate($form, &$form_state) {
             }
           break;
         }
-      }
-      // The global content type password match.
-      else {
-        $nid = $protected_node_nid;
-      }
-    }
 
     if (empty($nid)) {
       form_set_error('password', t('Incorrect password!'));
