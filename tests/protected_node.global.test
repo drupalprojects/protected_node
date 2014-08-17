@@ -61,7 +61,7 @@ class ProtectedNodeGlobalPassword extends ProtectedNodeBaseTestCase {
     // Once the node created logout the User.
     $this->drupalLogout();
 
-    // An authenticated user see the node.
+    // An authenticated user sees the node.
     $this->drupalLogin($this->normalAccessAllowedUser);
     $form = array('password' => $this->global_password);
     $this->drupalPost('node/' . $node->nid, $form, t('OK'));
@@ -82,7 +82,7 @@ class ProtectedNodeGlobalPassword extends ProtectedNodeBaseTestCase {
     // Once the node created logout the User.
     $this->drupalLogout();
 
-    // An authenticated user see the node.
+    // An authenticated user sees the node.
     $this->drupalLogin($this->normalAccessAllowedUser);
     $another_password = $this->randomName(12);
     $form = array('password' => $another_password);
@@ -104,7 +104,7 @@ class ProtectedNodeGlobalPassword extends ProtectedNodeBaseTestCase {
     // Once the node created logout the User.
     $this->drupalLogout();
 
-    // User that can see published content see the node.
+    // User that can see published content sees the node.
     $this->drupalLogin($this->normalNonAccessAllowedUser);
     $this->drupalGet('node/' . $node->nid);
     $this->assertResponse(403, "User with no access permission is not allowed to access a protected node");
