@@ -81,7 +81,7 @@ function protected_node_permission() {
     ),
     'bypass password protection' => array(
       'title' => t('bypass password protection'),
-      'description' => t('Bypass password protection'),
+      'description' => t('Bypass password protection for the node view page only'),
     ),
     'edit any password' => array(
       'title' => t('edit any password'),
@@ -158,8 +158,6 @@ function protected_node_access_callback() {
  * @link http://api.drupal.org/api/function/hook_init/7
  */
 function protected_node_init() {
-  global $user;
-
   // Let Drush bypass password protection.
   if (function_exists('drush_main')) {
     return;
@@ -200,9 +198,11 @@ function protected_node_init() {
     }
   }
   elseif (arg(0) == 'system' && arg(1) == 'files') {
-    if (!empty($param2)) {
-      // $param2 is a filename in this case.
-      $nid = protected_node_and_attachment($param2);
+    $requested_url = drupal_parse_url(request_uri());
+    $path = explode('/', $requested_url['path']);
+    if (!empty($path)) {
+      $filename = end($path);
+      $nid = protected_node_and_attachment($filename);
     }
   }
 
@@ -328,10 +328,7 @@ function protected_node_is_locked($nid, $op = 'access') {
 function protected_node_and_attachment($filename) {
   global $user;
 
-  // The upload module glues the attachments and nodes together without that
-  // module, we cannot test anything here (it is not requiredanyway if the user
-  // is going to the /node/# page itself).
-  if (user_access('bypass password protection') || !module_exists('upload')) {
+  if (user_access('bypass password protection')) {
     return FALSE;
   }
 
@@ -377,21 +374,6 @@ function protected_node_and_attachment($filename) {
         }
         // The session is out of date, we can as well get rid of it now.
         unset($_SESSION['_protected_node']['passwords'][$file_info->nid]);
-      }
-    }
-
-    // Avoid the drupal_goto() if another module anyway forbids access
-    // to the file.
-    foreach (module_implements('file_download') as $module) {
-      // Skip ourself, we already know the answer!
-      if ($module != 'protected_node') {
-        $function = $module . '_file_download';
-        $result = call_user_func_array($function, array($filename));
-        if (isset($result) && $result == -1) {
-          // This $module forbids the file download, forget it a password won't
-          // help.
-          return FALSE;
-        }
       }
     }
 
@@ -681,14 +663,6 @@ function protected_node_protected_node_hide(&$node) {
  */
 function protected_node_file_download($uri) {
   global $user;
-
-  // The upload module glues the attachments and nodes together
-  // without that module, we cannot test anything here
-  // (it is not required anyway if the user is going to the /node/#
-  // page itself.)
-  if (user_access('bypass password protection')) {
-    return array();
-  }
   $path = file_uri_target($uri);
 
   // Private file access for image style derivatives.
@@ -727,7 +701,8 @@ function protected_node_file_download($uri) {
       $result = $query->execute();
 
       foreach ($result as $file_info) {
-        if($file_info === FALSE || ($user->uid && $user->uid == $file_info->uid)) {
+        // if the file belongs to the current user let them see it.
+        if ($file_info === FALSE || ($user->uid && $user->uid == $file_info->uid)) {
           return array();
         }
 
@@ -739,7 +714,6 @@ function protected_node_file_download($uri) {
               return array();
           }
         }
-
         elseif (isset($_SESSION['_protected_node']['passwords'][$file_info->nid])) {
           $when = $_SESSION['_protected_node']['passwords'][$file_info->nid];
           if ($when > $file_info->protected_node_passwd_changed  /* this page reset time */
