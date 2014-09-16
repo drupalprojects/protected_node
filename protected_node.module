@@ -585,7 +585,7 @@ function protected_node_node_view($node, $view_mode = 'full') {
       // be searching so we let go without the access denied error.)
       protected_node_invoke('protected_node_hide', $node);
     }
-    elseif (!user_access('bypass password protection') && !user_access('view protected content')) {
+    elseif (!user_access('bypass password protection') && !user_access('view protected content') && _protected_node_check_view_mode($view_mode)) {
       if (!$user->uid && variable_get('cache', 1)) {
         // Prevent caching (do NOT use variable_set() since this is temporary
         // for this session).
@@ -1241,4 +1241,37 @@ function protected_node_unlock($nid) {
     }
   }
   return FALSE;
+}
+
+/**
+ * Internal function to evaluate whether the current
+ * view mode is one to check the password for.
+ *
+ * @param $view_mode, eg: full, teaser, or custom (eg: ds view modes)
+ * @return boolean, TRUE if we are checking passwords, FALSE if not.
+ */
+function _protected_node_check_view_mode($view_mode) {
+  $permitted_view_modes = variable_get('protected_node_checked_view_modes', _protected_node_get_default_checked_view_modes());
+
+  return in_array($view_mode, $permitted_view_modes);
+}
+
+/**
+ * Helper function.
+ *
+ * Used to get the default checked view modes.
+ */
+function _protected_node_get_default_checked_view_modes() {
+  $default_view_modes = &drupal_static(__FUNCTION__);
+
+  if (!isset($default_view_modes)) {
+    $node_info = entity_get_info('node');
+
+    $default_view_modes = array();
+    foreach ($node_info['view modes'] as $id => $item) {
+      $default_view_modes[] = $id;
+    }
+  }
+
+  return $default_view_modes;
 }

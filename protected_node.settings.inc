@@ -542,6 +542,28 @@ function protected_node_admin_settings() {
     );
   }
 
+  // View modes.
+  $node_info = entity_get_info('node');
+  $view_modes = array();
+  foreach ($node_info['view modes'] as $id => $item) {
+    $view_modes[$id] = $item['label'];
+  }
+  asort($view_modes);
+
+  $form['protected_node_view_modes'] = array(
+    '#type' => 'fieldset',
+    '#collapsible' => TRUE,
+    '#title' => t('Display Suite view modes'),
+  );
+  $form['protected_node_view_modes']['protected_node_checked_view_modes'] = array(
+    '#type' => 'select',
+    '#multiple' => TRUE,
+    '#title' => t('Enabled view modes'),
+    '#description' => t('Only check passwords for nodes that are rendered with the selected view modes.'),
+    '#options' => $view_modes,
+    '#default_value' => variable_get('protected_node_checked_view_modes', _protected_node_get_default_checked_view_modes()),
+  );
+
   // A few actions to do some "mass work".
   $form['protected_node_actions'] = array(
     '#type' => 'fieldset',

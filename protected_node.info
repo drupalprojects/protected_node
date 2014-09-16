@@ -4,6 +4,7 @@ core = 7.x
 version = 7.x-dev
 package = Access
 configure = admin/config/content/protected_node
+
 recommends[] = tokens
 recommends[] = upload
 
@@ -13,3 +14,4 @@ files[] = tests/protected_node.per_type.test
 files[] = tests/protected_node.global.test
 files[] = tests/protected_node.mail.test
 files[] = tests/protected_node.private_file.test
+files[] = tests/protected_node.view_mode.test

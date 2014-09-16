@@ -93,7 +93,7 @@ class ProtectedNodePerNodePassword extends ProtectedNodeBaseTestCase {
     // Once the node created logout the User.
     $this->drupalLogout();
 
-    // An authenticated user sees the node.
+    // An authenticated user does not see the node.
     $this->drupalLogin($this->normalAccessAllowedUser);
     $another_password = $this->randomName(12);
     $form = array('password' => $another_password);
@@ -120,7 +120,7 @@ class ProtectedNodePerNodePassword extends ProtectedNodeBaseTestCase {
     // User that can see published content sees the node.
     $this->drupalLogin($this->normalNonAccessAllowedUser);
     $this->drupalGet('node/' . $node->nid);
-    $this->assertResponse(403, "User with no access permission is not allowed to access a protected node", $this->group);
+    $this->assertResponse(403, "User with no access permission is not allowed to access a protected node");
   }
 
   /**
