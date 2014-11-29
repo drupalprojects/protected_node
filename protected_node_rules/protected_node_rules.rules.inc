@@ -48,7 +48,7 @@ function protected_node_rules_rules_condition_info() {
 /**
  * Condition: check whether the node is protected by password.
  */
-function protected_node_rules_condition_content_is_protected(&$node, $settings) {
+function protected_node_rules_condition_content_is_protected($node, $settings) {
   return $node->protected_node_is_protected == 1;
 }
 
