@@ -105,8 +105,8 @@ function protected_node_enter_any_password() {
   $title = variable_get('protected_node_title', NULL);
   if (!empty($title)) {
     if ($has_token) {
-      $title = token_replace($title, 'node', $node);
-      $title = token_replace($title, 'user', $user);
+      $title = token_replace($title, array('node' => $node));
+      $title = token_replace($title, array('user' => $user));
     }
     drupal_set_title($title);
   }
@@ -114,8 +114,8 @@ function protected_node_enter_any_password() {
   // Information appear between the title and the password form.
   $info = variable_get('protected_node_info', '');
   if ($has_token) {
-    $info = token_replace($info, 'node', $node);
-    $info = token_replace($info, 'user', $user);
+    $info = token_replace($info, array('node' => $node));
+    $info = token_replace($info, array('user' => $user));
   }
   if ($info) {
     $form['protected_node'] = array(
@@ -139,8 +139,8 @@ function protected_node_enter_any_password() {
                      array('@node_type' => $node_type->name, '@node_title' => $node_title));
   }
   elseif ($has_token) {
-    $description = token_replace($description, 'node', $node);
-    $description = token_replace($description, 'user', $user);
+    $description = token_replace($description, array('node' => $node));
+    $description = token_replace($description, array('user' => $user));
   }
   $form['protected_node_enterpassword'] = array(
     '#type' => 'fieldset',
@@ -151,8 +151,8 @@ function protected_node_enter_any_password() {
   // Create the password widget.
   $label = variable_get('protected_node_password_label', '');
   if ($label) {
-    $label = token_replace($label, 'node', $node);
-    $label = token_replace($label, 'user', $user);
+    $label = token_replace($label, array('node' => $node));
+    $label = token_replace($label, array('user' => $user));
   }
   else {
     $label = t('@node_type password', array('@node_type' => $node_type->name));
