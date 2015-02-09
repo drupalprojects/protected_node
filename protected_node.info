@@ -15,3 +15,4 @@ files[] = tests/protected_node.global.test
 files[] = tests/protected_node.mail_test.test
 files[] = tests/protected_node.private_file.test
 files[] = tests/protected_node.view_mode.test
+files[] = tests/protected_node.statistics.test
