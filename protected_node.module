@@ -813,7 +813,7 @@ function _protected_node_save(&$node) {
         }
         else {
           $node->protected_node_clear_passwd = $node->protected_node_passwd;
-          $node->protected_node_passwd = sha1($node->protected_node_passwd);
+          $node->protected_node_passwd = hash('sha256', $node->protected_node_passwd);
         }
       }
     }
@@ -858,7 +858,7 @@ function _protected_node_save(&$node) {
     }
     elseif ($node->protected_node_passwd) {
       $node->protected_node_clear_passwd = $node->protected_node_passwd;
-      $node->protected_node_passwd = sha1($node->protected_node_passwd);
+      $node->protected_node_passwd = hash('sha256', $node->protected_node_passwd);
     }
     // We don't need to set the protected_node_passwd_changed since no
     // one has ever entered a password for this node.
@@ -1118,7 +1118,7 @@ function protected_node_set_protected($param, $passwd = NULL) {
         $result = db_update('protected_nodes')
           ->fields(array(
             'protected_node_is_protected' => 1,
-            'protected_node_passwd' => sha1($passwd),
+            'protected_node_passwd' => hash('sha256', $passwd),
             'protected_node_passwd_changed' => REQUEST_TIME
           ))
           ->condition('nid', $node->nid)
@@ -1131,7 +1131,7 @@ function protected_node_set_protected($param, $passwd = NULL) {
         $passwd = '';
       }
       else {
-        $passwd = sha1($passwd);
+        $passwd = hash('sha256', $passwd);
       }
       $result = db_insert('protected_nodes')
         ->fields(array(
@@ -1152,7 +1152,7 @@ function protected_node_set_protected($param, $passwd = NULL) {
 
     $result = db_update('protected_nodes')
       ->fields(array(
-          'protected_node_passwd' => sha1($passwd),
+          'protected_node_passwd' => hash('sha256', $passwd),
           'protected_node_passwd_changed' => REQUEST_TIME,
         ))
       ->condition('nid', $node->nid)

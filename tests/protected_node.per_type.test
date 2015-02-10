@@ -55,7 +55,7 @@ class ProtectedNodePerTypePassword extends ProtectedNodeBaseTestCase {
    * Test that the password is well hashed when stored.
    */
   public function testHash() {
-    $hashed_page_content_type_password = sha1($this->page_content_type_password);
+    $hashed_page_content_type_password = hash('sha256', $this->page_content_type_password);
     $stored_page_content_type_password = variable_get('protected_node_node_type_password_page');
 
     $this->assertEqual($stored_page_content_type_password, $hashed_page_content_type_password, "The page content type's password is stored hashed and the value correspond to the password.", $this->group);

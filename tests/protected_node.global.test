@@ -43,7 +43,7 @@ class ProtectedNodeGlobalPassword extends ProtectedNodeBaseTestCase {
    * Test that the password is well hashed when stored.
    */
   public function testHash() {
-    $hashed_global_password = sha1($this->global_password);
+    $hashed_global_password = hash('sha256', $this->global_password);
     $stored_global_password = variable_get('protected_node_global_password');
 
     $this->assertEqual($stored_global_password, $hashed_global_password, "The global password is stored hashed and the value correspond to the global password.", $this->group);

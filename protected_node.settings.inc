@@ -721,7 +721,7 @@ function _protected_node_admin_settings_validate($form, &$form_state) {
 function _protected_node_admin_settings_submit($form, &$form_state) {
   $passwd = $form_state['values']['protected_node_global_password_field'];
   if ($passwd) {
-    variable_set('protected_node_global_password', sha1($passwd));
+    variable_set('protected_node_global_password', hash('sha256', $passwd));
     unset($form_state['values']['protected_node_global_password_field']);
     variable_del('protected_node_global_password_field');
   }
@@ -750,7 +750,7 @@ function protected_node_action_reset_passwords($form, &$form_state) {
   if ($passwd) {
     db_update('protected_nodes')
       ->fields(array(
-        'protected_node_passwd' => sha1($passwd),
+        'protected_node_passwd' => hash('sha256', $passwd),
       ))
       ->execute();
     variable_set('protected_node_session_timelimit', REQUEST_TIME);
@@ -918,7 +918,7 @@ function protected_node_node_type_form_alter(&$form) {
  */
 function _protected_node_node_type_validate($form, &$form_state) {
   if (!empty($form_state['values']['protected_node_node_type_password_field'])) {
-    $form_state['values']['protected_node_node_type_password'] = sha1($form_state['values']['protected_node_node_type_password_field']);
+    $form_state['values']['protected_node_node_type_password'] = hash('sha256', $form_state['values']['protected_node_node_type_password_field']);
   }
   else {
     $node_type = trim($form_state['values']['type']);

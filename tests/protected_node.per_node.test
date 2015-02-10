@@ -51,7 +51,7 @@ class ProtectedNodePerNodePassword extends ProtectedNodeBaseTestCase {
         ->condition('nid', $node->nid)
         ->execute()
         ->fetchField();
-    $hashed_node_password = sha1($password);
+    $hashed_node_password = hash('sha256', $password);
 
     $this->assertEqual($stored_node_password, $hashed_node_password, "The node's password is stored hashed and the value correspond to the password.", $this->group);
   }

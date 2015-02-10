@@ -150,11 +150,12 @@ function protected_node_enterpassword_validate($form, &$form_state) {
   // password (i.e. extract local password instead of comparing).
   // @todo The protected_node_nid parameter should be extracted from the
   // destination URI.
-  $passwd = sha1($form_state['values']['password']);
+  $sha1_passwd = sha1($form_state['values']['password']);
+  $sha256_passwd = hash('sha256', $form_state['values']['password']);
   $protected_node_nid = $form_state['values']['protected_node_nid'];
   $nid = db_select('protected_nodes')
     ->fields('protected_nodes', array('nid'))
-    ->condition('protected_node_passwd', $passwd)
+    ->condition('protected_node_passwd', array($sha1_passwd, $sha256_passwd), 'IN')
     ->condition('nid', $protected_node_nid)
     ->execute()
     ->fetchField();
@@ -165,7 +166,7 @@ function protected_node_enterpassword_validate($form, &$form_state) {
           case PROTECTED_NODE_PER_NODE_AND_GLOBAL_PASSWORD:
           case PROTECTED_NODE_GLOBAL_PASSWORD:
             $global_passwd = variable_get('protected_node_global_password', '');
-            if ($global_passwd == $passwd) {
+            if (in_array($global_passwd, array($sha1_passwd, $sha256_passwd))) {
               $_SESSION['has_entered_global_password'] = 1;
               $nid = 1;
             }
@@ -175,7 +176,7 @@ function protected_node_enterpassword_validate($form, &$form_state) {
               // which may, in the long run, be a problem (but since the result is
               // the same, I don't foresee this being a problem at all).
               $node_type_passwd = variable_get('protected_node_node_type_password_' . $node->type, '');
-              if ($node_type_passwd == $passwd) {
+              if (in_array($node_type_passwd, array($sha1_passwd, $sha256_passwd))) {
                 $nid = 1;
               }
             }

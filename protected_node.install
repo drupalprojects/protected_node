@@ -115,9 +115,9 @@ function protected_node_schema() {
         'default' => 0,
       ),
       'protected_node_passwd' => array(
-        'description' => 'The sha1 hashed password for the given node.',
+        'description' => 'The sha1/sha256 hashed password for the given node.',
         'type' => 'char',
-        'length' => 40,
+        'length' => 128,
         'not null' => TRUE,
         'default' => '',
       ),
@@ -185,4 +185,17 @@ function protected_node_update_7100() {
     'size' => 'normal',
     'description' => 'List of email addresses which received the last notification.'
   ));
+}
+
+/**
+ * Change size of protected_node_passwd from 40 to 128.
+ */
+function protected_node_update_7101() {
+  db_change_field('protected_nodes', 'protected_node_passwd', 'protected_node_passwd', array(
+    'description' => 'The sha1/sha256 hashed password for the given node.',
+    'type' => 'char',
+    'length' => 128,
+    'not null' => TRUE,
+    'default' => '')
+  );
 }

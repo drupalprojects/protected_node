@@ -212,11 +212,12 @@ function protected_node_enter_any_password_validate($form, &$form_state) {
   // @todo We do not want to check the global password if there is a local
   // password (i.e. extract local password instead of comparing!).
   $nids = protected_node_password_nids();
-  $passwd = sha1($form['#post']['password']);
+  $sha1_passwd = sha1($form['#post']['password']);
+  $sha256_passwd = hash('sha256', $form['#post']['password']);
 
   $nid = db_query_range('protected_nodes', '')
     ->fields(array('nid'))
-    ->condition('protected_node_passwd', $passwd)
+    ->condition('protected_node_passwd', array($sha1_passwd, $sha256_passwd), 'IN')
     ->condition('nid', $nids, 'IN')
     ->execute()
     ->fetchField();
