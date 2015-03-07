@@ -212,7 +212,7 @@ function protected_node_node_form_alter(&$form) {
     );
   }
 
-  // Email support
+  // Email support.
   $email_activation = variable_get('protected_node_email_activation', FALSE);
   if ($email_activation) {
 
@@ -238,21 +238,21 @@ function protected_node_node_form_alter(&$form) {
 }
 
 /**
- * Define the settings form
+ * Define the settings form.
  *
  * @return array
  *   $form The settings form
  */
 function protected_node_admin_settings() {
 
-  // Total
+  // Total.
   $total_count = db_select('node')
     ->fields('node', array('nid'))
     ->countQuery()
     ->execute()
     ->fetchField();
 
-  // Protected
+  // Protected.
   $protected_count = db_select('protected_nodes')
     ->fields('protected_nodes', array('nid'))
     ->condition('protected_node_is_protected', 1)
@@ -260,7 +260,7 @@ function protected_node_admin_settings() {
     ->execute()
     ->fetchField();
 
-  // Title
+  // Title.
   $title_count = db_select('protected_nodes')
     ->fields('protected_nodes', array('nid'))
     ->condition('protected_node_is_protected', 1)
@@ -269,7 +269,7 @@ function protected_node_admin_settings() {
     ->execute()
     ->fetchField();
 
-  // Global
+  // Global.
   $global_count = db_select('protected_nodes')
     ->fields('protected_nodes', array('nid'))
     ->condition('protected_node_is_protected', 1)
@@ -284,7 +284,7 @@ function protected_node_admin_settings() {
 
   // Any nodes?
   if ($total_count > 0) {
-    // Statistics
+    // Statistics.
     $form['protected_node_stats'] = array(
       '#type' => 'fieldset',
       '#title' => t('Protected node statistics'),
@@ -302,33 +302,33 @@ function protected_node_admin_settings() {
       t('Total nodes'),
       array(
         'data' => $total_count,
-        'style' => 'text-align:right'
+        'style' => 'text-align:right',
       ),
       array(
         'data' => t('100%'),
-        'style' => 'text-align:right'
+        'style' => 'text-align:right',
       ),
     );
     $rows[] = array(
       t('Unprotected nodes'),
       array(
         'data' => $unprotected_count,
-        'style' => 'text-align:right'
+        'style' => 'text-align:right',
       ),
       array(
         'data' => round($unprotected_count * 100 / ($total_count), 2) . '%',
-        'style' => 'text-align:right'
+        'style' => 'text-align:right',
       ),
     );
     $rows[] = array(
       t('Protected nodes'),
       array(
         'data' => $protected_count,
-        'style' => 'text-align:right'
+        'style' => 'text-align:right',
       ),
       array(
         'data' => round($protected_count * 100 / ($total_count), 2) . '%',
-        'style' => 'text-align:right'
+        'style' => 'text-align:right',
       ),
     );
     if ($protected_count > 0) {
@@ -336,51 +336,54 @@ function protected_node_admin_settings() {
         t('Showing title'),
         array(
           'data' => $title_count,
-          'style' => 'text-align:right'
+          'style' => 'text-align:right',
         ),
         array(
           'data' => round($title_count * 100 / $protected_count, 2) . '%',
-          'style' => 'text-align:right'
+          'style' => 'text-align:right',
         ),
       );
       $rows[] = array(
         t('Hiding title'),
         array(
           'data' => $hiding_count,
-          'style' => 'text-align:right'
+          'style' => 'text-align:right',
         ),
         array(
           'data' => round($hiding_count * 100 / $protected_count, 2) . '%',
-          'style' => 'text-align:right'
+          'style' => 'text-align:right',
         ),
       );
       $rows[] = array(
         t('Global passwords'),
         array(
           'data' => $global_count,
-          'style' => 'text-align:right'
+          'style' => 'text-align:right',
         ),
         array(
           'data' => round($global_count * 100 / $protected_count, 2) . '%',
-          'style' => 'text-align:right'
+          'style' => 'text-align:right',
         ),
       );
       $rows[] = array(
         t('Node passwords'),
         array(
           'data' => $node_password_count,
-          'style' => 'text-align:right'
+          'style' => 'text-align:right',
         ),
         array(
           'data' => round($node_password_count * 100 / $protected_count, 2) . '%',
-          'style' => 'text-align:right'
+          'style' => 'text-align:right',
         ),
       );
     }
 
     $form['protected_node_stats']['protected_node_statistics'] = array(
       '#type' => 'markup',
-      '#markup' => theme('table', array('header' => $column_labels, 'rows' => $rows)),
+      '#markup' => theme('table', array(
+          'header' => $column_labels,
+          'rows' => $rows,
+        )),
     );
   }
 
@@ -400,14 +403,12 @@ function protected_node_admin_settings() {
       PROTECTED_NODE_PER_NODE_AND_GLOBAL_PASSWORD => 'Per node password or Global password',
       PROTECTED_NODE_GLOBAL_PASSWORD => 'Global password only',
     ),
-    '#description' => t("When checked, the global password is used if the user doesn't enter a password when creating/editing nodes.")
-                    . t("<strong>WARNING:</strong> removing the global password when many pages were not otherwise assigned a password will make those nodes unaccessible except for UID=1 and the author of the node."),
+    '#description' => t("When checked, the global password is used if the user doesn't enter a password when creating/editing nodes.") . t("<strong>WARNING:</strong> removing the global password when many pages were not otherwise assigned a password will make those nodes unaccessible except for UID=1 and the author of the node."),
   );
 
   $form['protected_node_security']['protected_node_global_password_field'] = array(
     '#type' => 'password_confirm',
     '#title' => t('Global password'),
-    /* '#default_value' => variable_get('protected_node_global_password', ''), */
     '#description' => t('The default password for all nodes. This password is necessary if you select the previous checkbox.'),
   );
 
@@ -460,7 +461,7 @@ function protected_node_admin_settings() {
     '#size' => 10,
     '#default_value' => variable_get('protected_node_email_box_height', '2'),
     '#description' => t('Enter the height (number of rows) of the email box text area. Must be a positive integer. Default value : 2.'),
-   );
+  );
 
   $form['protected_node_auto_email']['protected_node_email_from'] = array(
     '#type' => 'textfield',
@@ -682,7 +683,7 @@ function _protected_node_admin_settings_validate($form, &$form_state) {
       if (!$form_state['values']['protected_node_global_password_field']
        && !variable_get('protected_node_global_password', '')) {
         form_error($form['protected_node_security']['protected_node_global_password_field'],
-                   t('A global password is required to make use of the global password functionality.'));
+          t('A global password is required to make use of the global password functionality.'));
       }
       break;
 
@@ -690,31 +691,37 @@ function _protected_node_admin_settings_validate($form, &$form_state) {
 
   // Email box width.
   $width = $form_state['values']['protected_node_email_box_width'];
-  if (!is_numeric($width)){
+  if (!is_numeric($width)) {
     form_set_error('protected_node_email_box_width', t('You must enter a number for the width of the email box.'));
   }
-  else if ($width < 0){
-    form_set_error('protected_node_email_box_width', t('The width of the email box must be positive.'));
+  else {
+    if ($width < 0) {
+      form_set_error('protected_node_email_box_width', t('The width of the email box must be positive.'));
+    }
   }
 
   // Email box height.
   $height = $form_state['values']['protected_node_email_box_height'];
-  if (!is_numeric($height)){
+  if (!is_numeric($height)) {
     form_set_error('protected_node_email_box_height', t('You must enter a number for the height of the email box.'));
   }
-  else if ($height < 0){
-    form_set_error('protected_node_email_box_height', t('The height of the email box must be positive.'));
+  else {
+    if ($height < 0) {
+      form_set_error('protected_node_email_box_height', t('The height of the email box must be positive.'));
+    }
   }
 
   if ($form_state['values']['protected_node_email_from']) {
     if (!valid_email_address($form_state['values']['protected_node_email_from'])) {
       form_error($form['protected_node_auto_email']['protected_node_email_from'],
-                 t('The From email address is not valid.'));
+        t('The From email address is not valid.'));
     }
   }
 }
 
 /**
+ * Submit handler.
+ *
  * Submitting the form requires a little bit of work for the password.
  * We need to encrypt it.
  */
@@ -729,7 +736,7 @@ function _protected_node_admin_settings_submit($form, &$form_state) {
 }
 
 /**
- * "Clear" all the sessions.
+ * Clear all the sessions.
  *
  * This function sets the session variable date to now. Any session that was
  * created before then is then considered out of date and will be ignored.
@@ -740,7 +747,7 @@ function protected_node_action_clear_sessions($form, &$form_state) {
 }
 
 /**
- * "Reset" all the passwords.
+ * Reset all the passwords.
  *
  * This function assigns the specified password to all the existing protected
  * nodes.
@@ -758,7 +765,7 @@ function protected_node_action_reset_passwords($form, &$form_state) {
   }
   else {
     form_error($form['protected_node_actions']['protected_node_reset_passwords']['protected_node_reset_passwords_password'],
-               t('Enter a new password to reset all the protected node passwords.'));
+      t('Enter a new password to reset all the protected node passwords.'));
   }
 }
 
@@ -766,12 +773,12 @@ function protected_node_action_reset_passwords($form, &$form_state) {
  * Remove all the passwords.
  *
  * This function sets all the password to the empty string which has the effect
- * of reseting the password to use the global password on all nodes.
+ * of resetting the password to use the global password on all nodes.
  */
 function protected_node_action_remove_passwords($form, &$form_state) {
   db_update('protected_nodes')
     ->fields(array(
-      'protected_node_passwd' =>  '',
+      'protected_node_passwd' => '',
     ))
     ->condition('protected_node_passwd', '', '<>')
     ->execute();
@@ -785,7 +792,7 @@ function protected_node_action_remove_passwords($form, &$form_state) {
 function protected_node_action_unprotected_all($form, &$form_state) {
   db_update('protected_nodes')
     ->fields(array(
-      'protected_node_is_protected' =>  0,
+      'protected_node_is_protected' => 0,
     ))
     ->condition('protected_node_is_protected', 1)
     ->execute();
@@ -801,7 +808,7 @@ function protected_node_action_protect_all_nodes($form, &$form_state) {
   // First protect all nodes that already are in our table.
   db_update('protected_nodes')
     ->fields(array(
-      'protected_node_is_protected' =>  1,
+      'protected_node_is_protected' => 1,
     ))
     ->condition('protected_node_is_protected', 0)
     ->execute();
@@ -811,7 +818,7 @@ function protected_node_action_protect_all_nodes($form, &$form_state) {
     ->fields('node', array('nid'))
     ->execute();
 
-  foreach($nodes as $node) {
+  foreach ($nodes as $node) {
     $nid = $node->nid;
 
     $nid_in_protected_node = db_select('protected_nodes')
@@ -826,7 +833,7 @@ function protected_node_action_protect_all_nodes($form, &$form_state) {
         ->fields(array(
           'nid' => $nid,
           'protected_node_is_protected' => '1',
-          'protected_node_show_title' => $form_state['values']['protected_node_show_node_titles']
+          'protected_node_show_title' => $form_state['values']['protected_node_show_node_titles'],
         ))
         ->execute();
     }
@@ -842,7 +849,7 @@ function protected_node_action_protect_all_nodes($form, &$form_state) {
 function protected_node_action_protect_nodes_with_password($form, &$form_state) {
   db_update('protected_nodes')
     ->fields(array(
-      'protected_node_is_protected' =>  1,
+      'protected_node_is_protected' => 1,
     ))
     ->condition('protected_node_is_protected', 0)
     ->condition('protected_node_passwd', '', '<>')
@@ -890,8 +897,6 @@ function protected_node_node_type_form_alter(&$form) {
     '#size' => 20,
     '#after_build' => array('protected_node_autocomplete_off'),
     '#title' => t('A default (global) password for nodes of this type'),
-    // No default value.
-    /* '#default_value' => variable_get('protected_node_node_password_' . $form['#node_type']->type, ''), */
   );
 
   $options = array(

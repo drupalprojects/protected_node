@@ -15,9 +15,9 @@ class ProtectedNodeStatistics extends ProtectedNodeBaseTestCase {
    */
   public static function getInfo() {
     return array(
-      'name'        => 'Protected node statistic overview',
+      'name' => 'Protected node statistic overview',
       'description' => "This tests statistics overview",
-      'group'       => 'Protected Node',
+      'group' => 'Protected Node',
     );
   }
 
@@ -33,7 +33,7 @@ class ProtectedNodeStatistics extends ProtectedNodeBaseTestCase {
     $this->drupalLogin($this->adminUser);
     // Submit the configuration form.
     $protected_node_settings = array(
-      'protected_node_use_global_password'          => PROTECTED_NODE_PER_NODE_AND_GLOBAL_PASSWORD,
+      'protected_node_use_global_password' => PROTECTED_NODE_PER_NODE_AND_GLOBAL_PASSWORD,
       'protected_node_global_password_field[pass1]' => $this->global_password,
       'protected_node_global_password_field[pass2]' => $this->global_password,
     );
@@ -41,12 +41,14 @@ class ProtectedNodeStatistics extends ProtectedNodeBaseTestCase {
   }
 
   /**
+   * Test function.
+   *
    * Test the total number of nodes.
    */
   public function testTotal() {
     // Add a new page node.
     $node_data = array(
-      'title'               => $this->randomName(8),
+      'title' => $this->randomName(8),
       'body[und][0][value]' => $this->randomName(32),
     );
     $this->drupalPost('node/add/page', $node_data, t('Save'));
@@ -57,20 +59,22 @@ class ProtectedNodeStatistics extends ProtectedNodeBaseTestCase {
   }
 
   /**
+   * Test function.
+   *
    * Test the total number of unprotected/protected nodes.
    */
   public function testUnprotectedProtected() {
     // Add a new page node that is not protected.
     $node_data = array(
-      'title'               => $this->randomName(8),
+      'title' => $this->randomName(8),
       'body[und][0][value]' => $this->randomName(32),
     );
     $this->drupalPost('node/add/page', $node_data, t('Save'));
 
     // Add a new page node that is protected.
     $node_data = array(
-      'title'                       => $this->randomName(8),
-      'body[und][0][value]'         => $this->randomName(32),
+      'title' => $this->randomName(8),
+      'body[und][0][value]' => $this->randomName(32),
       'protected_node_is_protected' => TRUE,
     );
     $this->drupalPost('node/add/page', $node_data, t('Save'));
@@ -83,24 +87,26 @@ class ProtectedNodeStatistics extends ProtectedNodeBaseTestCase {
   }
 
   /**
+   * Test function.
+   *
    * Test the total number of showing/hiding title nodes.
    */
   public function testShowingHidingTitle() {
     // Add a new page node that is protected showing title.
     $node_data = array(
-      'title'                       => $this->randomName(8),
-      'body[und][0][value]'         => $this->randomName(32),
+      'title' => $this->randomName(8),
+      'body[und][0][value]' => $this->randomName(32),
       'protected_node_is_protected' => TRUE,
-      'protected_node_show_title'   => TRUE,
+      'protected_node_show_title' => TRUE,
     );
     $this->drupalPost('node/add/page', $node_data, t('Save'));
 
     // Add a new page node that is protected not showing title.
     $node_data = array(
-      'title'                       => $this->randomName(8),
-      'body[und][0][value]'         => $this->randomName(32),
+      'title' => $this->randomName(8),
+      'body[und][0][value]' => $this->randomName(32),
       'protected_node_is_protected' => TRUE,
-      'protected_node_show_title'   => FALSE,
+      'protected_node_show_title' => FALSE,
     );
     $this->drupalPost('node/add/page', $node_data, t('Save'));
 
@@ -114,13 +120,15 @@ class ProtectedNodeStatistics extends ProtectedNodeBaseTestCase {
   }
 
   /**
+   * Test function.
+   *
    * Test the total number of nodes protected by global/node passwords.
    */
   public function testGlobalNodePassword() {
     // Add a new page node that is protected by the global password.
     $node_data = array(
-      'title'                       => $this->randomName(8),
-      'body[und][0][value]'         => $this->randomName(32),
+      'title' => $this->randomName(8),
+      'body[und][0][value]' => $this->randomName(32),
       'protected_node_is_protected' => TRUE,
     );
     $this->drupalPost('node/add/page', $node_data, t('Save'));
@@ -128,9 +136,9 @@ class ProtectedNodeStatistics extends ProtectedNodeBaseTestCase {
     // Add a new page node that is protected by a node password.
     $password = $this->randomName(8);
     $node_data = array(
-      'title'                        => $this->randomName(8),
-      'body[und][0][value]'          => $this->randomName(32),
-      'protected_node_is_protected'  => TRUE,
+      'title' => $this->randomName(8),
+      'body[und][0][value]' => $this->randomName(32),
+      'protected_node_is_protected' => TRUE,
       'protected_node_passwd[pass1]' => $password,
       'protected_node_passwd[pass2]' => $password,
     );

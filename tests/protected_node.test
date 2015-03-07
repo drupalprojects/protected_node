@@ -1,8 +1,9 @@
 <?php
 
 /**
- * @file base test class that will define all common needed methods and
- *  properties that are needed for all the tests.
+ * @file
+ * base test class that will define all common needed methods and properties
+ * that are needed for all the tests.
  */
 
 /**

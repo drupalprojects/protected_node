@@ -1,7 +1,8 @@
 <?php
 
 /**
- * @file Test protected node per type functionnality.
+ * @file
+ * Test protected node per type functionality.
  */
 
 /**
@@ -62,6 +63,8 @@ class ProtectedNodePerTypePassword extends ProtectedNodeBaseTestCase {
   }
 
   /**
+   * Test function.
+   *
    * Test that a node protected with per type protection can be seen with the
    * right password.
    */
@@ -79,6 +82,8 @@ class ProtectedNodePerTypePassword extends ProtectedNodeBaseTestCase {
   }
 
   /**
+   * Test function.
+   *
    * Test that a node protected with per type protection can't be seen with the
    * wrong password.
    */
@@ -97,6 +102,8 @@ class ProtectedNodePerTypePassword extends ProtectedNodeBaseTestCase {
   }
 
   /**
+   * Test function.
+   *
    * Test that a node protected with per type protection can't be seen by an
    * authenticated but not allowed user.
    */
@@ -113,8 +120,8 @@ class ProtectedNodePerTypePassword extends ProtectedNodeBaseTestCase {
   /**
    * Helper method to create a protected node with the admin user.
    *
-   * @argument password.
-   * @return node object.
+   * @return object
+   *   A node object.
    */
   public function adminCreateProtectedNode() {
     // Log in as Admin.
@@ -133,8 +140,8 @@ class ProtectedNodePerTypePassword extends ProtectedNodeBaseTestCase {
    * Please make sure the user has the permission to create the node before
    * calling the method.
    *
-   * @argument password.
-   * @return node object.
+   * @return object.
+   *   A node object.
    */
   public function createProtectedNode() {
     // Add a new page node that is protected.

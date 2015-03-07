@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @file
  * Install, update and uninstall functions for the protected_node module.
@@ -102,7 +103,7 @@ function protected_node_schema() {
     'description' => 'The table to store the node - password hash pairs.',
     'fields' => array(
       'nid' => array(
-        'description' => t('The primary identifier for a node'),
+        'description' => 'The primary identifier for a node',
         'type' => 'int',
         'unsigned' => TRUE,
         'not null' => TRUE,
@@ -183,7 +184,7 @@ function protected_node_update_7100() {
   db_add_field('protected_nodes', 'protected_node_emails', array(
     'type' => 'text',
     'size' => 'normal',
-    'description' => 'List of email addresses which received the last notification.'
+    'description' => 'List of email addresses which received the last notification.',
   ));
 }
 

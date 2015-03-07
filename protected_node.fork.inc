@@ -6,6 +6,8 @@
  */
 
 /**
+ * Helper function.
+ *
  * Transforms the $_GET['protected_pages'] in a valid list
  * of $nids. Anything that is not valid we ignore. If there
  * isn't at least 1 then the function generates an access
@@ -129,14 +131,14 @@ function protected_node_enter_any_password() {
   $description = variable_get('protected_node_description', '');
   if (!$description) {
     if ($node->protected_node_show_title) {
-      // embellish the title with double quotes
+      // Embellish the title with double quotes.
       $node_title = ' "' . $node->title . '"';
     }
     else {
       $node_title = '';
     }
     $description = t('The @node_type @node_title you are trying to view is password protected. Please enter the password below to proceed.',
-                     array('@node_type' => $node_type->name, '@node_title' => $node_title));
+      array('@node_type' => $node_type->name, '@node_title' => $node_title));
   }
   elseif ($has_token) {
     $description = token_replace($description, array('node' => $node));
@@ -187,7 +189,7 @@ function protected_node_enter_any_password() {
   }
   if ($cancel) {
     $form['protected_node_enterpassword']['cancel'] = array(
-      '#value' => l('Cancel', $cancel),
+      '#value' => l(t('Cancel'), $cancel),
     );
   }
 

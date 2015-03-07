@@ -64,7 +64,7 @@ define('PROTECTED_NODE_PROTECTION_ALWAYS', 3);
  */
 function protected_node_help($path, $arg) {
   switch ($path) {
-    case 'admin/modules#description' :
+    case 'admin/modules#description':
       return t('With this module anybody who has edit protected node permission can password protect his or her own node.');
   }
 }
@@ -89,13 +89,13 @@ function protected_node_permission() {
     ),
     'view protected content' => array(
       'title' => t('view protected content'),
-      'description' => t('View potected content'),
+      'description' => t('View protected content'),
     ),
   );
   foreach (node_type_get_types() as $key => $type) {
     $perms['edit ' . $key . ' password'] = array(
-      'title' => t('edit ' . $key . ' password'),
-      'description' => t('Edit password for ' . $type->name . ' nodes'),
+      'title' => t('edit %type_name password', array('%type_name' => $key)),
+      'description' => t('Edit password for %type_name nodes', array('%type_name' => $key)),
     );
   }
 
@@ -170,7 +170,7 @@ function protected_node_init() {
   }
 
   if (variable_get('protected_node_use_global_password', PROTECTED_NODE_PER_NODE_PASSWORD) == PROTECTED_NODE_GLOBAL_PASSWORD && isset($_SESSION['has_entered_global_password'])) {
-      return;
+    return;
   }
 
   $nid = FALSE;
@@ -220,16 +220,18 @@ function protected_node_init() {
 /**
  * Check whether a node is protected and a password is required.
  *
- * \param[in] $nid The node identifier.
- * \param[in] $op Operation: 'access', 'view', 'edit', or 'delete'
+ * @param int $nid
+ *   The node identifier.
+ * @param string $op
+ *   Operation: 'access', 'view', 'edit', or 'delete'
  *
- * \return FALSE if the node is not protected for the current user.
- *         Return TRUE if it is protected and cannot be viewed by
- *         the current user. Return $nid if the user has a chance
- *         to unlock this protected node by entering the password.
- *         Return -1 if the user is trying to view the node and has
- *         both access to view nodes of that type and the 'view protected
- *         content' permission.
+ * @return FALSE
+ *   if the node is not protected for the current user.
+ *   Return TRUE if it is protected and cannot be viewed by the current user.
+ *   Return $nid if the user has a chance to unlock this protected node by
+ *   entering the password.
+ *   Return -1 if the user is trying to view the node and has both access to
+ *   view nodes of that type and the 'view protected content' permission.
  */
 function protected_node_is_locked($nid, $op = 'access') {
   global $user;
@@ -294,14 +296,14 @@ function protected_node_is_locked($nid, $op = 'access') {
 
   // User already entered the global password?
   if (isset($_SESSION['_protected_node']['passwords']['global'])) {
-	  $when = $_SESSION['_protected_node']['passwords']['global'];
-	  if ($when > variable_get('protected_node_session_timelimit', 0) /* Global reset time. */
-	    && $when > $node->protected_node_passwd_changed /* This page reset time. */
-      ) {
-        return FALSE;
-      }
-	  // The session is out of date, we can as well get rid of it now.
-	  unset($_SESSION['_protected_node']['passwords']['global']);
+    $when = $_SESSION['_protected_node']['passwords']['global'];
+    if ($when > variable_get('protected_node_session_timelimit', 0) /* Global reset time. */
+      && $when > $node->protected_node_passwd_changed /* This page reset time. */
+    ) {
+      return FALSE;
+    }
+    // The session is out of date, we can as well get rid of it now.
+    unset($_SESSION['_protected_node']['passwords']['global']);
   }
   else {
     // User already entered the password?
@@ -320,10 +322,16 @@ function protected_node_is_locked($nid, $op = 'access') {
 }
 
 /**
+ * Helper function.
+ *
  * If gathering an attachment, verify that it is accessible and if
  * not ask for the password.
  *
- * @param[in] $filename  The name of the attachment file.
+ * @param string $filename
+ *   The name of the attachment file.
+ *
+ * @return mixed
+ *   File nid if user has access. FALSE otherwise.
  */
 function protected_node_and_attachment($filename) {
   global $user;
@@ -349,16 +357,16 @@ function protected_node_and_attachment($filename) {
   $result = $query->execute();
 
   foreach ($result as $file_info) {
-    if ($file_info === FALSE  /* Row doesn't exist, it's not protected */
-     || ($user->uid && $user->uid == $file_info->uid)) { /* $user is the author */
+    // Row doesn't exist, it's not protected || $user is the author.
+    if ($file_info === FALSE || ($user->uid && $user->uid == $file_info->uid)) {
       return FALSE;
     }
 
     // Got the global password?
     if (isset($_SESSION['_protected_node']['passwords']['global'])) {
       $when = $_SESSION['_protected_node']['passwords']['global'];
-      if ($when > $file_info->protected_node_passwd_changed  /* this page reset time */
-       && $when > variable_get('protected_node_session_timelimit', 0)) { /* global reset time */
+      // This page reset time && global reset time.
+      if ($when > $file_info->protected_node_passwd_changed && $when > variable_get('protected_node_session_timelimit', 0)) {
         return FALSE;
       }
       // The session is out of date, we can as well get rid of it now.
@@ -368,8 +376,8 @@ function protected_node_and_attachment($filename) {
       // Got the password?
       if (isset($_SESSION['_protected_node']['passwords'][$file_info->nid])) {
         $when = $_SESSION['_protected_node']['passwords'][$file_info->nid];
-        if ($when > $file_info->protected_node_passwd_changed  /* this page reset time */
-         && $when > variable_get('protected_node_session_timelimit', 0)) { /* global reset time */
+        // This page reset time && global reset time.
+        if ($when > $file_info->protected_node_passwd_changed && $when > variable_get('protected_node_session_timelimit', 0)) {
           return FALSE;
         }
         // The session is out of date, we can as well get rid of it now.
@@ -384,6 +392,8 @@ function protected_node_and_attachment($filename) {
 
 
 /**
+ * Module invoke.
+ *
  * Call module implemented functions with a parameter passed as reference
  * instead of copy.
  *
@@ -443,8 +453,7 @@ function protected_node_node_validate($node, $form) {
 
   $_protected_node_emails = '';
   $_protected_node_random_passwd = '';
-  if ($node->protected_node_is_protected
-     && (user_access('edit any password') || user_access('edit ' . $node->type . ' password'))) {
+  if ($node->protected_node_is_protected && (user_access('edit any password') || user_access('edit ' . $node->type . ' password'))) {
     $missing_password = FALSE;
     if (empty($node->protected_node_passwd)) {
       // Global content type password exists ?
@@ -539,7 +548,12 @@ function protected_node_node_update($node) {
 }
 
 /**
- * Helper function to do protected node actions when creating or updating a node.
+ * Helper function.
+ *
+ * Do protected node actions when creating or updating a node.
+ *
+ * @param object $node
+ *   A node object.
  */
 function _protected_node_node_create_or_update($node) {
   // The node type is never protected if $node->protected_node_is_protected
@@ -598,29 +612,31 @@ function protected_node_node_view($node, $view_mode = 'full') {
           // Is password out of date?
           $when = $_SESSION['_protected_node']['passwords']['global'];
           if ($when <= variable_get('protected_node_session_timelimit', 0) /* global reset time */
-           || $when <= $node->protected_node_passwd_changed  /* this page reset time */ ) {
+            || $when <= $node->protected_node_passwd_changed  /* this page reset time */
+          ) {
             unset($_SESSION['_protected_node']['passwords']['global']);
           }
         }
-	    // Is there a password?
-		if (isset($_SESSION['_protected_node']['passwords'][$node->nid])) {
-		  // Is password out of date?
-		  $when = $_SESSION['_protected_node']['passwords'][$node->nid];
-		  if ($when <= variable_get('protected_node_session_timelimit', 0) /* global reset time */
-		   || $when <= $node->protected_node_passwd_changed  /* this page reset time */ ) {
-		     unset($_SESSION['_protected_node']['passwords'][$node->nid]);
-		  }
-		}
-		if (!isset($_SESSION['_protected_node']['passwords'][$node->nid]) && !isset($_SESSION['_protected_node']['passwords']['global'])) {
-		  if (!user_access('access protected content')) {
-		    // User will never be given access (no drupal_goto() call
-			// necessary).
-			drupal_access_denied();
-			exit();
-		  }
-		  // User could see the node, but at this time, not its contents.
-		  protected_node_invoke('protected_node_hide', $node);
-		}
+        // Is there a password?
+        if (isset($_SESSION['_protected_node']['passwords'][$node->nid])) {
+          // Is password out of date?
+          $when = $_SESSION['_protected_node']['passwords'][$node->nid];
+          if ($when <= variable_get('protected_node_session_timelimit', 0) /* global reset time */
+            || $when <= $node->protected_node_passwd_changed  /* this page reset time */
+          ) {
+            unset($_SESSION['_protected_node']['passwords'][$node->nid]);
+          }
+        }
+        if (!isset($_SESSION['_protected_node']['passwords'][$node->nid]) && !isset($_SESSION['_protected_node']['passwords']['global'])) {
+          if (!user_access('access protected content')) {
+            // User will never be given access (no drupal_goto() call
+            // necessary).
+            drupal_access_denied();
+            exit();
+          }
+          // User could see the node, but at this time, not its contents.
+          protected_node_invoke('protected_node_hide', $node);
+        }
       }
     }
   }
@@ -634,7 +650,6 @@ function protected_node_node_delete($node) {
     ->condition('nid', $node->nid)
     ->execute();
 }
-
 
 /**
  * Implements hook_protected_node_hide().
@@ -673,7 +688,8 @@ function protected_node_file_download($uri) {
     if ($info = image_get_info($uri)) {
       // Check the permissions of the original to grant access to this image.
       $headers = module_invoke_all('file_download', $original_uri);
-      // Confirm there's at least one module granting access and none denying access.
+      // Confirm there's at least one module granting access and none denying
+      // access.
       if (!empty($headers) && !in_array(-1, $headers)) {
         return array();
       }
@@ -717,7 +733,7 @@ function protected_node_file_download($uri) {
       $result = $query->execute();
 
       foreach ($result as $file_info) {
-        // if the file belongs to the current user let them see it.
+        // If the file belongs to the current user let them see it.
         if ($file_info === FALSE || ($user->uid && $user->uid == $file_info->uid)) {
           return array();
         }
@@ -725,15 +741,15 @@ function protected_node_file_download($uri) {
         // Got the global password?
         if (isset($_SESSION['_protected_node']['passwords']['global'])) {
           $when = $_SESSION['_protected_node']['passwords']['global'];
-          if ($when > $file_info->protected_node_passwd_changed  /* this page reset time */
-            && $when > variable_get('protected_node_session_timelimit', 0)) { /* global reset time */
-              return array();
+          // This page reset time && global reset time.
+          if ($when > $file_info->protected_node_passwd_changed && $when > variable_get('protected_node_session_timelimit', 0)) {
+            return array();
           }
         }
         elseif (isset($_SESSION['_protected_node']['passwords'][$file_info->nid])) {
           $when = $_SESSION['_protected_node']['passwords'][$file_info->nid];
-          if ($when > $file_info->protected_node_passwd_changed  /* this page reset time */
-           && $when > variable_get('protected_node_session_timelimit', 0)) { /* global reset time */
+          // This page reset time && global reset time.
+          if ($when > $file_info->protected_node_passwd_changed && $when > variable_get('protected_node_session_timelimit', 0)) {
             return array();
           }
         }
@@ -749,10 +765,6 @@ function protected_node_file_download($uri) {
   // No password, access denied.
   return -1;
 }
-
-/*
- * Helper functions
- */
 
 /**
  * Helper function used to return the original uri from a path and an uri.
@@ -775,13 +787,14 @@ function _protected_node_get_original_uri($path, $uri) {
 
 /**
  * Sets the given node to protected with the provided password.
+ *
  * The password cannot be empty.
  *
  * If the node already password protected this method changes the password
  * to the one you provided as $password parameter.
  *
  * @param[in,out] object $node The node to be saved.
- * @return boolean
+ * @return bool
  *   TRUE if the action was successful, FALSE otherwise.
  */
 function _protected_node_save(&$node) {
@@ -796,7 +809,11 @@ function _protected_node_save(&$node) {
   // with MySQL).
   // We also retrive nid because protected_node_passwd may exist and be empty.
   $result = db_select('protected_nodes')
-    ->fields('protected_nodes', array('nid', 'protected_node_passwd', 'protected_node_emails'))
+    ->fields('protected_nodes', array(
+        'nid',
+        'protected_node_passwd',
+        'protected_node_emails',
+      ))
     ->condition('nid', $node->nid)
     ->execute()
     ->fetchAssoc();
@@ -842,7 +859,7 @@ function _protected_node_save(&$node) {
       'protected_node_show_title' => $node->protected_node_show_title,
       'protected_node_emails' => $saved_emails,
       'protected_node_hint' => isset($node->protected_node_hint) ? $node->protected_node_hint : '',
-     );
+    );
     if ($changed) {
       $args['protected_node_passwd_changed'] = REQUEST_TIME;
     }
@@ -910,13 +927,13 @@ function protected_node_load($nodes) {
 
     $result = db_select('protected_nodes')
       ->fields('protected_nodes', array(
-          'protected_node_is_protected',
-          'protected_node_passwd',
-          'protected_node_passwd_changed',
-          'protected_node_show_title',
-          'protected_node_emails',
-          'protected_node_hint'
-        ))
+        'protected_node_is_protected',
+        'protected_node_passwd',
+        'protected_node_passwd_changed',
+        'protected_node_show_title',
+        'protected_node_emails',
+        'protected_node_hint',
+      ))
       ->condition('nid', $node->nid)
       ->execute()
       ->fetchAssoc();
@@ -968,7 +985,7 @@ function protected_node_token_info() {
       'description' => t("Whether the title node of the node is protected (yes/no)."),
     ),
     'password-hint' => array(
-      'name' => t('Node protected pasword hint'),
+      'name' => t('Node protected password hint'),
       'description' => t("The password hint as entered in this node."),
     ),
   );
@@ -1006,12 +1023,15 @@ function protected_node_tokens($type, $tokens, array $data = array(), array $opt
           case 'is-protected':
             $replacements[$original] = t('yes');
             break;
+
           case 'password':
             $replacements[$original] = empty($node->protected_node_clear_passwd) ? '' : $node->protected_node_clear_passwd;
             break;
+
           case 'protected-title':
             $replacements[$original] = empty($node->protected_node_show_title) ? t('yes') : t('no');
             break;
+
           case 'password-hint':
             $replacements[$original] = $node->protected_node_hint;
             break;
@@ -1027,7 +1047,7 @@ function protected_node_tokens($type, $tokens, array $data = array(), array $opt
  * After_build function to disable autocomplete for the password fields.
  *
  * Without this FF >= 3 will attempt to autocomplete the fields with the user's
- *   login info.
+ * login info.
  */
 function protected_node_autocomplete_off($form_element, &$form_state) {
   $form_element['pass1']['#attributes']['autocomplete'] = 'off';
@@ -1047,7 +1067,7 @@ function protected_node_autocomplete_off($form_element, &$form_state) {
  */
 function protected_node_boost_is_cacheable($path) {
   if (arg(0) == 'node' && is_numeric(arg(1))) {
-    // if protected, do not cache (i.e. not caching == return FALSE)
+    // If protected, do not cache (i.e. not caching == return FALSE).
     return !protected_node_isset_protected(arg(1));
   }
   return TRUE;
@@ -1084,7 +1104,7 @@ function protected_node_content_extra_fields($type_name) {
  *   node_load.
  * @param[in] $passwd The node password.
  *
- * @return boolean
+ * @return bool
  *   TRUE if the node is protection on return.
  */
 function protected_node_set_protected($param, $passwd = NULL) {
@@ -1107,22 +1127,22 @@ function protected_node_set_protected($param, $passwd = NULL) {
       if (empty($passwd)) {
         // In this case, an empty password is fine.
         $result = db_update('protected_nodes')
-          ->fields(array(
-            'protected_node_is_protected' => 1,
-          ))
-          ->condition('nid', $node->nid)
-          ->execute() !== FALSE;
+            ->fields(array(
+              'protected_node_is_protected' => 1,
+            ))
+            ->condition('nid', $node->nid)
+            ->execute() !== FALSE;
       }
       else {
         // We have to also update the password in this case.
         $result = db_update('protected_nodes')
-          ->fields(array(
-            'protected_node_is_protected' => 1,
-            'protected_node_passwd' => hash('sha256', $passwd),
-            'protected_node_passwd_changed' => REQUEST_TIME
-          ))
-          ->condition('nid', $node->nid)
-          ->execute() !== FALSE;
+            ->fields(array(
+              'protected_node_is_protected' => 1,
+              'protected_node_passwd' => hash('sha256', $passwd),
+              'protected_node_passwd_changed' => REQUEST_TIME,
+            ))
+            ->condition('nid', $node->nid)
+            ->execute() !== FALSE;
       }
     }
     else {
@@ -1134,13 +1154,13 @@ function protected_node_set_protected($param, $passwd = NULL) {
         $passwd = hash('sha256', $passwd);
       }
       $result = db_insert('protected_nodes')
-        ->fields(array(
-          'nid' => $node->nid,
-          'protected_node_is_protected' => 1,
-          'protected_node_passwd' => $passwd,
-          'protected_node_show_title' => variable_get('protected_node_show_node_titles', FALSE)
-        ))
-        ->execute() !== FALSE;
+          ->fields(array(
+            'nid' => $node->nid,
+            'protected_node_is_protected' => 1,
+            'protected_node_passwd' => $passwd,
+            'protected_node_show_title' => variable_get('protected_node_show_node_titles', FALSE),
+          ))
+          ->execute() !== FALSE;
     }
   }
   else {
@@ -1151,12 +1171,12 @@ function protected_node_set_protected($param, $passwd = NULL) {
     }
 
     $result = db_update('protected_nodes')
-      ->fields(array(
+        ->fields(array(
           'protected_node_passwd' => hash('sha256', $passwd),
           'protected_node_passwd_changed' => REQUEST_TIME,
         ))
-      ->condition('nid', $node->nid)
-      ->execute() !== FALSE;
+        ->condition('nid', $node->nid)
+        ->execute() !== FALSE;
   }
 
   return $result;
@@ -1167,22 +1187,22 @@ function protected_node_set_protected($param, $passwd = NULL) {
  *
  * @param[in] int $nid  The node identifier.
  *
- * @return boolean
+ * @return bool
  *   TRUE if the node was protected before the call, FALSE otherwise.
  */
 function protected_node_unset_protected($nid) {
   $result = db_select('protected_nodes')
-    ->fields('protected_nodes', array('protected_node_is_protected'))
-    ->condition('nid', $nid)
-    ->execute()
-    ->fetchField() == 1;
+      ->fields('protected_nodes', array('protected_node_is_protected'))
+      ->condition('nid', $nid)
+      ->execute()
+      ->fetchField() == 1;
 
-   db_update('protected_nodes')
-     ->fields(array(
-       'protected_node_is_protected' => 0,
-     ))
-     ->condition('nid', $nid)
-     ->execute();
+  db_update('protected_nodes')
+    ->fields(array(
+      'protected_node_is_protected' => 0,
+    ))
+    ->condition('nid', $nid)
+    ->execute();
 
   return $result;
 }
@@ -1195,7 +1215,7 @@ function protected_node_unset_protected($nid) {
  *
  * @param[in] int $nid  The node id to check.
  *
- * @return boolean
+ * @return bool
  *   TRUE if the node identified by the nid you provided is protected, FALSE
  *   otherwise.
  */
@@ -1205,16 +1225,17 @@ function protected_node_isset_protected($nid) {
   }
 
   $result = db_select('protected_nodes')
-  ->fields('protected_nodes', array('protected_node_is_protected'))
-  ->condition('nid', $nid)
-  ->execute()
-  ->fetchField() == 1;
+      ->fields('protected_nodes', array('protected_node_is_protected'))
+      ->condition('nid', $nid)
+      ->execute()
+      ->fetchField() == 1;
 
   return $result;
 }
 
 /**
  * Revoke access to the current used from the specified protected node.
+ *
  * The effect is immediate.
  *
  * Note that the date is not checked so it is possible that the node was
@@ -1223,7 +1244,7 @@ function protected_node_isset_protected($nid) {
  *
  * @param[in] $nid  The node to lock.
  *
- * @return boolean
+ * @return bool
  *   TRUE if the node gets unlocked.
  */
 function protected_node_lock($nid) {
@@ -1240,11 +1261,12 @@ function protected_node_lock($nid) {
 
 /**
  * Give access to the current user to the specified protected node.
+ *
  * The duration of the lock is as expected starting now.
  *
  * @param[in] $nid  The node to unlock.
  *
- * @return boolean
+ * @return bool
  *   TRUE if the node gets unlocked.
  */
 function protected_node_unlock($nid) {
@@ -1253,11 +1275,11 @@ function protected_node_unlock($nid) {
     $node = node_load($nid);
     if ($node->protected_node_is_protected) {
       if (isset($_SESSION['has_entered_global_password'])) {
-		$_SESSION['_protected_node']['passwords']['global'] = REQUEST_TIME;
-	  }
-	  else {
-	    $_SESSION['_protected_node']['passwords'][$nid] = REQUEST_TIME;
-	  }
+        $_SESSION['_protected_node']['passwords']['global'] = REQUEST_TIME;
+      }
+      else {
+        $_SESSION['_protected_node']['passwords'][$nid] = REQUEST_TIME;
+      }
       return TRUE;
     }
   }
@@ -1265,11 +1287,15 @@ function protected_node_unlock($nid) {
 }
 
 /**
- * Internal function to evaluate whether the current
- * view mode is one to check the password for.
+ * Helper function.
  *
- * @param $view_mode, eg: full, teaser, or custom (eg: ds view modes)
- * @return boolean, TRUE if we are checking passwords, FALSE if not.
+ * Evaluate whether the current view mode is one to check the password for.
+ *
+ * @param string $view_mode
+ *   eg: full, teaser, or custom (eg: ds view modes)
+ *
+ * @return bool
+ *   TRUE if we are checking passwords, FALSE if not.
  */
 function _protected_node_check_view_mode($view_mode) {
   $permitted_view_modes = variable_get('protected_node_checked_view_modes', _protected_node_get_default_checked_view_modes());

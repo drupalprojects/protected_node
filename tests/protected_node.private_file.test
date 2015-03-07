@@ -1,7 +1,8 @@
 <?php
 
 /**
- * @file Test protected node behavior with private files.
+ * @file
+ * Test protected node behavior with private files.
  */
 
 /**
@@ -47,6 +48,8 @@ class ProtectedNodePrivateFile extends ProtectedNodeBaseTestCase {
   }
 
   /**
+   * Test function.
+   *
    * Test that a file on a node protected with per node protection can be
    * downloaded with the right password.
    */
@@ -71,6 +74,8 @@ class ProtectedNodePrivateFile extends ProtectedNodeBaseTestCase {
   }
 
   /**
+   * Test function.
+   *
    * Test that a file on a node protected with per node protection can't be
    * downloaded with the wrong password.
    */
@@ -99,6 +104,8 @@ class ProtectedNodePrivateFile extends ProtectedNodeBaseTestCase {
   }
 
   /**
+   * Test function.
+   *
    * Test that a file on a node protected with per node protection can't be
    * downloaded by an authenticated but not allowed user.
    */
@@ -123,8 +130,12 @@ class ProtectedNodePrivateFile extends ProtectedNodeBaseTestCase {
    *
    * Please make sure the user has the permission to create the node before
    * calling the method.
-   * @argument password.
-   * @return node object.
+   *
+   * @param string $password
+   *   A password.
+   *
+   * @return object.
+   *   A node object.
    */
   public function createProtectedNode($password) {
     // Add a new page node that is protected.

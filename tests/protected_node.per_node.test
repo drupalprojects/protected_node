@@ -1,7 +1,8 @@
 <?php
 
 /**
- * @file Test protected node per node functionnality.
+ * @file
+ * Test protected node per node functionality.
  */
 
 /**
@@ -47,16 +48,18 @@ class ProtectedNodePerNodePassword extends ProtectedNodeBaseTestCase {
     $node = $this->createProtectedNode($password);
     // Check the stored pasword in database.
     $stored_node_password = db_select('protected_nodes')
-        ->fields('protected_nodes', array('protected_node_passwd'))
-        ->condition('nid', $node->nid)
-        ->execute()
-        ->fetchField();
+      ->fields('protected_nodes', array('protected_node_passwd'))
+      ->condition('nid', $node->nid)
+      ->execute()
+      ->fetchField();
     $hashed_node_password = hash('sha256', $password);
 
     $this->assertEqual($stored_node_password, $hashed_node_password, "The node's password is stored hashed and the value correspond to the password.", $this->group);
   }
 
   /**
+   * Test function.
+   *
    * Test that a node protected with per node protection can be seen with the
    * right password.
    */
@@ -80,6 +83,8 @@ class ProtectedNodePerNodePassword extends ProtectedNodeBaseTestCase {
   }
 
   /**
+   * Test function.
+   *
    * Test that a node protected with per node protection can't be seen with the
    * wrong password.
    */
@@ -104,6 +109,8 @@ class ProtectedNodePerNodePassword extends ProtectedNodeBaseTestCase {
   }
 
   /**
+   * Test function.
+   *
    * Test that a node protected with per node protection can't be seen by an
    * authenticated but not allowed user.
    */
@@ -128,8 +135,12 @@ class ProtectedNodePerNodePassword extends ProtectedNodeBaseTestCase {
    *
    * Please make sure the user has the permission to create the node before
    * calling the method.
-   * @argument password.
-   * @return node object.
+   *
+   * @param string $password
+   *   A password.
+   *
+   * @return object.
+   *   A node object.
    */
   public function createProtectedNode($password) {
     // Add a new page node that is protected.

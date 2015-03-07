@@ -1,7 +1,8 @@
 <?php
 
 /**
- * @file Test protected node email functionnality.
+ * @file
+ * Test protected node email functionality.
  */
 
 /**
@@ -31,7 +32,7 @@ class ProtectedNodeMail extends ProtectedNodeBaseTestCase {
     // Submit the configuration form.
     $protected_node_settings = array(
       'protected_node_use_global_password' => PROTECTED_NODE_PER_NODE_PASSWORD,
-      'protected_node_email_activation' => 1
+      'protected_node_email_activation' => 1,
     );
     $this->drupalPost('admin/config/content/protected_node', $protected_node_settings, t('Save configuration'));
   }
@@ -65,9 +66,14 @@ class ProtectedNodeMail extends ProtectedNodeBaseTestCase {
    *
    * Please make sure the user has the permission to create the node before
    * calling the method.
-   * @argument password.
    *
-   * @return node object.
+   * @param string $password
+   *   A password.
+   * @param string $to
+   *   An email recipient.
+   *
+   * @return object.
+   *   A node object.
    */
   public function createProtectedNode($password, $to) {
     // Add a new page node that is protected.

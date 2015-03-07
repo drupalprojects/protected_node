@@ -8,6 +8,9 @@
 /**
  * Protected node sends email to specified users.
  *
+ * @param object $node
+ *   A node object.
+ *
  * @todo
  * We should properly handle the language...
  */
@@ -28,8 +31,8 @@ function protected_node_send_mail($node) {
     $from = NULL;
   }
   drupal_mail('protected_node', 'password',
-              $node->protected_node_emails, 'en',
-              array('node' => $node), $from, TRUE);
+    $node->protected_node_emails, 'en',
+    array('node' => $node), $from, TRUE);
 
   drupal_set_message(t('The email about this page was sent to the specified email addresses.'));
 }

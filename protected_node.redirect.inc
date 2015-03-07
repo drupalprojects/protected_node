@@ -79,14 +79,14 @@ function protected_node_enterpassword() {
   $description = variable_get('protected_node_description', '');
   if (!$description) {
     if ($node->protected_node_show_title) {
-      // embellish the title with double quotes
+      // Embellish the title with double quotes.
       $node_title = ' "' . $node->title . '"';
     }
     else {
       $node_title = '';
     }
     $description = t('The @node_type @node_title you are trying to view is password protected. Please enter the password below to proceed.',
-                     array('@node_type' => $node_type->name, '@node_title' => $node_title));
+      array('@node_type' => $node_type->name, '@node_title' => $node_title));
   }
   elseif ($has_token) {
     $description = token_replace($description, array('node' => $node));
@@ -135,7 +135,7 @@ function protected_node_enterpassword() {
   }
   if (!empty($cancel)) {
     $form['protected_node_enterpassword']['cancel'] = array(
-      '#value' => l('Cancel', $cancel),
+      '#value' => l(t('Cancel'), $cancel),
     );
   }
 
@@ -162,40 +162,40 @@ function protected_node_enterpassword_validate($form, &$form_state) {
   $node = node_load($protected_node_nid);
   if (empty($nid)) {
     // Global content type password exists ?
-        switch (variable_get('protected_node_use_global_password', PROTECTED_NODE_PER_NODE_PASSWORD)) {
-          case PROTECTED_NODE_PER_NODE_AND_GLOBAL_PASSWORD:
-          case PROTECTED_NODE_GLOBAL_PASSWORD:
-            $global_passwd = variable_get('protected_node_global_password', '');
-            if (in_array($global_passwd, array($sha1_passwd, $sha256_passwd))) {
-              $_SESSION['has_entered_global_password'] = 1;
-              $nid = 1;
-            }
-            else {
-              // This comes last so we avoid loading the node if another password
-              // matches although that means the main global password has priority
-              // which may, in the long run, be a problem (but since the result is
-              // the same, I don't foresee this being a problem at all).
-              $node_type_passwd = variable_get('protected_node_node_type_password_' . $node->type, '');
-              if (in_array($node_type_passwd, array($sha1_passwd, $sha256_passwd))) {
-                $nid = 1;
-              }
-            }
-            if (!empty($nid)) {
-              // The user found a global password.
-              // Was the protected node created by an anonymous user?
-              // If so, prevent the use of any global password.
-              $created = db_select('node')
-                ->fields('node', array('created'))
-                ->condition('nid', $protected_node_nid)
-                ->condition('uid', 0)
-                ->execute()
-                ->fetchField();
-              if ($created) {
-                $nid = FALSE;
-              }
-            }
-          break;
+    switch (variable_get('protected_node_use_global_password', PROTECTED_NODE_PER_NODE_PASSWORD)) {
+      case PROTECTED_NODE_PER_NODE_AND_GLOBAL_PASSWORD:
+      case PROTECTED_NODE_GLOBAL_PASSWORD:
+        $global_passwd = variable_get('protected_node_global_password', '');
+        if (in_array($global_passwd, array($sha1_passwd, $sha256_passwd))) {
+          $_SESSION['has_entered_global_password'] = 1;
+          $nid = 1;
         }
+        else {
+          // This comes last so we avoid loading the node if another password
+          // matches although that means the main global password has priority
+          // which may, in the long run, be a problem (but since the result is
+          // the same, I don't foresee this being a problem at all).
+          $node_type_passwd = variable_get('protected_node_node_type_password_' . $node->type, '');
+          if (in_array($node_type_passwd, array($sha1_passwd, $sha256_passwd))) {
+            $nid = 1;
+          }
+        }
+        if (!empty($nid)) {
+          // The user found a global password.
+          // Was the protected node created by an anonymous user?
+          // If so, prevent the use of any global password.
+          $created = db_select('node')
+            ->fields('node', array('created'))
+            ->condition('nid', $protected_node_nid)
+            ->condition('uid', 0)
+            ->execute()
+            ->fetchField();
+          if ($created) {
+            $nid = FALSE;
+          }
+        }
+        break;
+    }
 
     if (empty($nid)) {
       form_set_error('password', t('Incorrect password!'));
