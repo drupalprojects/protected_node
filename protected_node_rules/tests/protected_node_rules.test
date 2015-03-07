@@ -1,0 +1,88 @@
+<?php
+
+/**
+ * @file
+ * Test protected node rules functionality.
+ */
+
+/**
+ * Test protected node rules functionality.
+ */
+class ProtectedNodeRules extends DrupalWebTestCase {
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function getInfo() {
+    return array(
+      'name' => 'Protected node rules feature',
+      'description' => 'This tests rules features.',
+      'group' => 'Protected Node',
+    );
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setUp() {
+    parent::setUp('protected_node_rules');
+
+    // Set the group.
+    $this->group = 'Protected node';
+
+    // User with all needed permissions.
+    $this->adminUser = $this->drupalCreateUser(array(
+      'access protected content',
+      'edit any password',
+      'bypass password protection',
+      'view protected content',
+      'administer site configuration',
+      'administer nodes',
+      'bypass node access',
+      'administer content types',
+    ));
+
+    // User with access protected node permission.
+    $this->normalAccessAllowedUser = $this->drupalCreateUser(array('access protected content'));
+
+    // User with view published content permission.
+    $this->normalNonAccessAllowedUser = $this->drupalCreateUser(array('access content'));
+
+    // Log in an Admin.
+    $this->drupalLogin($this->adminUser);
+    // Submit the configuration form.
+    $protected_node_settings = array(
+      'protected_node_use_global_password' => PROTECTED_NODE_PER_NODE_PASSWORD,
+    );
+    $this->drupalPost('admin/config/content/protected_node', $protected_node_settings, t('Save configuration'));
+  }
+
+  /**
+   * Test function.
+   *
+   * Test that a rule can password protect a node.
+   */
+  public function testPasswordProtect() {
+    $password = $this->randomName(10);
+
+    // Create a rule to password protect new node.
+    $rule = rules_reaction_rule();
+    $rule->label = t('Password protect page on presave.');
+    $rule->event('node_presave')
+      ->action('protected_node_rules_action_password_protect', array(
+        'node:select' => 'node',
+        'passwd' => $password,
+        'show_title' => 1,
+      ));
+    $rule->save();
+
+    // Create an unprotected basic page.
+    $node = $this->drupalCreateNode();
+
+    // User that can see published content sees the node.
+    $this->drupalLogin($this->normalNonAccessAllowedUser);
+    $this->drupalGet('node/' . $node->nid);
+    $this->assertResponse(403, "User with no access permission is not allowed to access a protected node");
+  }
+
+}

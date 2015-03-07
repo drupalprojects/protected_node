@@ -85,6 +85,10 @@ function protected_node_rules_rules_action_info() {
         'type' => 'text',
         'label' => t('Password'),
       ),
+      'show_title' => array(
+        'type' => 'boolean',
+        'label' => t('Show title'),
+      ),
     ),
     'label' => t('Password protect node'),
   ) + $defaults;
@@ -111,8 +115,9 @@ function protected_node_rules_action_protect($node) {
 /**
  * Activate the password protection on the specified node.
  */
-function protected_node_rules_action_password_protect($node, $passwd) {
+function protected_node_rules_action_password_protect($node, $passwd, $show_title) {
   $node->protected_node_is_protected = 1;
+  $node->protected_node_show_title = $show_title;
   $node->protected_node_passwd = $passwd;
   return array('node' => $node);
 }
