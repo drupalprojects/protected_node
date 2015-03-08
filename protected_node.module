@@ -76,25 +76,20 @@ function protected_node_help($path, $arg) {
 function protected_node_permission() {
   $perms = array(
     'access protected content' => array(
-      'title' => t('access protected content'),
+      'title' => t('Access protected content'),
       'description' => t('Access password screen for protected content. Without this permission user will be denied access completely.'),
     ),
     'bypass password protection' => array(
-      'title' => t('bypass password protection'),
-      'description' => t('Bypass password protection for the node view page only'),
+      'title' => t('Bypass password protection'),
     ),
     'edit any password' => array(
-      'title' => t('edit any password'),
-      'description' => t('Edit any password'),
-    ),
-    'view protected content' => array(
-      'title' => t('view protected content'),
-      'description' => t('View protected content'),
+      'title' => t('Edit any password'),
+      'description' => t('Edit the password for any node.'),
     ),
   );
   foreach (node_type_get_types() as $key => $type) {
     $perms['edit ' . $key . ' password'] = array(
-      'title' => t('edit %type_name password', array('%type_name' => $key)),
+      'title' => t('Edit %type_name password', array('%type_name' => $key)),
       'description' => t('Edit password for %type_name nodes', array('%type_name' => $key)),
     );
   }
@@ -270,7 +265,7 @@ function protected_node_is_locked($nid, $op = 'access') {
 
   // If the user is only trying to view this node, accept.
   if ($op == 'view') {
-    if (user_access('view protected content') && node_access('view', $node)) {
+    if (user_access('bypass password protection') && node_access('view', $node)) {
       // User's got view permission without password
       // (password for edit/delete rights).
       return -1;
@@ -599,7 +594,7 @@ function protected_node_node_view($node, $view_mode = 'full') {
       // be searching so we let go without the access denied error.)
       protected_node_invoke('protected_node_hide', $node);
     }
-    elseif (!user_access('bypass password protection') && !user_access('view protected content') && _protected_node_check_view_mode($view_mode)) {
+    elseif (!user_access('bypass password protection') && _protected_node_check_view_mode($view_mode)) {
       if (!$user->uid && variable_get('cache', 1)) {
         // Prevent caching (do NOT use variable_set() since this is temporary
         // for this session).

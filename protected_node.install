@@ -200,3 +200,24 @@ function protected_node_update_7101() {
     'default' => '')
   );
 }
+
+/**
+ * Manage "view protected content" permission deletion.
+ */
+function protected_node_update_7102() {
+  // Get the rids with "view protected content".
+  $rids = db_select('role_permission')
+    ->fields('role_permission', array('rid'))
+    ->condition('permission', 'view protected content')
+    ->condition('module', 'protected_node')
+    ->execute()
+    ->fetchCol();
+
+  foreach ($rids as $rid) {
+    // Give "bypass password protection" to roles with "view protected content".
+    user_role_grant_permissions($rid, array('bypass password protection'));
+
+    // Remove "view protected content" from database.
+    user_role_revoke_permissions($rid, array('view protected content'));
+  }
+}
