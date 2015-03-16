@@ -58,6 +58,15 @@ Thank you.
 function protected_node_menu_array() {
   $items = array();
 
+  $items['admin/content/protected'] = array(
+    'title' => 'Protected',
+    'description' => 'Find and manage content.',
+    'page callback' => 'protected_node_content_list',
+    'access arguments' => array('bypass password protection'),
+    'type' => MENU_LOCAL_TASK,
+    'file' => 'protected_node.admin.inc',
+    'weight' => -9,
+  );
   $items['admin/config/content/protected_node'] = array(
     'title' => 'Protected node',
     'description' => 'Edit the global Protected node settings',
