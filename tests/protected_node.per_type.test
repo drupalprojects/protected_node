@@ -128,7 +128,7 @@ class ProtectedNodePerTypePassword extends ProtectedNodeBaseTestCase {
     $this->drupalLogin($this->adminUser);
     // Create a new page node.
     $node = $this->createProtectedNode();
-    // Once the node created logout the User.
+    // Once the node created logout the user.
     $this->drupalLogout();
 
     return $node;

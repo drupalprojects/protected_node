@@ -60,7 +60,7 @@ class ProtectedNodePrivateFile extends ProtectedNodeBaseTestCase {
     $password = $this->randomName(10);
     // Create a new page node.
     $node = $this->createProtectedNode($password);
-    // Once the node created logout the User.
+    // Once the node created logout the user.
     $this->drupalLogout();
 
     // An authenticated user sees the node.
@@ -86,7 +86,7 @@ class ProtectedNodePrivateFile extends ProtectedNodeBaseTestCase {
     $password = $this->randomName(10);
     // Create a new page node.
     $node = $this->createProtectedNode($password);
-    // Once the node created logout the User.
+    // Once the node created logout the user.
     $this->drupalLogout();
 
     // An authenticated user sees the node.
@@ -116,7 +116,7 @@ class ProtectedNodePrivateFile extends ProtectedNodeBaseTestCase {
     $password = $this->randomName(10);
     // Create a new page node.
     $node = $this->createProtectedNode($password);
-    // Once the node created logout the User.
+    // Once the node created logout the user.
     $this->drupalLogout();
 
     // Ensure the file cannot be downloaded.

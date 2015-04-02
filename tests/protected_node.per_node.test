@@ -70,7 +70,7 @@ class ProtectedNodePerNodePassword extends ProtectedNodeBaseTestCase {
     $password = $this->randomName(10);
     // Create a new page node.
     $node = $this->createProtectedNode($password);
-    // Once the node created logout the User.
+    // Once the node created logout the user.
     $this->drupalLogout();
 
     // An authenticated user sees the node.
@@ -95,7 +95,7 @@ class ProtectedNodePerNodePassword extends ProtectedNodeBaseTestCase {
     $password = $this->randomName(10);
     // Create a new page node.
     $node = $this->createProtectedNode($password);
-    // Once the node created logout the User.
+    // Once the node created logout the user.
     $this->drupalLogout();
 
     // An authenticated user does not see the node.
@@ -121,7 +121,7 @@ class ProtectedNodePerNodePassword extends ProtectedNodeBaseTestCase {
     $password = $this->randomName(10);
     // Create a new page node.
     $node = $this->createProtectedNode($password);
-    // Once the node created logout the User.
+    // Once the node created logout the user.
     $this->drupalLogout();
 
     // User that can see published content sees the node.

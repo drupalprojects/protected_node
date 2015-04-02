@@ -61,7 +61,7 @@ class ProtectedNodeGlobalPassword extends ProtectedNodeBaseTestCase {
     $this->drupalLogin($this->adminUser);
     // Create a new page node.
     $node = $this->createProtectedNode();
-    // Once the node created logout the User.
+    // Once the node created logout the user.
     $this->drupalLogout();
 
     // An authenticated user sees the node.
@@ -84,7 +84,7 @@ class ProtectedNodeGlobalPassword extends ProtectedNodeBaseTestCase {
     $this->drupalLogin($this->adminUser);
     // Create a new page node.
     $node = $this->createProtectedNode();
-    // Once the node created logout the User.
+    // Once the node created logout the user.
     $this->drupalLogout();
 
     // An authenticated user sees the node.
@@ -108,7 +108,7 @@ class ProtectedNodeGlobalPassword extends ProtectedNodeBaseTestCase {
     $this->drupalLogin($this->adminUser);
     // Create a new page node.
     $node = $this->createProtectedNode();
-    // Once the node created logout the User.
+    // Once the node created logout the user.
     $this->drupalLogout();
 
     // User that can see published content sees the node.
