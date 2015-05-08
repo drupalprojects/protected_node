@@ -663,7 +663,13 @@ function protected_node_protected_node_hide(&$node) {
   }
   $node->teaser = '';
   $node->body = '';
-  $node->content = array();
+  // Does not remove the keys starting with '#' as they usually contain
+  // information for other modules.
+  foreach ($node->content as $content_key => $content) {
+    if (substr($content_key, 0, 1) !== "#") {
+      unset($node->content[$content_key]);
+    }
+  }
 }
 
 
