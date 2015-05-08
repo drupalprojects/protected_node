@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @file
  * Redirected page callback file for the protected_node module.

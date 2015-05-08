@@ -5,22 +5,6 @@
  */
 
 /**
- * Implements of hook_rules_event_info().
- */
-/*
-function protected_node_rules_event_info() {
- return array(
-   'protected_node_password_set' => array(
-     'label' => t('The node is now protected'),
-   ),
-   'protected_node_password_unset' => array(
-     'label' => t('The node is now unprotected'),
-   ),
- );
-}
-*/
-
-/**
  * Implements hook_rules_condition_info().
  */
 function protected_node_rules_rules_condition_info() {

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @file
  * Protected Node views declarations.

@@ -1,9 +1,9 @@
 <?php
+
 /**
  * @file
  * Protected node mail handling.
  */
-
 
 /**
  * Protected node sends email to specified users.

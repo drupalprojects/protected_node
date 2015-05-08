@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @file
  * Configuration file for the protected_node module.
@@ -24,6 +25,8 @@ define('PROTECTED_NODE_FIELDSET_CLOSE', 2);
 
 
 /**
+ * Helper function.
+ *
  * The default email subject sent to users to whom you give access to
  * a protected node.
  */
@@ -32,6 +35,8 @@ function protected_node_email_subject() {
 }
 
 /**
+ * Helper function.
+ *
  * The default email body sent to users to whom you give access to
  * a protected node.
  */
@@ -127,7 +132,7 @@ function protected_node_node_form_alter(&$form) {
       $collapsed = TRUE;
       break;
 
-    /* case PROTECTED_NODE_FIELDSET_SMART: */
+    // Case PROTECTED_NODE_FIELDSET_SMART.
     default:
       if ($protection == PROTECTED_NODE_PROTECTION_ALWAYS
       || ($protection == PROTECTED_NODE_PROTECTION_PROTECTED && empty($form['nid']['#value']))) {
@@ -235,10 +240,10 @@ function protected_node_node_form_alter(&$form) {
     $form['protected_node']['protected_node_emails'] = array(
       '#type' => 'textarea',
       '#description' => t('Enter a list of email addresses separated by newlines and/or commas. At the time you save the page, each one of those users will be sent an email with a link back to this page and optionally the password.')
-        . '<br />'
-        . t('<strong>WARNING</strong>: for an email to be sent you MUST (1) protect the node; (2) re-enter the password; (3) publish the page.')
-        . '<br />'
-        . t('The password is necessary only if you used [node:password] in the email message. It is necessary to re-enter it because it is otherwise encrypted in the database.'),
+      . '<br />'
+      . t('<strong>WARNING</strong>: for an email to be sent you MUST (1) protect the node; (2) re-enter the password; (3) publish the page.')
+      . '<br />'
+      . t('The password is necessary only if you used [node:password] in the email message. It is necessary to re-enter it because it is otherwise encrypted in the database.'),
       '#default_value' => $previous_emails,
       '#cols' => variable_get('protected_node_email_box_width', '10'),
       '#rows' => variable_get('protected_node_email_box_height', '2'),

@@ -21,7 +21,11 @@ function protected_node_content_list() {
     'type' => array('data' => t('Type'), 'field' => 'n.type'),
     'author' => t('Author'),
     'status' => array('data' => t('Status'), 'field' => 'n.status'),
-    'changed' => array('data' => t('Updated'), 'field' => 'n.changed', 'sort' => 'desc'),
+    'changed' => array(
+      'data' => t('Updated'),
+      'field' => 'n.changed',
+      'sort' => 'desc',
+    ),
   );
   if ($multilanguage) {
     $header['language'] = array('data' => t('Language'), 'field' => 'n.language');
