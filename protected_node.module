@@ -651,8 +651,8 @@ function protected_node_node_delete($node) {
  * We implement this callback since it makes sense (I think) although
  * it makes the module a bit slower.
  *
- * This function hides the body & teaser, and if requested on that node
- * we hide the title as well.
+ * This function hides the body, and if requested on that node we hide the title
+ * as well.
  *
  * @param[in,out] $node  The affected node.
  */
@@ -661,14 +661,12 @@ function protected_node_protected_node_hide(&$node) {
   if (!$node->protected_node_show_title) {
     $node->title = t('Password protected page');
   }
-  $node->teaser = '';
   $node->body = '';
-  // Does not remove the keys starting with '#' as they usually contain
-  // information for other modules.
-  foreach ($node->content as $content_key => $content) {
-    if (substr($content_key, 0, 1) !== "#") {
-      unset($node->content[$content_key]);
-    }
+  // Remove $node->content children to avoid the user see content he/she should
+  // not see.
+  $content_children = element_children($node->content);
+  foreach ($content_children as $content_key) {
+    unset($node->content[$content_key]);
   }
 }
 
