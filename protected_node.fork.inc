@@ -7,46 +7,13 @@
  */
 
 /**
- * Helper function.
- *
- * Transforms the $_GET['protected_pages'] in a valid list
- * of $nids. Anything that is not valid we ignore. If there
- * isn't at least 1 then the function generates an access
- * denied error and exits.
- *
- * @return array
- *   The array of nids.
- */
-function protected_node_password_nids() {
-  $nids = array();
-  $nids_list = explode(',', $_GET['protected_pages']);
-  foreach ($nids_list as $nid) {
-    $nid = trim($nid);
-    if (is_numeric($nid)) {
-      $nids[] = $nid;
-    }
-  }
-
-  // Make sure we have at least one destination otherwise there is no password
-  // to check.
-  if (count($nids) == 0) {
-    // Illegal call.
-    watchdog('protected_node', 'Illegal call to /protected-node', array(), WATCHDOG_WARNING);
-    drupal_access_denied();
-    exit();
-  }
-
-  return $nids;
-}
-
-/**
  * Create the form asking the end users for the node password.
  *
  * The function expects a $_GET with the variable named protected_pages.
  * This parameter is a list of comma separated NIDs.
  *
  * The function accepts a $_GET named 'back'. This is a URL used for the
- * Cancel link shown next to the OKAY button.
+ * Cancel link shown next to the OK button.
  *
  * @important
  * The function does NOT use check_plain() on the $info, $description,
@@ -57,19 +24,20 @@ function protected_node_password_nids() {
  * It would be a good idea to transform this function in a theme() call instead.
  */
 function protected_node_enter_any_password() {
+  // Global $user is used for token replacement, should it be the node author?
   global $user;
 
   if (isset($_GET['destination'])) {
     // Illegal call.
-    watchdog('protected_node', 'Illegal call to /protected-nodes', array(), WATCHDOG_WARNING);
+    watchdog('protected_node', 'Illegal call to /protected-nodes: destination parameter specified.', array(), WATCHDOG_WARNING);
     drupal_access_denied();
-    exit();
   }
 
-  $nids = protected_node_password_nids();
+  $nids = protected_node_get_nids_from_protected_pages_parameter();
 
-  // Check, in reverse order, whether a node password was specified;
-  // if so, use that node.
+  // Check, in reverse order, whether a node password was specified.
+  // If so, use that node.
+  // @todo: why reverse order?
   foreach (array_reverse($nids) as $nid) {
     if (!empty($_SESSION['_protected_node']['passwords'][$nid])) {
       $when = $_SESSION['_protected_node']['passwords'][$nid];
@@ -94,29 +62,28 @@ function protected_node_enter_any_password() {
   $node = node_load($nids[0]);
   if (!is_object($node)) {
     // Illegal nid.
-    watchdog('protected_node', 'Illegal nids[0] (@nid) to /protected-node', array('@nid' => $nids[0]), WATCHDOG_WARNING);
+    watchdog('protected_node', 'Illegal nids[0] (@nid) to /protected-nodes: node does not exist.', array('@nid' => $nids[0]), WATCHDOG_WARNING);
     drupal_access_denied();
-    exit();
   }
 
   // Some variable initialization.
   $types = node_type_get_types();
   $node_type = $types[$node->type];
-  $has_token = module_exists('token');
+  $token_module_enabled = module_exists('token');
 
-  // Setup the title of this page.
+  // Set the title of this page.
   $title = variable_get('protected_node_title', NULL);
   if (!empty($title)) {
-    if ($has_token) {
+    if ($token_module_enabled) {
       $title = token_replace($title, array('node' => $node));
       $title = token_replace($title, array('user' => $user));
     }
     drupal_set_title($title);
   }
 
-  // Information appear between the title and the password form.
+  // Set the information that appears between the title and the password form.
   $info = variable_get('protected_node_info', '');
-  if ($has_token) {
+  if ($token_module_enabled) {
     $info = token_replace($info, array('node' => $node));
     $info = token_replace($info, array('user' => $user));
   }
@@ -141,7 +108,7 @@ function protected_node_enter_any_password() {
     $description = t('The @node_type @node_title you are trying to view is password protected. Please enter the password below to proceed.',
       array('@node_type' => $node_type->name, '@node_title' => $node_title));
   }
-  elseif ($has_token) {
+  elseif ($token_module_enabled) {
     $description = token_replace($description, array('node' => $node));
     $description = token_replace($description, array('user' => $user));
   }
@@ -153,7 +120,7 @@ function protected_node_enter_any_password() {
 
   // Create the password widget.
   $label = variable_get('protected_node_password_label', '');
-  if ($label) {
+  if ($token_module_enabled) {
     $label = token_replace($label, array('node' => $node));
     $label = token_replace($label, array('user' => $user));
   }
@@ -166,21 +133,13 @@ function protected_node_enter_any_password() {
     '#size' => 20,
   );
 
-  // The node we're working on.
-  /*
-  $form['protected_node_nid'] = array(
-    '#type' => 'hidden',
-    '#value' => implode(',', $nids);
-  );
-  */
-
   // Add a submit button.
   $form['protected_node_enterpassword']['submit'] = array(
     '#type' => 'submit',
     '#value' => t('OK'),
   );
 
-  // Add a cancel link when 'back' is defined (i.e. referer on the previous
+  // Add a cancel link when 'back' is defined (i.e. refers on the previous
   // page).
   if (isset($_GET['back'])) {
     $cancel = $_GET['back'];
@@ -188,9 +147,10 @@ function protected_node_enter_any_password() {
   elseif (variable_get('protected_node_cancel', 0)) {
     $cancel = '<front>';
   }
-  if ($cancel) {
+  if (isset($cancel) && $cancel) {
     $form['protected_node_enterpassword']['cancel'] = array(
-      '#value' => l(t('Cancel'), $cancel),
+      '#type' => 'markup',
+      '#markup' => l(t('Cancel'), $cancel),
     );
   }
 
@@ -198,50 +158,47 @@ function protected_node_enter_any_password() {
 }
 
 /**
+ * Validate callback.
+ *
  * Verify that the user entered the correct password.
- *
- * @note
- * It is correct that the list of nids is a hidden widget and thus it
- * may be tempered with by a hacker. This doesn't matter since we
- * check the password against those and if it is incorrect then the
- * user will simply be sent back to protected page and back to the
- * protected-node page.
- *
- * @param[in] $form  An array representing the protected node form.
- * @param[in,out] $form_state  An array representing the current state of the
- *   form.
  */
 function protected_node_enter_any_password_validate($form, &$form_state) {
-  // @todo We do not want to check the global password if there is a local
-  // password (i.e. extract local password instead of comparing!).
-  $nids = protected_node_password_nids();
-  $sha1_passwd = sha1($form['#post']['password']);
-  $sha256_passwd = hash('sha256', $form['#post']['password']);
+  // Note that global password cannot work here since we couldn't know where
+  // to send the user otherwise.
+  $nids = protected_node_get_nids_from_protected_pages_parameter();
+  $sha1_passwd = sha1($form_state['values']['password']);
+  $sha256_passwd = hash('sha256', $form_state['values']['password']);
 
-  $nid = db_query_range('protected_nodes', '')
-    ->fields(array('nid'))
+  // Get an nid matching the password and nids condition.
+  // Arbitrary take the smaller nid.
+  $nid = db_select('protected_nodes')
+    ->fields('protected_nodes', array('nid'))
     ->condition('protected_node_passwd', array($sha1_passwd, $sha256_passwd), 'IN')
     ->condition('nid', $nids, 'IN')
+    ->orderBy('nid', 'ASC')
+    ->range(0, 1)
     ->execute()
     ->fetchField();
 
   if (empty($nid)) {
-    // Note that global password cannot work here since we wouldn't know where
-    // to send the user otherwise.
     form_set_error('password', t('Incorrect password!'));
   }
   else {
+    // Set a value in $form_state to use in submit.
     $form_state['values']['protected_node_selected_nid'] = $nid;
   }
 }
 
 /**
+ * Submit callback.
+ *
  * Allow the user to see this node.
  */
 function protected_node_enter_any_password_submit($form, &$form_state) {
-  // Switch the session to the newly unlocked page.
-  $nids = protected_node_password_nids();
+  $nids = protected_node_get_nids_from_protected_pages_parameter();
   $nid = $form_state['values']['protected_node_selected_nid'];
+
+  // Switch the session to the newly unlocked page.
   foreach ($nids as $n) {
     if ($n == $nid) {
       $_SESSION['_protected_node']['passwords'][$n] = REQUEST_TIME;
@@ -250,5 +207,46 @@ function protected_node_enter_any_password_submit($form, &$form_state) {
       unset($_SESSION['_protected_node']['passwords'][$n]);
     }
   }
+
   drupal_goto('node/' . $nid);
+}
+
+/**
+ * Helper function.
+ *
+ * Transforms the $_GET['protected_pages'] in a valid list
+ * of $nids. Anything that is not valid we ignore. If there
+ * isn't at least 1 then the function generates an access
+ * denied error.
+ *
+ * @return array
+ *   The array of nids.
+ */
+function protected_node_get_nids_from_protected_pages_parameter() {
+  $nids = array();
+  if (isset($_GET['protected_pages'])) {
+    $nids_list = explode(',', $_GET['protected_pages']);
+    foreach ($nids_list as $nid) {
+      $nid = trim($nid);
+      if (is_numeric($nid)) {
+        $nids[] = $nid;
+      }
+    }
+
+    // Make sure we have at least one destination otherwise there is no password
+    // to check.
+    if (count($nids) == 0) {
+      // Illegal call.
+      watchdog('protected_node', 'Illegal call to /protected-nodes: no nid specified.', array(), WATCHDOG_WARNING);
+      drupal_access_denied();
+    }
+  }
+  else {
+    // Illegal call.
+    watchdog('protected_node', 'Illegal call to /protected-nodes: no protected_pages parameter specified.', array(), WATCHDOG_WARNING);
+    drupal_set_message(t("You need to enter nids in the protected_pages parameter i.e: protected-nodes?protected_pages=1,2,3"), 'error');
+    drupal_access_denied();
+  }
+
+  return $nids;
 }
