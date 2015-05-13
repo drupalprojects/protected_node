@@ -504,7 +504,7 @@ function protected_node_node_validate($node, $form, &$form_state) {
       }
       else {
         // The node is not published, forget about emails!
-        form_error($form['protected_node']['protected_node_emails'], t('Invalid email address: @m. Please correct this mistake and try again.', array('@m' => $m)));
+        form_error($form['protected_node']['protected_node_emails'], t('The node is not published. Therefore no email will be sent.'));
       }
     }
     if ($missing_password) {
