@@ -67,7 +67,7 @@ function protected_node_menu_array() {
     'title' => 'Protected',
     'description' => 'Find and manage content.',
     'page callback' => 'protected_node_content_list',
-    'access arguments' => array('bypass password protection'),
+    'access arguments' => array('access protected node overview page'),
     'type' => MENU_LOCAL_TASK,
     'file' => 'protected_node.admin.inc',
     'weight' => -9,
@@ -94,7 +94,7 @@ function protected_node_menu_array() {
     'description' => 'Here you can enter the password for protected pages',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('protected_node_enter_any_password'),
-    'access arguments' => array('access protected content'),
+    'access arguments' => array('access protected node password form'),
     'type' => MENU_CALLBACK,
     'file' => 'protected_node.fork.inc',
   );
@@ -118,7 +118,8 @@ function protected_node_node_form_alter(&$form) {
     return;
   }
 
-  // Try to avoid pre-filled password forms.
+  // Turn off the auto-complete feature on this form since it could otherwise
+  // pre-fill the password with the wrong parameter.
   $form['#attributes']['autocomplete'] = 'off';
 
   $node_type = node_type_get_type($form['type']['#value']);

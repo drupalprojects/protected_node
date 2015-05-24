@@ -30,6 +30,33 @@ There is no special requirement for this module.
 
 Once enabled, go to the administer permissions page to set the new permissions.
 
+Below is a matrix with permissions you must set depending on your needs.
+
+Needs:
+- 1: No access at all to the resource.
+- 2: Need to enter the password to see the resource.
+- 3: Can view resource without password, need to enter the password to edit the
+resource.
+- 4: Bypass completely the protection (can edit and view without password).
+- 5: Edit node passwords.
+
+Permissions:
+- A: Access protected node password form.
+- B: View protected content (bypass password).
+- C: Edit protected content (bypass password).
+- D: Edit content type password.
+
+Case | A | B | C | D |
+-----|---|---|---|---|
+  1  |   |   |   |   |
+-----|---|---|---|---|
+  2  | 1 |   |   |   |
+-----|---|---|---|---|
+  3  | 1 | 1 |   |   |
+-----|---|---|---|---|
+  4  |   |   | 1 |   |
+-----|---|---|---|---|
+  5  |   |   |   | 1 |
 
 Configuration
 -------------

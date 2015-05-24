@@ -75,27 +75,35 @@ function protected_node_help($path, $arg) {
  * @link http://api.drupal.org/api/function/hook_permission/7
  */
 function protected_node_permission() {
-  $perms = array(
-    'access protected content' => array(
-      'title' => t('Access protected content'),
-      'description' => t('Access password screen for protected content. Without this permission user will be denied access completely.'),
+  $permissions = array(
+    'access protected node overview page' => array(
+      'title' => t('Access protected node overview page'),
     ),
-    'bypass password protection' => array(
-      'title' => t('Bypass password protection'),
+    'access protected node password form' => array(
+      'title' => t('Access protected node password form'),
+      'description' => t('Access protected node password form page. Without this permission user will be denied access completely.'),
     ),
-    'edit any password' => array(
-      'title' => t('Edit any password'),
-      'description' => t('Edit the password for any node.'),
+    'edit any protected node password' => array(
+      'title' => t('Edit any protected node password'),
+      'description' => t('Edit the password of any protected node. Grants access to the password fieldset in the node form.'),
+    ),
+    'view protected content' => array(
+      'title' => t('View protected content (bypass password)'),
+      'description' => t('Allow to view any protected node by bypassing the password protection.'),
+    ),
+    'edit protected content' => array(
+      'title' => t('Edit protected content (bypass password)'),
+      'description' => t('Allow to edit any protected node by bypassing the password protection. Do not allow to edit the password. Note: the user will also be able to view the content without entering the password.'),
     ),
   );
   foreach (node_type_get_types() as $key => $type) {
-    $perms['edit ' . $key . ' password'] = array(
+    $permissions['edit ' . $key . ' password'] = array(
       'title' => t('Edit %type_name password', array('%type_name' => $key)),
       'description' => t('Edit password for %type_name nodes', array('%type_name' => $key)),
     );
   }
 
-  return $perms;
+  return $permissions;
 }
 
 /**
@@ -117,7 +125,7 @@ function protected_node_access_callback() {
   if ($user->uid == 1) {
     return TRUE;
   }
-  if (!user_access('access protected content')) {
+  if (!user_access('access protected node password form')) {
     return FALSE;
   }
 
@@ -161,7 +169,7 @@ function protected_node_init() {
 
   // Are we about to display a node?
   // Can user see all nodes anyway?
-  if (user_access('bypass password protection')) {
+  if (user_access('edit protected content')) {
     return;
   }
 
@@ -260,13 +268,13 @@ function protected_node_is_locked($nid, $op = 'access') {
 
   // User cannot access any protected node. This check avoids the rather
   // useless drupal_goto() and thus does not change the URL on the user.
-  if (!user_access('access protected content')) {
+  if (!user_access('access protected node password form')) {
     return TRUE;
   }
 
   // If the user is only trying to view this node, accept.
   if ($op == 'view') {
-    if (user_access('bypass password protection') && node_access('view', $node)) {
+    if (user_access('view protected content') && node_access('view', $node)) {
       // User's got view permission without password
       // (password for edit/delete rights).
       return -1;
@@ -276,6 +284,11 @@ function protected_node_is_locked($nid, $op = 'access') {
     if (!node_access('update', $node)) {
       // No rights to edit.
       return TRUE;
+    }
+    elseif (user_access('edit protected content') && node_access('update', $node)) {
+      // User's got edit permission without password
+      // (password for edit/delete rights).
+      return -1;
     }
     // Rights to edit, but password is still required in this case!
   }
@@ -332,7 +345,7 @@ function protected_node_is_locked($nid, $op = 'access') {
 function protected_node_and_attachment($filename) {
   global $user;
 
-  if (user_access('bypass password protection')) {
+  if (user_access('edit protected content')) {
     return FALSE;
   }
 
@@ -405,26 +418,26 @@ function protected_node_invoke($hook, &$param) {
 }
 
 /**
- * Implements hook_form_alter().
- * @link http://api.drupal.org/api/function/hook_form_alter/7
+ * Implements hook_form_FORM_ID_alter().
  *
- * Add the protected node form widgets assuming the user editing this
- * node as permission to do so on this type of node.
- *
- * Turn off the auto-complete feature on this form since it could otherwise
- * pre-fill the password with the wrong parameter.
- *
- * @param[in,out] $form  The form to alter
- * @param[in,out] $form_state  The current state of the form
- * @param[in] $form_id  The name of the form being modified
+ * Add the protected node form fieldset if the user editing has permission to
+ * edit this node type password.
  */
-function protected_node_form_alter(&$form, &$form_state, $form_id) {
-  if ($form_id == 'node_type_form' && isset($form['#node_type'])) {
+function protected_node_form_node_type_form_alter(&$form, &$form_state, $form_id) {
+  if (user_access('edit any protected node password') || user_access('edit ' . $form['type']['#value'] . ' password')) {
     form_load_include($form_state, 'settings.inc', 'protected_node');
     protected_node_node_type_form_alter($form);
   }
-  elseif (isset($form['type']['#value']) &&  substr($form_id, -9) == 'node_form'
-  && (user_access('edit any password') || user_access('edit ' . $form['type']['#value'] . ' password'))) {
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ *
+ * Add the protected node form fieldset if the user editing has permission to
+ * edit this node type password.
+ */
+function protected_node_form_node_form_alter(&$form, &$form_state, $form_id) {
+  if (user_access('edit any protected node password') || user_access('edit ' . $form['type']['#value'] . ' password')) {
     form_load_include($form_state, 'settings.inc', 'protected_node');
     protected_node_node_form_alter($form);
   }
@@ -447,7 +460,7 @@ function protected_node_node_validate($node, $form, &$form_state) {
     return;
   }
 
-  if ($node->protected_node_is_protected && (user_access('edit any password') || user_access('edit ' . $node->type . ' password'))) {
+  if ($node->protected_node_is_protected && (user_access('edit any protected node password') || user_access('edit ' . $node->type . ' password'))) {
     $missing_password = FALSE;
     if (empty($node->protected_node_passwd)) {
       // Global content type password exists ?
@@ -558,7 +571,7 @@ function _protected_node_node_create_or_update($node) {
   global $_protected_node_emails;
   global $_protected_node_random_passwd;
 
-  if (user_access('edit any password') || user_access('edit ' . $node->type . ' password')) {
+  if (user_access('edit any protected node password') || user_access('edit ' . $node->type . ' password')) {
     if (!empty($_protected_node_random_passwd)) {
       $node->protected_node_passwd = $_protected_node_random_passwd;
     }
@@ -590,7 +603,7 @@ function protected_node_node_view($node, $view_mode, $langcode) {
       // be searching so we let go without the access denied error.)
       protected_node_invoke('protected_node_hide', $node);
     }
-    elseif (!user_access('bypass password protection') && _protected_node_check_view_mode($view_mode)) {
+    elseif (!user_access('view protected content') && _protected_node_check_view_mode($view_mode)) {
       if (!$user->uid && variable_get('cache', 1)) {
         // Prevent caching (do NOT use variable_set() since this is temporary
         // for this session).
@@ -617,7 +630,7 @@ function protected_node_node_view($node, $view_mode, $langcode) {
           }
         }
         if (!isset($_SESSION['_protected_node']['passwords'][$node->nid]) && !isset($_SESSION['_protected_node']['passwords']['global'])) {
-          if (!user_access('access protected content')) {
+          if (!user_access('access protected node password form')) {
             // User will never be given access (no drupal_goto() call
             // necessary).
             drupal_access_denied();

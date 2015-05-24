@@ -32,9 +32,9 @@ class ProtectedNodeRules extends DrupalWebTestCase {
 
     // User with all needed permissions.
     $this->adminUser = $this->drupalCreateUser(array(
-      'access protected content',
-      'edit any password',
-      'bypass password protection',
+      'access protected node password form',
+      'edit any protected node password',
+      'edit protected content',
       'administer site configuration',
       'administer nodes',
       'bypass node access',
@@ -42,7 +42,7 @@ class ProtectedNodeRules extends DrupalWebTestCase {
     ));
 
     // User with access protected node permission.
-    $this->normalAccessAllowedUser = $this->drupalCreateUser(array('access protected content'));
+    $this->normalAccessAllowedUser = $this->drupalCreateUser(array('access protected node password form'));
 
     // User with view published content permission.
     $this->normalNonAccessAllowedUser = $this->drupalCreateUser(array('access content'));

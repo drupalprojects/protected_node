@@ -131,3 +131,68 @@ function protected_node_update_7102() {
     user_role_revoke_permissions($rid, array('view protected content'));
   }
 }
+
+/**
+ * Manage reorganisation of permissions.
+ */
+function protected_node_update_7103() {
+  // Permission: access protected content.
+  // Get the rids with "access protected content".
+  $rids = db_select('role_permission')
+    ->fields('role_permission', array('rid'))
+    ->condition('permission', 'access protected content')
+    ->condition('module', 'protected_node')
+    ->execute()
+    ->fetchCol();
+
+  foreach ($rids as $rid) {
+    // Give "access protected node password form" to roles with
+    // "access protected content".
+    user_role_grant_permissions($rid, array('access protected node password form'));
+
+    // Remove "access protected content" from database.
+    user_role_revoke_permissions($rid, array('access protected content'));
+  }
+
+  // Permission: bypass password protection.
+  // Get the rids with "bypass password protection".
+  $rids = db_select('role_permission')
+    ->fields('role_permission', array('rid'))
+    ->condition('permission', 'bypass password protection')
+    ->condition('module', 'protected_node')
+    ->execute()
+    ->fetchCol();
+
+  foreach ($rids as $rid) {
+    // Give "access protected node overview page" to roles with
+    // "bypass password protection".
+    user_role_grant_permissions($rid, array('access protected node overview page'));
+
+    // Give "view protected content" to roles with "bypass password protection".
+    user_role_grant_permissions($rid, array('view protected content'));
+
+    // Give "edit protected content" to roles with "bypass password protection".
+    user_role_grant_permissions($rid, array('edit protected content'));
+
+    // Remove "bypass password protection" from database.
+    user_role_revoke_permissions($rid, array('bypass password protection'));
+  }
+
+  // Permission: edit any password.
+  // Get the rids with "edit any password".
+  $rids = db_select('role_permission')
+    ->fields('role_permission', array('rid'))
+    ->condition('permission', 'edit any password')
+    ->condition('module', 'protected_node')
+    ->execute()
+    ->fetchCol();
+
+  foreach ($rids as $rid) {
+    // Give "edit any protected node password" to roles with
+    // "edit any password".
+    user_role_grant_permissions($rid, array('edit any protected node password'));
+
+    // Remove "edit any password" from database.
+    user_role_revoke_permissions($rid, array('edit any password'));
+  }
+}
