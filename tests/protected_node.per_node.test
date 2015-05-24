@@ -78,7 +78,7 @@ class ProtectedNodePerNodePassword extends ProtectedNodeBaseTestCase {
     $form = array('password' => $password);
     $this->drupalPost('node/' . $node->nid, $form, t('OK'));
 
-    $text = $node->body['und'][0]['value'];
+    $text = $node->body[LANGUAGE_NONE][0]['value'];
     $this->assertText($text, "User with right permission can access a protected node with right password", $this->group);
   }
 
@@ -104,7 +104,7 @@ class ProtectedNodePerNodePassword extends ProtectedNodeBaseTestCase {
     $form = array('password' => $another_password);
     $this->drupalPost('node/' . $node->nid, $form, t('OK'));
 
-    $text = $node->body['und'][0]['value'];
+    $text = $node->body[LANGUAGE_NONE][0]['value'];
     $this->assertNoText($text, "User with right permission can't access a protected node with wrong password", $this->group);
   }
 

@@ -57,7 +57,7 @@ class ProtectedNodeViewMode extends ProtectedNodeBaseTestCase {
     $this->drupalLogin($this->normalAccessAllowedUser);
     $this->drupalGet('');
 
-    $text = $node->body['und'][0]['value'];
+    $text = $node->body[LANGUAGE_NONE][0]['value'];
     $this->assertText($text, "User with right permission can access a protected node without password in an unprotected view mode", $this->group);
   }
 
@@ -81,7 +81,7 @@ class ProtectedNodeViewMode extends ProtectedNodeBaseTestCase {
     $this->drupalLogin($this->normalNonAccessAllowedUser);
     $this->drupalGet('');
 
-    $text = $node->body['und'][0]['value'];
+    $text = $node->body[LANGUAGE_NONE][0]['value'];
     $this->assertText($text, "User with no access permission is allowed to access a protected node in an unprotected view mode", $this->group);
   }
 

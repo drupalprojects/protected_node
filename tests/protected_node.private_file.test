@@ -69,7 +69,7 @@ class ProtectedNodePrivateFile extends ProtectedNodeBaseTestCase {
     $this->drupalPost('node/' . $node->nid, $form, t('OK'));
 
     // Ensure the file can be downloaded.
-    $this->drupalGet(file_create_url($node->private_file['und'][0]['uri']));
+    $this->drupalGet(file_create_url($node->private_file[LANGUAGE_NONE][0]['uri']));
     $this->assertResponse(200, 'Confirmed that the generated URL is correct by downloading the shipped file.');
   }
 
@@ -96,7 +96,7 @@ class ProtectedNodePrivateFile extends ProtectedNodeBaseTestCase {
     $this->drupalPost('node/' . $node->nid, $form, t('OK'));
 
     // Ensure the file cannot be downloaded.
-    $file_uri = $node->private_file['und'][0]['uri'];
+    $file_uri = $node->private_file[LANGUAGE_NONE][0]['uri'];
     $file_url = file_create_url($file_uri);
     $file_text = file_get_contents(drupal_realpath($file_uri));
     $this->drupalGet($file_url);
@@ -121,7 +121,7 @@ class ProtectedNodePrivateFile extends ProtectedNodeBaseTestCase {
 
     // Ensure the file cannot be downloaded.
     $this->drupalLogin($this->normalNonAccessAllowedUser);
-    $this->drupalGet(file_create_url($node->private_file['und'][0]['uri']));
+    $this->drupalGet(file_create_url($node->private_file[LANGUAGE_NONE][0]['uri']));
     $this->assertResponse(403, 'Confirmed that access is denied for the file without access to the node.');
   }
 

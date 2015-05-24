@@ -68,7 +68,7 @@ class ProtectedNodeFork extends ProtectedNodeBaseTestCase {
     // Normal access.
     $form = array('password' => $password);
     $this->drupalPost('protected-nodes', $form, t('OK'), array('query' => array('protected_pages' => $node->nid)));
-    $text = $node->body['und'][0]['value'];
+    $text = $node->body[LANGUAGE_NONE][0]['value'];
     $this->assertText($text, "User with right permission is redirected to a protected node with right password", $this->group);
   }
 
@@ -97,7 +97,7 @@ class ProtectedNodeFork extends ProtectedNodeBaseTestCase {
     $this->drupalLogin($this->normalAccessAllowedUser);
     $form = array('password' => $password1);
     $this->drupalPost('protected-nodes', $form, t('OK'), array('query' => array('protected_pages' => $protected_pages)));
-    $text = $node1->body['und'][0]['value'];
+    $text = $node1->body[LANGUAGE_NONE][0]['value'];
     $this->assertText($text, "User with right permission is redirected to a protected node with right password", $this->group);
 
     // Log in as Admin to clear sessions.
@@ -109,7 +109,7 @@ class ProtectedNodeFork extends ProtectedNodeBaseTestCase {
     $this->drupalLogin($this->normalAccessAllowedUser);
     $form = array('password' => $password2);
     $this->drupalPost('protected-nodes', $form, t('OK'), array('query' => array('protected_pages' => $protected_pages)));
-    $text = $node2->body['und'][0]['value'];
+    $text = $node2->body[LANGUAGE_NONE][0]['value'];
     $this->assertText($text, "User with right permission is redirected to a protected node with right password", $this->group);
   }
    */
@@ -134,7 +134,7 @@ class ProtectedNodeFork extends ProtectedNodeBaseTestCase {
     // Access to the node the first time.
     $form = array('password' => $password);
     $this->drupalPost('protected-nodes', $form, t('OK'), array('query' => array('protected_pages' => $node->nid)));
-    $text = $node->body['und'][0]['value'];
+    $text = $node->body[LANGUAGE_NONE][0]['value'];
     $this->assertText($text, "User with right permission is redirected to a protected node with right password", $this->group);
 
     // Access to the node the second time.
