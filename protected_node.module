@@ -858,9 +858,8 @@ function _protected_node_save(&$node) {
     else {
       $saved_emails = $node->protected_node_emails;
     }
-
     $args = array(
-      'protected_node_is_protected' => $node->protected_node_is_protected,
+      'protected_node_is_protected' => (int) $node->protected_node_is_protected,
       'protected_node_passwd' => $node->protected_node_passwd,
       'protected_node_show_title' => $node->protected_node_show_title,
       'protected_node_emails' => $saved_emails,
@@ -887,7 +886,7 @@ function _protected_node_save(&$node) {
     // one has ever entered a password for this node.
     $nid = db_insert('protected_nodes')
       ->fields(array(
-        'protected_node_is_protected' => $node->protected_node_is_protected,
+        'protected_node_is_protected' => (int) $node->protected_node_is_protected,
         'protected_node_passwd' => $node->protected_node_passwd,
         'protected_node_show_title' => $node->protected_node_show_title,
         'nid' => $node->nid,
