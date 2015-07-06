@@ -77,6 +77,47 @@ class ProtectedNodeBulkPassword extends ProtectedNodeBaseTestCase {
   /**
    * Test function.
    *
+   * Test that the node password is changed after using reset passwords.
+   */
+  /**
+  public function testResetPasswords() {
+    // Log in as Admin.
+    $this->drupalLogin($this->adminUser);
+    // Generate random password.
+    $password = $this->randomName(10);
+    // Create a new page node.
+    $node = $this->createByNodeProtectedNode($password);
+    // Reset passwords.
+    $new_password = $this->randomName(15);
+    $form = array(
+      'protected_node_reset_passwords_password[pass1]' => $new_password,
+      'protected_node_reset_passwords_password[pass2]' => $new_password,
+    );
+    $this->drupalPost('admin/config/content/protected_node', $form, t('Reset all existing passwords'));
+    // Once the node created logout the user.
+    $this->drupalLogout();
+
+    // An authenticated user can't see the node with the original node password.
+    $this->drupalLogin($this->normalAccessAllowedUser);
+    $form = array('password' => $password);
+    $this->drupalPost('node/' . $node->nid, $form, t('OK'));
+
+    $text = $node->body[LANGUAGE_NONE][0]['value'];
+    $this->assertNoText($text, "User with right permission can't access a protected node with the node's password", $this->group);
+
+    // An authenticated user can see the node with the new password.
+    $this->drupalLogin($this->normalAccessAllowedUser);
+    $form = array('password' => $new_password);
+    $this->drupalPost('node/' . $node->nid, $form, t('OK'));
+
+    $text = $node->body[LANGUAGE_NONE][0]['value'];
+    $this->assertText($text, "User with right permission has to enter the new password", $this->group);
+  }
+   */
+
+  /**
+   * Test function.
+   *
    * Test that the node password is erased after using global password.
    */
   public function testUseGlobalPassword() {
