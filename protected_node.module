@@ -1175,6 +1175,16 @@ function protected_node_set_protected($param, $passwd = NULL) {
 /**
  * This method marks the specified node as unprotected.
  *
+ * This function ensures that the specified node is not protected anymore.
+ * It does not delete the row from the database which means calling the
+ * protected_node_set_protected() function with the same $nid parameter
+ * will restore the previous state (assuming the node was protected before.)
+ *
+ * When the node was previously protected and this call succeeds, the method
+ * returns TRUE.
+ *
+ * If an invalid $nid is passed FALSE is returned.
+ *
  * @param[in] int $nid  The node identifier.
  *
  * @return bool
