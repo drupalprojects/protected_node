@@ -77,6 +77,73 @@ class ProtectedNodeBulkPassword extends ProtectedNodeBaseTestCase {
   /**
    * Test function.
    *
+   * Test that the node password is erased after using global password.
+   */
+  public function testUseGlobalPassword() {
+    // Log in as Admin.
+    $this->drupalLogin($this->adminUser);
+    // Generate random password.
+    $password = $this->randomName(10);
+    // Create a new page node.
+    $node = $this->createByNodeProtectedNode($password);
+    // Use global password.
+    $this->drupalPost('admin/config/content/protected_node', array(), t('Use global password on ALL nodes'));
+    // Once the node created logout the user.
+    $this->drupalLogout();
+
+    // An authenticated user can't see the node with the node password.
+    $this->drupalLogin($this->normalAccessAllowedUser);
+    $form = array('password' => $password);
+    $this->drupalPost('node/' . $node->nid, $form, t('OK'));
+
+    $text = $node->body[LANGUAGE_NONE][0]['value'];
+    $this->assertNoText($text, "User with right permission can't access a protected node with the node's password", $this->group);
+
+    // An authenticated user can see the node with global password.
+    $this->drupalLogin($this->normalAccessAllowedUser);
+    $form = array('password' => $this->global_password);
+    $this->drupalPost('node/' . $node->nid, $form, t('OK'));
+
+    $text = $node->body[LANGUAGE_NONE][0]['value'];
+    $this->assertText($text, "User with right permission has to enter the global password", $this->group);
+  }
+
+  /**
+   * Test function.
+   *
+   * Test that a node is unprotected after using the bulk action to remove
+   * protection.
+   */
+  public function testRemoveProtection() {
+    // Log in as Admin.
+    $this->drupalLogin($this->adminUser);
+    // Create a new page node.
+    $node = $this->createGlobalProtectedNode();
+    // Once the node created logout the user.
+    $this->drupalLogout();
+
+    // An authenticated user can't see the node without password.
+    $this->drupalLogin($this->normalAccessAllowedUser);
+    $this->drupalGet('node/' . $node->nid);
+    $text = 'Protected page -- Enter password';
+    $this->assertText($text, "User with right permission has to enter the password", $this->group);
+
+    // Log in as Admin to remove protection.
+    $this->drupalLogin($this->adminUser);
+    $this->drupalPost('admin/config/content/protected_node', array(), t('Remove password protection from all nodes'));
+    $this->drupalLogout();
+
+    // An authenticated user can see the node without password.
+    $this->drupalLogin($this->normalAccessAllowedUser);
+    $this->drupalGet('node/' . $node->nid);
+
+    $text = $node->body[LANGUAGE_NONE][0]['value'];
+    $this->assertText($text, "User with right permission can access an unprotected node", $this->group);
+  }
+
+  /**
+   * Test function.
+   *
    * Test that the password has to be entered after restoring protection.
    */
   public function testRestoreProtection() {
@@ -107,39 +174,6 @@ class ProtectedNodeBulkPassword extends ProtectedNodeBaseTestCase {
     $this->drupalGet('node/' . $node->nid);
     $text = 'Protected page -- Enter password';
     $this->assertText($text, "User with right permission has to enter the password", $this->group);
-  }
-
-  /**
-   * Test function.
-   *
-   * Test that a node is unprotected after using the bulk action to remove
-   * protection.
-   */
-  public function testRemoveProtection() {
-    // Log in as Admin.
-    $this->drupalLogin($this->adminUser);
-    // Create a new page node.
-    $node = $this->createProtectedNode();
-    // Once the node created logout the user.
-    $this->drupalLogout();
-
-    // An authenticated user can't see the node without password.
-    $this->drupalLogin($this->normalAccessAllowedUser);
-    $this->drupalGet('node/' . $node->nid);
-    $text = 'Protected page -- Enter password';
-    $this->assertText($text, "User with right permission has to enter the password", $this->group);
-
-    // Log in as Admin to remove protection.
-    $this->drupalLogin($this->adminUser);
-    $this->drupalPost('admin/config/content/protected_node', array(), t('Remove password protection from all nodes'));
-    $this->drupalLogout();
-
-    // An authenticated user can see the node without password.
-    $this->drupalLogin($this->normalAccessAllowedUser);
-    $this->drupalGet('node/' . $node->nid);
-
-    $text = $node->body[LANGUAGE_NONE][0]['value'];
-    $this->assertText($text, "User with right permission can access an unprotected node", $this->group);
   }
 
   /**
