@@ -144,6 +144,39 @@ class ProtectedNodeBulkPassword extends ProtectedNodeBaseTestCase {
   /**
    * Test function.
    *
+   * Test that a node is protected after using the bulk action to protect nodes.
+   */
+  public function testProtectNodes() {
+    // Log in as Admin.
+    $this->drupalLogin($this->adminUser);
+    // Create a new page node.
+    $node = $this->drupalCreateNode();
+    // Once the node created logout the user.
+    $this->drupalLogout();
+
+    // An authenticated user can see the node without password.
+    $this->drupalLogin($this->normalAccessAllowedUser);
+    $this->drupalGet('node/' . $node->nid);
+
+    $text = $node->body[LANGUAGE_NONE][0]['value'];
+    $this->assertText($text, "User with right permission can see an unprotected node", $this->group);
+
+    // Protect the node.
+    $this->drupalLogin($this->adminUser);
+    $this->drupalPost('admin/config/content/protected_node', array(), t('Protect ALL nodes'));
+    $this->drupalLogout();
+
+    // An authenticated user can't see the node without password.
+    $this->drupalLogin($this->normalAccessAllowedUser);
+    $this->drupalGet('node/' . $node->nid);
+
+    $text = 'Protected page -- Enter password';
+    $this->assertText($text, "User with right permission has to enter the password to see a protected node", $this->group);
+  }
+
+  /**
+   * Test function.
+   *
    * Test that the password has to be entered after restoring protection.
    */
   public function testRestoreProtection() {
