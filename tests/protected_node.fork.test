@@ -77,7 +77,6 @@ class ProtectedNodeFork extends ProtectedNodeBaseTestCase {
    *
    * Test that the user is redirected to the node with the matching password.
    */
-  /**
   public function testMatchingPassword() {
     // Log in as Admin.
     $this->drupalLogin($this->adminUser);
@@ -112,7 +111,6 @@ class ProtectedNodeFork extends ProtectedNodeBaseTestCase {
     $text = $node2->body[LANGUAGE_NONE][0]['value'];
     $this->assertText($text, "User with right permission is redirected to a protected node with right password", $this->group);
   }
-   */
 
   /**
    * Test function.

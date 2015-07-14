@@ -79,7 +79,6 @@ class ProtectedNodeBulkPassword extends ProtectedNodeBaseTestCase {
    *
    * Test that the node password is changed after using reset passwords.
    */
-  /**
   public function testResetPasswords() {
     // Log in as Admin.
     $this->drupalLogin($this->adminUser);
@@ -113,7 +112,6 @@ class ProtectedNodeBulkPassword extends ProtectedNodeBaseTestCase {
     $text = $node->body[LANGUAGE_NONE][0]['value'];
     $this->assertText($text, "User with right permission has to enter the new password", $this->group);
   }
-   */
 
   /**
    * Test function.
