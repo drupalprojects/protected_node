@@ -68,6 +68,8 @@ function protected_node_rules_rules_action_info() {
       'passwd' => array(
         'type' => 'text',
         'label' => t('Password'),
+        'optional' => TRUE,
+        'description' => t('If left empty, a random password will be generated.'),
       ),
       'show_title' => array(
         'type' => 'boolean',
@@ -102,7 +104,8 @@ function protected_node_rules_action_protect($node) {
 function protected_node_rules_action_password_protect($node, $passwd, $show_title) {
   $node->protected_node_is_protected = 1;
   $node->protected_node_show_title = $show_title;
-  $node->protected_node_passwd = $passwd;
+  // Note: the following test prevents the user from using "0" as a password.
+  $node->protected_node_passwd = $passwd ? $passwd : user_password();
   return array('node' => $node);
 }
 
