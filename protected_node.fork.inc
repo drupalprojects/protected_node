@@ -91,7 +91,7 @@ function protected_node_enter_any_password() {
   if ($info) {
     $form['protected_node'] = array(
       '#type' => 'fieldset',
-      '#description' => $info,
+      '#description' => filter_xss_admin($info),
       '#collapsible' => FALSE,
     );
   }
@@ -115,7 +115,7 @@ function protected_node_enter_any_password() {
   }
   $form['protected_node_enterpassword'] = array(
     '#type' => 'fieldset',
-    '#description' => $description,
+    '#description' => filter_xss_admin($description),
     '#collapsible' => FALSE,
   );
 
