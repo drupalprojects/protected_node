@@ -86,7 +86,7 @@ function protected_node_content_list() {
     );
     if ($multilanguage) {
       if ($langcode == LANGUAGE_NONE || isset($languages[$langcode])) {
-        $options[$node->nid]['language'] = $langcode == LANGUAGE_NONE ? t('Language neutral') : t($languages[$langcode]->name);
+        $options[$node->nid]['language'] = $langcode == LANGUAGE_NONE ? t('Language neutral') : $languages[$langcode]->name;
       }
       else {
         $options[$node->nid]['language'] = t('Undefined language (@langcode)', array('@langcode' => $langcode));

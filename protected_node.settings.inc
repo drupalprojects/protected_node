@@ -47,17 +47,7 @@ function protected_node_email_subject() {
  * a protected node.
  */
 function protected_node_email_body() {
-  // @todo This should go in a variable.
-  return t("Dear friend,
-
-I just created a new page on my website and wanted to invite you to
-visit. The page is protected by the following password:
-
-[node:password]
-
-Thank you.
-[site:name]"
-  );
+  return t("Dear friend,\r\n\r\nI just created a new page on my website and wanted to invite you to visit.\r\n\r\nThe page is protected by the following password: [node:password]\r\n\r\nThank you.\r\n[site:name]");
 }
 
 /**
