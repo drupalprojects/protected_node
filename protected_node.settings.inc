@@ -6,18 +6,24 @@
  */
 
 /**
+ * Protected node fieldset default behavior: smart.
+ *
  * When editing a node that can be protected and the protected fieldset is
  * added, open it if the node is already protected. Leave closed otherwise.
  */
 define('PROTECTED_NODE_FIELDSET_SMART', 0);
 
 /**
+ * Protected node fieldset default behavior: open.
+ *
  * When editing a node that can be protected, always show the fieldset as
  * opened.
  */
 define('PROTECTED_NODE_FIELDSET_OPEN', 1);
 
 /**
+ * Protected node fieldset default behavior: closed.
+ *
  * When editing a node that can be protected, always show the fieldset as
  * closed.
  */
@@ -108,8 +114,8 @@ function protected_node_menu_array() {
  * It was moved here to optimize the module (so the .module is smaller)
  * This is really only necessary when some edits a node.
  *
- * @param[in,out] $form The form to be altered with the protected node field
- *   set.
+ * @param[in,out] $form
+ *   The form to be altered with the protected node field set.
  */
 function protected_node_node_form_alter(&$form) {
   $protection = variable_get('protected_node_protection_' . $form['type']['#value'], PROTECTED_NODE_PROTECTION_PROTECTABLE);
@@ -414,9 +420,9 @@ function protected_node_admin_settings() {
     '#title' => t('Global password handling'),
     '#default_value' => variable_get('protected_node_use_global_password', PROTECTED_NODE_PER_NODE_PASSWORD),
     '#options' => array(
-      PROTECTED_NODE_PER_NODE_PASSWORD => 'Per node password',
-      PROTECTED_NODE_PER_NODE_AND_GLOBAL_PASSWORD => 'Per node password or Global password',
-      PROTECTED_NODE_GLOBAL_PASSWORD => 'Global password only',
+      PROTECTED_NODE_PER_NODE_PASSWORD => t('Per node password'),
+      PROTECTED_NODE_PER_NODE_AND_GLOBAL_PASSWORD => t('Per node password or Global password'),
+      PROTECTED_NODE_GLOBAL_PASSWORD => t('Global password only'),
     ),
     '#description' => t("When checked, the global password is used if the user doesn't enter a password when creating/editing nodes.") . t("<strong>WARNING:</strong> removing the global password when many pages were not otherwise assigned a password will make those nodes unaccessible except for UID=1 and the author of the node."),
   );
@@ -758,7 +764,7 @@ function _protected_node_admin_settings_submit($form, &$form_state) {
  */
 function protected_node_action_clear_sessions($form, &$form_state) {
   variable_set('protected_node_session_timelimit', REQUEST_TIME);
-  drupal_set_message('All the Protected Node sessions were cleared.');
+  drupal_set_message(t('All the Protected Node sessions were cleared.'));
 }
 
 /**
@@ -776,7 +782,7 @@ function protected_node_action_reset_passwords($form, &$form_state) {
       ))
       ->execute();
     variable_set('protected_node_session_timelimit', REQUEST_TIME);
-    drupal_set_message('All protected nodes are now publicly visible unless protected by another module.');
+    drupal_set_message(t('All protected nodes are now publicly visible unless protected by another module.'));
   }
   else {
     form_error($form['protected_node_actions']['protected_node_reset_passwords']['protected_node_reset_passwords_password'],
@@ -869,19 +875,22 @@ function protected_node_action_protect_nodes_with_password($form, &$form_state) 
     ->condition('protected_node_is_protected', 0)
     ->condition('protected_node_passwd', '', '<>')
     ->execute();
-  drupal_set_message('All nodes with an existing password (excluding the global password) are now protected.');
+  drupal_set_message(t('All nodes with an existing password (excluding the global password) are now protected.'));
 }
 
 /**
- * @brief Implementation of the hook_form_alter() for node types.
+ * Implements hook_form_FORM_ID_alter().
  *
- * This function adds a field set to each node type to let user decide whether
+ * Add protected node options on node type form.
+ *
+ * Adds a fieldset to each node type to let user decide whether
  * a node type is always protected, is never protected, or is protect-able.
  * If protect-able, then one can choose whether the protected node field set
  * should be always open, always closed, or smart (i.e. open if the node is
  * protected.)
  *
- * @param[in,out] $form  The node type form where our field set is added.
+ * @param[in,out] $form
+ *   The node type form where our field set is added.
  */
 function protected_node_node_type_form_alter(&$form) {
   $form['protected_node'] = array(

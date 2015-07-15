@@ -3,6 +3,7 @@
 /**
  * @file
  * Redirected page callback file for the protected_node module.
+ *
  * This version supports any number of pages instead of a destination.
  */
 

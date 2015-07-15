@@ -2,8 +2,10 @@
 
 /**
  * @file
- * base test class that will define all common needed methods and properties
- * that are needed for all the tests.
+ * Base test class.
+ *
+ * Will define all common needed methods and properties that are needed for all
+ * the tests.
  */
 
 /**

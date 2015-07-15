@@ -36,7 +36,6 @@ class ProtectedNodePrivateFile extends ProtectedNodeBaseTestCase {
     $this->drupalPost('admin/config/content/protected_node', $protected_node_settings, t('Save configuration'));
 
     // Private file system already set by simpletest.
-
     // Set private file field for basic page.
     $filefieldtestcase = new FileFieldTestCase();
     $filefieldtestcase->createFileField('private_file', 'page', array(
