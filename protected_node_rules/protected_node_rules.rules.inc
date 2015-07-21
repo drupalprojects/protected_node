@@ -22,6 +22,10 @@ function protected_node_rules_rules_condition_info() {
     'label' => t('Content is protected'),
     'help' => t('Evaluates to TRUE when the node is protected by a password.'),
   ) + $defaults;
+  $items['protected_node_rules_condition_content_has_password'] = array(
+    'label' => t('Content has password'),
+    'help' => t('Evaluates to TRUE when the node has a password.'),
+  ) + $defaults;
   $items['protected_node_rules_condition_content_is_locked'] = array(
     'label' => t('Content is locked from current user'),
     'help' => t('Evaluates to TRUE when the node is locked by a password from the current user.'),
@@ -34,6 +38,13 @@ function protected_node_rules_rules_condition_info() {
  */
 function protected_node_rules_condition_content_is_protected($node, $settings) {
   return $node->protected_node_is_protected == 1;
+}
+
+/**
+ * Condition: check whether the node has a password.
+ */
+function protected_node_rules_condition_content_has_password($node, $settings) {
+  return !empty($node->protected_node_passwd);
 }
 
 /**
@@ -69,7 +80,7 @@ function protected_node_rules_rules_action_info() {
         'type' => 'text',
         'label' => t('Password'),
         'optional' => TRUE,
-        'description' => t('If left empty, a random password will be generated.'),
+        'description' => t('Leave empty to set with a new random password.'),
       ),
       'show_title' => array(
         'type' => 'boolean',
