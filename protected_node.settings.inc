@@ -534,7 +534,7 @@ function protected_node_admin_settings() {
     '#type' => 'textarea',
     '#title' => t('Password page description (inside the field set with the password form)'),
     '#default_value' => variable_get('protected_node_description', ''),
-    '#description' => t('Enter specific description for the protected node page. This description is displayed inside the fieldset with the password form. HTML is accepted. You can use node type tokens from the token module when installed.'),
+    '#description' => t('Enter custom description for the protected node page. This description is displayed inside the fieldset with the password form. HTML is accepted. You can use node type tokens from the token module when installed.'),
   );
 
   $form['protected_node_form']['protected_node_password_label'] = array(
@@ -924,6 +924,13 @@ function protected_node_node_type_form_alter(&$form) {
     '#default_value' => variable_get('protected_node_fieldset_' . $form['#node_type']->type, PROTECTED_NODE_FIELDSET_SMART),
     '#options' => $options,
     '#description' => t('Select whether the "Protected node" field set should be opened or closed when editing a node.'),
+  );
+
+  $form['protected_node']['protected_node_description'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Password page description (inside the field set with the password form)'),
+    '#default_value' => variable_get('protected_node_description_' . $form['#node_type']->type, ''),
+    '#description' => t('Enter custom description for the protected node page of this content type to override the global setting. This description is displayed inside the fieldset with the password form. HTML is accepted. You can use node type tokens from the token module when installed.'),
   );
 
   $form['#validate'][] = '_protected_node_node_type_validate';

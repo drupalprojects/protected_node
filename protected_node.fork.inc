@@ -97,11 +97,14 @@ function protected_node_enter_any_password() {
   }
 
   // Enter the detailed description of the protected node password.
-  $description = variable_get('protected_node_description', '');
+  $description = variable_get('protected_node_description_' . $node->type, '');
+  if (!$description) {
+    $description = variable_get('protected_node_description', '');
+  }
   if (!$description) {
     if ($node->protected_node_show_title) {
       // Embellish the title with double quotes.
-      $node_title = ' "' . $node->title . '"';
+      $node_title = '"' . $node->title . '"';
     }
     else {
       $node_title = '';
