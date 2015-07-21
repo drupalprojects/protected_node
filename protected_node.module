@@ -467,6 +467,10 @@ function protected_node_node_validate($node, $form, &$form_state) {
     return;
   }
 
+  global $_protected_node_emails;
+  global $_protected_node_random_passwd;
+  $_protected_node_emails = '';
+  $_protected_node_random_passwd = '';
   if ($node->protected_node_is_protected && (user_access('edit any protected node password') || user_access('edit ' . $node->type . ' password'))) {
     $missing_password = FALSE;
     if (empty($node->protected_node_passwd)) {
@@ -512,6 +516,9 @@ function protected_node_node_validate($node, $form, &$form_state) {
         }
         $_protected_node_emails = implode(', ', $emails);
         if ($_protected_node_emails && $missing_password && variable_get('protected_node_random_password', FALSE)) {
+          // Automatically generate a password for the email. Note that means
+          // the author won't know the password!
+          $_protected_node_random_passwd = user_password();
           // Not missing anymore.
           $missing_password = FALSE;
           drupal_set_message(t('A random password was generated in order to send the email about this page. Remember that changing the password will prevent users you just emailed from accessing this page.'), 'warning');

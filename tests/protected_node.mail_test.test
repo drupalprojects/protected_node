@@ -33,6 +33,7 @@ class ProtectedNodeMail extends ProtectedNodeBaseTestCase {
     $protected_node_settings = array(
       'protected_node_use_global_password' => PROTECTED_NODE_PER_NODE_PASSWORD,
       'protected_node_email_activation' => 1,
+      'protected_node_random_password' => 1,
     );
     $this->drupalPost('admin/config/content/protected_node', $protected_node_settings, t('Save configuration'));
   }
@@ -59,6 +60,36 @@ class ProtectedNodeMail extends ProtectedNodeBaseTestCase {
 
     // Check mail to parameter.
     $this->assertEqual($to, $mails[0]['to'], "The mail's to parameter is equal to " . $to, $this->group);
+  }
+
+  /**
+   * Test that a random password is created and saved when sending an email.
+   */
+  public function testRandomPassword() {
+    // Log in as Admin.
+    $this->drupalLogin($this->adminUser);
+    // Don't set a password.
+    $password = '';
+    // To parameter.
+    $to = 'example@example.com';
+    // Create a new page node.
+    $node = $this->createProtectedNode($password, $to);
+    // Once the node created logout the User.
+    $this->drupalLogout();
+
+    // Check that a password has been generated.
+    $generated_password = $node->protected_node_passwd;
+    $this->assertTrue(!empty($generated_password), "Generated password exists.");
+
+    $mails = $this->drupalGetMails();
+
+    // Check that the default mail body contains the password.
+    $generated_password_in_mail = FALSE;
+    $clear_password = $mails[0]['params']['node']->protected_node_clear_passwd;
+    if (strpos($mails[0]['body'], $clear_password)) {
+      $generated_password_in_mail = TRUE;
+    }
+    $this->assertTrue($generated_password_in_mail, "The mail's body contains the randomly generated password.", $this->group);
   }
 
   /**
