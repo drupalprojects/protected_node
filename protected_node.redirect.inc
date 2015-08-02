@@ -132,14 +132,15 @@ function protected_node_enterpassword() {
   // Add a cancel link when 'back' is defined (i.e. referer on the previous
   // page).
   if (isset($_GET['back'])) {
-    $cancel = $_GET['back'];
+    $cancel = urldecode($_GET['back']);
   }
   elseif (variable_get('protected_node_cancel', 0)) {
     $cancel = '<front>';
   }
   if (!empty($cancel)) {
     $form['protected_node_enterpassword']['cancel'] = array(
-      '#value' => l(t('Cancel'), $cancel),
+      '#type' => 'markup',
+      '#markup' => l(t('Cancel'), $cancel),
     );
   }
 

@@ -146,7 +146,7 @@ function protected_node_enter_any_password() {
   // Add a cancel link when 'back' is defined (i.e. refers on the previous
   // page).
   if (isset($_GET['back'])) {
-    $cancel = $_GET['back'];
+    $cancel = urldecode($_GET['back']);
   }
   elseif (variable_get('protected_node_cancel', 0)) {
     $cancel = '<front>';
