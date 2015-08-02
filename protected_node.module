@@ -582,21 +582,19 @@ function _protected_node_node_create_or_update($node) {
   global $_protected_node_emails;
   global $_protected_node_random_passwd;
 
-  if (user_access('edit any protected node password') || user_access('edit ' . $node->type . ' password')) {
-    if (!empty($_protected_node_random_passwd)) {
-      $node->protected_node_passwd = $_protected_node_random_passwd;
-    }
-    if (!empty($_protected_node_emails)) {
-      $node->protected_node_emails = $_protected_node_emails;
-    }
-    _protected_node_save($node);
+  if (!empty($_protected_node_random_passwd)) {
+    $node->protected_node_passwd = $_protected_node_random_passwd;
+  }
+  if (!empty($_protected_node_emails)) {
+    $node->protected_node_emails = $_protected_node_emails;
+  }
+  _protected_node_save($node);
 
-    // Send notifications if there is at least one email.
-    if ($node->protected_node_is_protected && !empty($node->protected_node_emails) &&
-        $node->status == 1 && isset($node->protected_node_clear_passwd)) {
-      module_load_include('mail.inc', 'protected_node');
-      protected_node_send_mail($node);
-    }
+  // Send notifications if there is at least one email.
+  if ($node->protected_node_is_protected && !empty($node->protected_node_emails) &&
+      $node->status == 1 && isset($node->protected_node_clear_passwd)) {
+    module_load_include('mail.inc', 'protected_node');
+    protected_node_send_mail($node);
   }
 }
 
