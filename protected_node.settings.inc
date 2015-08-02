@@ -142,7 +142,6 @@ function protected_node_node_form_alter(&$form) {
   }
   $form['protected_node'] = array(
     '#type' => 'fieldset',
-    '#description' => t('By selecting the checkbox below you password protect this page. Unless you are using the global password feature, you want to enter a password in this form.'),
     '#title' => t('Password protect this @node', array('@node' => $node_type->name)),
     '#collapsible' => TRUE,
     '#collapsed' => $collapsed,
@@ -172,7 +171,7 @@ function protected_node_node_form_alter(&$form) {
     $form['protected_node']['protected_node_is_protected'] = array(
       '#type' => 'checkbox',
       '#title' => t('This @node is protected', array('@node' => $node_type->name)),
-      '#description' => t('Check here if this content should be protected by a password.'),
+      '#description' => t('By selecting this checkbox you password protect this page. Unless you are using the global password feature, you want to enter a password in this form.'),
       '#default_value' => $protected,
     );
   }
@@ -184,12 +183,24 @@ function protected_node_node_form_alter(&$form) {
     $show_title = variable_get('protected_node_show_node_titles', FALSE);
   }
 
-  $form['protected_node']['protected_node_show_title'] = array(
-    '#type' => 'checkbox',
-    '#title' => t('Show Title'),
-    '#description' => t('Show the title to users when requesting the password.'),
-    '#default_value' => $show_title,
-  );
+  // When custom description text is set there is no use for the Show Title
+  // checkbox.
+  $global_text = variable_get('protected_node_description_' . $form['#bundle'], '');
+  $content_type_text = variable_get('protected_node_description', '');
+  if (empty($global_text) && empty($content_type_text)) {
+    $form['protected_node']['protected_node_show_title'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Show Title'),
+      '#description' => t('Show the title to users when requesting the password.'),
+      '#default_value' => $show_title,
+    );
+  }
+  else {
+    $form['protected_node']['protected_node_show_title'] = array(
+      '#type' => 'hidden',
+      '#default_value' => $show_title,
+    );
+  }
 
   // Define a password field unless only the global password should be used.
   switch (variable_get('protected_node_use_global_password', PROTECTED_NODE_PER_NODE_PASSWORD)) {
@@ -441,7 +452,7 @@ function protected_node_admin_settings() {
     '#type' => 'checkbox',
     '#title' => t('Show node titles by default'),
     '#default_value' => variable_get('protected_node_show_node_titles', FALSE),
-    '#description' => t('Whether a the node title should be shown (selected) or hidden (unchecked) by default. This flag is used as the default of the Show title checkbox on a create node.'),
+    '#description' => t('Whether a the node title should be shown (selected) or hidden (unchecked) by default. This flag is used as the default of the Show title checkbox on a create node. Note that this setting is overridden by custom password page description text.'),
   );
 
   $form['protected_node_security']['protected_node_allow_hint'] = array(

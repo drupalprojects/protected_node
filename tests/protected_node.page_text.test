@@ -43,7 +43,7 @@ class ProtectedNodePageDisplay extends ProtectedNodeBaseTestCase {
    */
   public function testDefaultHideTitle() {
     // Create a protected node without showing its title.
-    $node = $this->createProtectedNode(FALSE);
+    $node = $this->createProtectedNode(TRUE, FALSE);
 
     // User sees the default text.
     $this->drupalLogin($this->normalAccessAllowedUser);
@@ -61,7 +61,7 @@ class ProtectedNodePageDisplay extends ProtectedNodeBaseTestCase {
    */
   public function testDefaultShowTitle() {
     // Create a protected node that show its title.
-    $node = $this->createProtectedNode(TRUE);
+    $node = $this->createProtectedNode(TRUE, TRUE);
 
     // User sees the default text including node title.
     $this->drupalLogin($this->normalAccessAllowedUser);
@@ -89,7 +89,8 @@ class ProtectedNodePageDisplay extends ProtectedNodeBaseTestCase {
     );
     $this->drupalPost('admin/config/content/protected_node', $protected_node_settings, t('Save configuration'));
 
-    // $show_title parameter shouldn't matter.
+    // $show_title_option_available is false since there is a custom description
+    // set.
     $node = $this->createProtectedNode(FALSE);
 
     // User sees the set global text.
@@ -114,8 +115,9 @@ class ProtectedNodePageDisplay extends ProtectedNodeBaseTestCase {
     );
     $this->drupalPost('admin/structure/types/manage/page', $settings, t('Save content type'));
 
-    // $show_title parameter shouldn't matter.
-    $node = $this->createProtectedNode(TRUE);
+    // $show_title_option_available is FALSE since there is a custom description
+    // set.
+    $node = $this->createProtectedNode(FALSE);
 
     // User sees the set global text.
     $this->drupalLogin($this->normalAccessAllowedUser);
@@ -148,7 +150,8 @@ class ProtectedNodePageDisplay extends ProtectedNodeBaseTestCase {
     );
     $this->drupalPost('admin/structure/types/manage/page', $settings, t('Save content type'));
 
-    // $show_title parameter shouldn't matter.
+    // $show_title_option_available is FALSE since there is a custom description
+    // set.
     $node = $this->createProtectedNode(FALSE);
 
     // User sees the set content type text.
@@ -160,13 +163,18 @@ class ProtectedNodePageDisplay extends ProtectedNodeBaseTestCase {
   /**
    * Helper method to create a protected node.
    *
+   * @param bool $show_title_option_available
+   *   TRUE if the show title option can be set in the UI, FALSE if it is
+   *   hidden.
+   *
    * @param bool $show_title
-   *   Whether show the node title or not.
+   *   Whether to show the node title or not. Has no effect if
+   *   $show_title_option_available is FALSE.
    *
    * @return object.
    *   A node object.
    */
-  public function createProtectedNode($show_title) {
+  public function createProtectedNode($show_title_option_available, $show_title = FALSE) {
     // Log in as Admin.
     $this->drupalLogin($this->adminUser);
     // Generate random password.
@@ -178,8 +186,12 @@ class ProtectedNodePageDisplay extends ProtectedNodeBaseTestCase {
       'protected_node_is_protected' => TRUE,
       'protected_node_passwd[pass1]' => $password,
       'protected_node_passwd[pass2]' => $password,
-      'protected_node_show_title' => $show_title,
     );
+    if ($show_title_option_available) {
+      $node_data += array(
+        'protected_node_show_title' => $show_title,
+      );
+    }
     $this->drupalPost('node/add/page', $node_data, t('Save'));
 
     // Once the node created logout the user.
