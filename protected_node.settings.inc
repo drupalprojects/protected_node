@@ -226,6 +226,11 @@ function protected_node_node_form_alter(&$form) {
   // Email support.
   $email_activation = variable_get('protected_node_email_activation', FALSE);
   if ($email_activation) {
+    // Random password text.
+    $random_password_help_text = '';
+    if (variable_get('protected_node_random_password', FALSE)) {
+      $random_password_help_text = '<br />' . t('<strong>Additional Note</strong>: If a password has not previously been saved for this node, you may leave the password field blank to generate a random password. In this case, you must enter at least one email address so someone knows the password.');
+    }
 
     if (isset($form['#node']->protected_node_emails)) {
       $previous_emails = $form['#node']->protected_node_emails;
@@ -236,11 +241,13 @@ function protected_node_node_form_alter(&$form) {
 
     $form['protected_node']['protected_node_emails'] = array(
       '#type' => 'textarea',
-      '#description' => t('Enter a list of email addresses separated by newlines and/or commas. At the time you save the page, each one of those users will be sent an email with a link back to this page and optionally the password.')
+      '#title' => t('Emails'),
+      '#description' => t('Enter a list of email addresses separated by newlines and/or commas. At the time you save the page, each one of those users will be sent a notification email.')
       . '<br />'
       . t('<strong>WARNING</strong>: for an email to be sent you MUST (1) protect the node; (2) re-enter the password; (3) publish the page.')
       . '<br />'
-      . t('The password is necessary only if you used [node:password] in the email message. It is necessary to re-enter it because it is otherwise encrypted in the database.'),
+      . t('It is necessary to re-enter the password because it is otherwise encrypted in the database.')
+      . $random_password_help_text,
       '#default_value' => $previous_emails,
       '#cols' => variable_get('protected_node_email_box_width', '10'),
       '#rows' => variable_get('protected_node_email_box_height', '2'),
@@ -455,7 +462,7 @@ function protected_node_admin_settings() {
     '#type' => 'checkbox',
     '#title' => t('Enable protected node email support'),
     '#default_value' => variable_get('protected_node_email_activation', FALSE),
-    '#description' => t('Check this box to enable the protected node email support'),
+    '#description' => t('Check this box to enable the protected node email support (NOTE: Random password support available within this feature).'),
   );
 
   $form['protected_node_auto_email']['protected_node_email_box_width'] = array(
@@ -464,6 +471,11 @@ function protected_node_admin_settings() {
     '#size' => 10,
     '#default_value' => variable_get('protected_node_email_box_width', '10'),
     '#description' => t('Enter the width (number of columns) of the email box text area. Must be a positive integer. Default value : 10.'),
+    '#states' => array(
+      'visible' => array(
+        ':input[name="protected_node_email_activation"]' => array('checked' => TRUE),
+      ),
+    ),
   );
 
   $form['protected_node_auto_email']['protected_node_email_box_height'] = array(
@@ -472,6 +484,11 @@ function protected_node_admin_settings() {
     '#size' => 10,
     '#default_value' => variable_get('protected_node_email_box_height', '2'),
     '#description' => t('Enter the height (number of rows) of the email box text area. Must be a positive integer. Default value : 2.'),
+    '#states' => array(
+      'visible' => array(
+        ':input[name="protected_node_email_activation"]' => array('checked' => TRUE),
+      ),
+    ),
   );
 
   $form['protected_node_auto_email']['protected_node_email_from'] = array(
@@ -479,6 +496,11 @@ function protected_node_admin_settings() {
     '#title' => t('From email address'),
     '#default_value' => variable_get('protected_node_email_from', ''),
     '#description' => t('Enter the email address used in the From: header. By default, [site-mail] is used (@mail)', array('@mail' => variable_get('site_mail', '<undefined>'))),
+    '#states' => array(
+      'visible' => array(
+        ':input[name="protected_node_email_activation"]' => array('checked' => TRUE),
+      ),
+    ),
   );
 
   $form['protected_node_auto_email']['protected_node_email_subject'] = array(
@@ -486,6 +508,11 @@ function protected_node_admin_settings() {
     '#title' => t('Email subject'),
     '#default_value' => variable_get('protected_node_email_subject', protected_node_email_subject()),
     '#description' => t('Enter the subject of the email. You may enter tokens in this field. Remember that [user-name] will be the author name.'),
+    '#states' => array(
+      'visible' => array(
+        ':input[name="protected_node_email_activation"]' => array('checked' => TRUE),
+      ),
+    ),
   );
 
   $form['protected_node_auto_email']['protected_node_email_body'] = array(
@@ -494,6 +521,11 @@ function protected_node_admin_settings() {
     '#rows' => 15,
     '#default_value' => variable_get('protected_node_email_body', protected_node_email_body()),
     '#description' => t('Enter the body of the email. You may enter tokens in this field. Remember that [user-name] will be the author name.'),
+    '#states' => array(
+      'visible' => array(
+        ':input[name="protected_node_email_activation"]' => array('checked' => TRUE),
+      ),
+    ),
   );
 
   $form['protected_node_auto_email']['protected_node_random_password'] = array(
@@ -501,6 +533,11 @@ function protected_node_admin_settings() {
     '#title' => t('Generate a random password if necessary'),
     '#default_value' => variable_get('protected_node_random_password', FALSE),
     '#description' => t('When this flag is set, saving a protected node without re-entering the password will randomize a password and send it to your users. You may enter your email address to know about the password yourself. (It otherwise gets encrypted in the database.)'),
+    '#states' => array(
+      'visible' => array(
+        ':input[name="protected_node_email_activation"]' => array('checked' => TRUE),
+      ),
+    ),
   );
 
   $form['protected_node_form'] = array(
