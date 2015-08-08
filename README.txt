@@ -50,7 +50,11 @@ There is no special requirement for this module.
 SIMILAR MODULES
 ---------------
 
- * Protected Pages (https://www.drupal.org/project/protected_pages)
+ * Protected Pages (https://www.drupal.org/project/protected_pages):
+   Protected Pages uses the path to protect your page so you can password
+   protect Views pages for example. With Protected node, content creators can
+   add the password as they create content, they don't have to go to another
+   configuration page.
 
 
 KNOWN CONFLICTS
