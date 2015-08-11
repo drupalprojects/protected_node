@@ -165,8 +165,16 @@ function protected_node_enter_any_password() {
  * Validate callback.
  *
  * Verify that the user entered the correct password.
+ *
+ * For the flood control, @see user_login_authenticate_validate().
  */
 function protected_node_enter_any_password_validate($form, &$form_state) {
+  $max_attempt = variable_get('protected_node_failed_password_ip_limit', 50);
+  $flood_window = variable_get('protected_node_failed_password_ip_window', 3600);
+  if (!flood_is_allowed('failed_protected_node_attempt_ip', $max_attempt, $flood_window)) {
+    form_set_error('password', t('Sorry, too many failed password attempts from your IP address. This IP address is temporarily blocked. Try again later.'));
+    return;
+  }
   // Note that global password cannot work here since we couldn't know where
   // to send the user otherwise.
   $nids = protected_node_get_nids_from_protected_pages_parameter();
@@ -185,6 +193,7 @@ function protected_node_enter_any_password_validate($form, &$form_state) {
     ->fetchField();
 
   if (empty($nid)) {
+    flood_register_event('failed_protected_node_attempt_ip', $flood_window);
     form_set_error('password', t('Incorrect password!'));
   }
   else {

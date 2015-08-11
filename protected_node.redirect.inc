@@ -149,8 +149,16 @@ function protected_node_enterpassword() {
 
 /**
  * Verify that the user entered the correct password.
+ *
+ * For the flood control, @see user_login_authenticate_validate().
  */
 function protected_node_enterpassword_validate($form, &$form_state) {
+  $max_attempt = variable_get('protected_node_failed_password_ip_limit', 50);
+  $flood_window = variable_get('protected_node_failed_password_ip_window', 3600);
+  if (!flood_is_allowed('failed_protected_node_attempt_ip', $max_attempt, $flood_window)) {
+    form_set_error('password', t('Sorry, too many failed password attempts from your IP address. This IP address is temporarily blocked. Try again later.'));
+    return;
+  }
   // @todo We do not want to check the global password if there is a local
   // password (i.e. extract local password instead of comparing).
   // @todo The protected_node_nid parameter should be extracted from the
@@ -203,6 +211,7 @@ function protected_node_enterpassword_validate($form, &$form_state) {
     }
 
     if (empty($nid)) {
+      flood_register_event('failed_protected_node_attempt_ip', $flood_window);
       form_set_error('password', t('Incorrect password!'));
     }
   }

@@ -602,6 +602,65 @@ function protected_node_admin_settings() {
     );
   }
 
+  // Flood control options.
+  $form['protected_node_flood_control'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Protected node flood control'),
+    '#collapsible' => TRUE,
+  );
+
+  $protected_node_failed_password_ip_limit_options = drupal_map_assoc(array(
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    20,
+    30,
+    40,
+    50,
+    75,
+    100,
+    125,
+    150,
+    200,
+    250,
+    500,
+  ));
+  $form['protected_node_flood_control']['protected_node_failed_password_ip_limit'] = array(
+    '#type' => 'select',
+    '#title' => t('Failed password (IP) limit'),
+    '#options' => $protected_node_failed_password_ip_limit_options,
+    '#default_value' => variable_get('protected_node_failed_password_ip_limit', 50),
+  );
+
+  $protected_node_failed_password_ip_window_options = array(0 => t('None (flood control disabled)')) + drupal_map_assoc(array(
+      60,
+      180,
+      300,
+      600,
+      900,
+      1800,
+      2700,
+      3600,
+      10800,
+      21600,
+      32400,
+      43200,
+      86400,
+    ), 'format_interval');
+  $form['protected_node_flood_control']['protected_node_failed_password_ip_window'] = array(
+    '#type' => 'select',
+    '#title' => t('Failed password (IP) window'),
+    '#options' => $protected_node_failed_password_ip_window_options,
+    '#default_value' => variable_get('protected_node_failed_password_ip_window', 3600),
+  );
+
   // View modes.
   $node_info = entity_get_info('node');
   $view_modes = array();
