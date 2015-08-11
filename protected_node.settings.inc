@@ -567,7 +567,7 @@ function protected_node_admin_settings() {
   $form['protected_node_form']['protected_node_title'] = array(
     '#type' => 'textfield',
     '#title' => t('Password page title'),
-    '#default_value' => variable_get('protected_node_title', 'Protected page -- Enter password'),
+    '#default_value' => variable_get('protected_node_title', t('Protected page -- Enter password')),
     '#description' => t('Enter the title of the protected node page. No HTML allowed. You can use node type tokens from the token module when installed.'),
   );
 
@@ -609,56 +609,20 @@ function protected_node_admin_settings() {
     '#collapsible' => TRUE,
   );
 
-  $protected_node_failed_password_ip_limit_options = drupal_map_assoc(array(
-    1,
-    2,
-    3,
-    4,
-    5,
-    6,
-    7,
-    8,
-    9,
-    10,
-    20,
-    30,
-    40,
-    50,
-    75,
-    100,
-    125,
-    150,
-    200,
-    250,
-    500,
-  ));
   $form['protected_node_flood_control']['protected_node_failed_password_ip_limit'] = array(
     '#type' => 'select',
     '#title' => t('Failed password (IP) limit'),
-    '#options' => $protected_node_failed_password_ip_limit_options,
+    '#options' => _protected_node_get_failed_password_ip_limit_options(),
     '#default_value' => variable_get('protected_node_failed_password_ip_limit', 50),
+    '#description' => t('Defines the number of attempts a user has during a limited time window.'),
   );
 
-  $protected_node_failed_password_ip_window_options = array(0 => t('None (flood control disabled)')) + drupal_map_assoc(array(
-      60,
-      180,
-      300,
-      600,
-      900,
-      1800,
-      2700,
-      3600,
-      10800,
-      21600,
-      32400,
-      43200,
-      86400,
-    ), 'format_interval');
   $form['protected_node_flood_control']['protected_node_failed_password_ip_window'] = array(
     '#type' => 'select',
     '#title' => t('Failed password (IP) window'),
-    '#options' => $protected_node_failed_password_ip_window_options,
+    '#options' => _protected_node_get_failed_password_ip_window_options(),
     '#default_value' => variable_get('protected_node_failed_password_ip_window', 3600),
+    '#description' => t('Defines the time window during while the user has a limited number of possible attempts.'),
   );
 
   // View modes.

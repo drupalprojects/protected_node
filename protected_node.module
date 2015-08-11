@@ -1340,3 +1340,60 @@ function _protected_node_get_default_checked_view_modes() {
 
   return $default_view_modes;
 }
+
+/**
+ * Helper function.
+ *
+ * Used to get the options for the protected_node_failed_password_ip_limit
+ * variable.
+ */
+function _protected_node_get_failed_password_ip_limit_options() {
+  return drupal_map_assoc(array(
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    20,
+    30,
+    40,
+    50,
+    75,
+    100,
+    125,
+    150,
+    200,
+    250,
+    500,
+  ));
+}
+
+
+/**
+ * Helper function.
+ *
+ * Used to get the options for the protected_node_failed_password_ip_window
+ * variable.
+ */
+function _protected_node_get_failed_password_ip_window_options() {
+  return array(0 => t('None (flood control disabled)')) + drupal_map_assoc(array(
+    60,
+    180,
+    300,
+    600,
+    900,
+    1800,
+    2700,
+    3600,
+    10800,
+    21600,
+    32400,
+    43200,
+    86400,
+  ), 'format_interval');
+}
