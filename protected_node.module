@@ -193,12 +193,9 @@ function protected_node_init() {
     elseif ($param2 == 'edit' || $param2 == 'delete') {
       $nid = protected_node_is_locked(arg(1), $param2);
     }
-    elseif (($param2 == 'done' && module_exists('webform')) || ($param2 == 'mid' && module_exists('nodesymlinks')) || ($param2 == 'register' && module_exists('registration'))) {
-      $nid = protected_node_is_locked(arg(1), 'view');
-    }
     else {
-      // Any access right?
-      $nid = protected_node_is_locked(arg(1));
+      // Any other sub-path.
+      $nid = protected_node_is_locked(arg(1), 'view');
     }
     if ($nid === TRUE || $nid === -1) {
       drupal_access_denied();
