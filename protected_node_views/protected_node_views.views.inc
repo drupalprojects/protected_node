@@ -36,13 +36,13 @@ function _protected_node_views_extended_dates(&$data, $field, $label) {
     ),
   );
 
-  foreach ($entries as $f => $e) {
-    $data['protected_nodes'][$field . '_' . $f] = array(
-      'title' => $label . ' ' . $e['label'],
-      'help' => t('In the form of') . ' ' . $e['help'] . '.',
+  foreach ($entries as $format => $entry) {
+    $data['protected_nodes'][$field . '_' . $format] = array(
+      'title' => $label . ' ' . $entry['label'],
+      'help' => t('In the form of !form.', array('!form' => $entry['help'])),
       'argument' => array(
         'field' => $field,
-        'handler' => 'views_handler_argument_node_created_' . $f,
+        'handler' => 'views_handler_argument_node_created_' . $format,
       ),
     );
   }

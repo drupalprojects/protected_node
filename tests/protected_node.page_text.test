@@ -166,7 +166,6 @@ class ProtectedNodePageDisplay extends ProtectedNodeBaseTestCase {
    * @param bool $show_title_option_available
    *   TRUE if the show title option can be set in the UI, FALSE if it is
    *   hidden.
-   *
    * @param bool $show_title
    *   Whether to show the node title or not. Has no effect if
    *   $show_title_option_available is FALSE.
