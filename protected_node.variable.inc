@@ -11,7 +11,7 @@
 function protected_node_variable_group_info() {
   $groups['protected_node'] = array(
     'title' => t('Protected node'),
-    'description' => t('Controls whether selected nodes are protected with a password.'),
+    'description' => t('Configuration for the protected node module.'),
     'access' => 'administer site configuration',
     'path' => array('admin/config/content/protected_node'),
   );
@@ -29,7 +29,8 @@ function protected_node_variable_info($options) {
   $variables['protected_node_use_global_password'] = array(
     'type' => 'select',
     'title' => t('Global password handling', array(), $options),
-    'description' => t("When checked, the global password is used if the user doesn't enter a password when creating/editing nodes.", array(), $options) . t("<strong>WARNING:</strong> removing the global password when many pages were not otherwise assigned a password will make those nodes unaccessible except for UID=1 and the author of the node.", array(), $options),
+    'description' => t("Selecting the global password option makes it possible to protect nodes using one password which must be provided in the 'Global password' fields below.", array(), $options) .
+      t('<br><strong>WARNING:</strong> Removing the global password after it has been assigned to nodes will make those nodes inaccessible except for the user with UID: 1 and the author of the node.', array(), $options),
     'option' => array(
       PROTECTED_NODE_PER_NODE_PASSWORD => t('Per node password', array(), $options),
       PROTECTED_NODE_PER_NODE_AND_GLOBAL_PASSWORD => t('Per node password or Global password', array(), $options),
@@ -41,28 +42,28 @@ function protected_node_variable_info($options) {
   $variables['protected_node_global_password'] = array(
     'type' => 'string',
     'title' => t('Global password', array(), $options),
-    'description' => t('The default password for all nodes. This password is necessary if you select the previous checkbox.', array(), $options),
+    'description' => t('The default password for all nodes. This password is necessary for global password handling.', array(), $options),
     'default' => '',
     'group' => 'protected_node',
   );
   $variables['protected_node_show_password_strength'] = array(
     'type' => 'boolean',
     'title' => t('Show password strength in nodes', array(), $options),
-    'description' => t('When checked, show the password strength on nodes being edited. Since some people will on purpose want to use this feature with very weak password, this may not always be welcome.', array(), $options),
+    'description' => t('When checked, show the password strength on nodes being edited. This will prevent the use of weak passwords.', array(), $options),
     'default' => TRUE,
     'group' => 'protected_node',
   );
   $variables['protected_node_show_node_titles'] = array(
     'type' => 'boolean',
     'title' => t('Show node titles by default', array(), $options),
-    'description' => t('Whether a the node title should be shown (selected) or hidden (unchecked) by default. This flag is used as the default of the Show title checkbox on a create node. Note that this setting is overridden by custom password page description text.', array(), $options),
+    'description' => t('Whether the node title should be shown by default. This setting can be overridden when creating and editing nodes.', array(), $options),
     'default' => FALSE,
     'group' => 'protected_node',
   );
   $variables['protected_node_allow_hint'] = array(
     'type' => 'boolean',
     'title' => t('Allow author to enter a password hint', array(), $options),
-    'description' => t('By default, the password is kept as secret as possible. This option allows the author to enter a hint about the password of a node. The hint is later shown using the [node:password-hint] token.', array(), $options),
+    'description' => t('By default, the password is kept as secret as possible. This option allows the author to enter a hint about the password of a node. The hint can later be shown using the [node:password-hint] token.', array(), $options),
     'default' => FALSE,
     'group' => 'protected_node',
   );
@@ -78,21 +79,21 @@ function protected_node_variable_info($options) {
   $variables['protected_node_email_box_width'] = array(
     'type' => 'number',
     'title' => t('Email box width', array(), $options),
-    'description' => t('Enter the width (number of columns) of the email box text area. Must be a positive integer. Default value : 10.', array(), $options),
+    'description' => t('Enter the width (number of columns) of the email box text area. Must be a positive integer. The default value is 10.', array(), $options),
     'default' => 10,
     'group' => 'protected_node',
   );
   $variables['protected_node_email_box_height'] = array(
     'type' => 'number',
     'title' => t('Email box height', array(), $options),
-    'description' => t('Enter the height (number of rows) of the email box text area. Must be a positive integer. Default value : 2.', array(), $options),
+    'description' => t('Enter the height (number of rows) of the email box text area. Must be a positive integer. The default value is 2.', array(), $options),
     'default' => 2,
     'group' => 'protected_node',
   );
   $variables['protected_node_email_from'] = array(
     'type' => 'mail_address',
     'title' => t('From email address', array(), $options),
-    'description' => t('Enter the email address used in the From: header. By default, [site-mail] is used (@mail)', array('@mail' => variable_get('site_mail', '<undefined>')), $options),
+    'description' => t('Enter the email address used in the email header. By default, [site-mail] (@mail) is used, if defined.', array('@mail' => variable_get('site_mail', '<undefined>')), $options),
     'default' => '',
     'group' => 'protected_node',
   );
@@ -113,7 +114,8 @@ function protected_node_variable_info($options) {
   $variables['protected_node_random_password'] = array(
     'type' => 'boolean',
     'title' => t('Generate a random password if necessary', array(), $options),
-    'description' => t('When this flag is set, saving a protected node without re-entering the password will randomize a password and send it to your users. You may enter your email address to know about the password yourself. (It otherwise gets encrypted in the database.)', array(), $options),
+    'description' => t('When this flag is set, saving a protected node without re-entering the password will randomize a password and send it to your users.
+      You may also add your email address to get notified of the password. (It otherwise will be stored in the database encrypted.)', array(), $options),
     'default' => FALSE,
     'group' => 'protected_node',
   );
@@ -129,28 +131,28 @@ function protected_node_variable_info($options) {
   $variables['protected_node_title'] = array(
     'type' => 'string',
     'title' => t('Password page title', array(), $options),
-    'description' => t('Enter the title of the protected node page. No HTML allowed. You can use node type tokens from the token module when installed.', array(), $options),
+    'description' => t('Enter the title of the protected node page. No HTML allowed. You can use node type tokens provided by the token module if installed.', array(), $options),
     'default' => t('Protected page -- Enter password', array(), $options),
     'group' => 'protected_node',
   );
   $variables['protected_node_info'] = array(
     'type' => 'text',
     'title' => t('Password page general information', array(), $options),
-    'description' => t('Enter general information for the protected node page. HTML is accepted. You can use node type tokens from the token module when installed.', array(), $options),
+    'description' => t('Enter general information for the protected node page. HTML is accepted. You can use node type tokens provided by the token module if installed.', array(), $options),
     'default' => '',
     'group' => 'protected_node',
   );
   $variables['protected_node_description'] = array(
     'type' => 'text',
     'title' => t('Password page description (inside the field set with the password form)', array(), $options),
-    'description' => t('Enter custom description for the protected node page. This description is displayed inside the fieldset with the password form. HTML is accepted. You can use node type tokens from the token module when installed.', array(), $options),
+    'description' => t('Enter custom description for the protected node page. This description is displayed inside the fieldset with the password form. HTML is allowed. You can use node type tokens provided by the token module if installed.', array(), $options),
     'default' => '',
     'group' => 'protected_node',
   );
   $variables['protected_node_password_label'] = array(
     'type' => 'string',
     'title' => t('Password field label on password page', array(), $options),
-    'description' => t('Enter the text for the password label appearing on the password page. The default (when empty) is the node type name followed by the word "password". You can use tokens from the token module when installed.', array(), $options),
+    'description' => t('Enter the text for the password label appearing on the password page. The default (when empty) is the node type name followed by the word "password". You can use tokens provided by the token module if installed.', array(), $options),
     'default' => '',
     'group' => 'protected_node',
   );
@@ -159,7 +161,7 @@ function protected_node_variable_info($options) {
   $variables['protected_node_failed_password_ip_limit'] = array(
     'type' => 'select_number',
     'title' => t('Failed password (IP) limit', array(), $options),
-    'description' => t('Defines the number of attempts a user has during a limited time window.', array(), $options),
+    'description' => t('Defines the number of attempts per user during a limited time window.', array(), $options),
     'option callback' => _protected_node_get_failed_password_ip_limit_options(),
     'default' => 50,
     'group' => 'protected_node',
@@ -167,7 +169,7 @@ function protected_node_variable_info($options) {
   $variables['protected_node_failed_password_ip_window'] = array(
     'type' => 'select_number',
     'title' => t('Failed password (IP) window', array(), $options),
-    'description' => t('Defines the time window during while the user has a limited number of possible attempts.', array(), $options),
+    'description' => t('Defines the time window (in seconds) for the allowed number of attempts.', array(), $options),
     'option callback' => _protected_node_get_failed_password_ip_window_options(),
     'default' => 3600,
     'group' => 'protected_node',
@@ -194,7 +196,9 @@ function protected_node_variable_info($options) {
   $variables['protected_node_protection_[node_type]'] = array(
     'type' => 'multiple',
     'title' => t('Protected mode for nodes of this type', array(), $options),
-    'description' => t('Select the protection mode for nodes of this type:<ul><li>Never protected &mdash; the nodes cannot be protected</li><li>Protectable &mdash; lets users choose whether the node is protected, defaults to protected or unprotected.</li><li>Always protected &mdash; the node is automatically protected, the author has no choice.</li></ul>', array(), $options),
+    'description' => t('Select the protection mode for nodes of this type:<ul><li>Never protected &mdash; the nodes cannot be protected</li>
+      <li>Protectable &mdash; lets users choose whether the node is protected, defaults to protected or unprotected.</li>
+      <li>Always protected &mdash; the node is automatically protected, the author has no choice.</li></ul>', array(), $options),
     'repeat' => array(
       'type' => 'enable',
       'options' => array(
@@ -235,7 +239,7 @@ function protected_node_variable_info($options) {
   $variables['protected_node_description_[node_type]'] = array(
     'type' => 'multiple',
     'title' => t('Password page description (inside the field set with the password form)', array(), $options),
-    'description' => t('Enter custom description for the protected node page of this content type to override the global setting. This description is displayed inside the fieldset with the password form. HTML is accepted. You can use node type tokens from the token module when installed.', array(), $options),
+    'description' => t('Enter custom description for the protected node page of this content type to override the global setting. This description is displayed inside the fieldset with the password form. HTML is accepted. You can use node type tokens provided by the token module if installed.', array(), $options),
     'repeat' => array(
       'type' => 'text',
       'default' => '',

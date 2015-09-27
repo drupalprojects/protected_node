@@ -47,7 +47,7 @@ function protected_node_email_subject() {
  * a protected node.
  */
 function protected_node_email_body() {
-  return t("Dear friend,\r\n\r\nI just created a new page on my website and wanted to invite you to visit.\r\n\r\nThe page is protected by the following password: [node:password]\r\n\r\nThank you.\r\n[site:name]");
+  return t("Dear friend,\r\n\r\nI just created a new page on my website and wanted to invite you to view it.\r\n\r\nThe page is protected by the following password: [node:password]\r\n\r\nThank you.\r\n[site:name]");
 }
 
 /**
@@ -171,7 +171,7 @@ function protected_node_node_form_alter(&$form) {
     $form['protected_node']['protected_node_is_protected'] = array(
       '#type' => 'checkbox',
       '#title' => t('This @node is protected', array('@node' => $node_type->name)),
-      '#description' => t('By selecting this checkbox you password protect this page. Unless you are using the global password feature, you want to enter a password in this form.'),
+      '#description' => t('Select this checkbox to password protect this page.'),
       '#default_value' => $protected,
     );
   }
@@ -208,7 +208,8 @@ function protected_node_node_form_alter(&$form) {
     case PROTECTED_NODE_PER_NODE_AND_GLOBAL_PASSWORD:
       $form['protected_node']['protected_node_passwd'] = array(
         '#type' => 'password_confirm',
-        '#description' => t('Enter the @node password here. Remember that changing the password prevents all the users who knew the old password to continue to access the page.', array('@node' => $node_type->name)),
+        '#description' => t('Enter a password here to protect this @node or set a global password on <a href="@settings_page">the settings page</a>. Changing the password will prevent all the users who knew the old password from accessing this page.', array(
+          '@node' => $node_type->name, '@settings_page' => url('admin/config/content/protected_node'))),
         '#size' => 20,
         '#after_build' => array('protected_node_autocomplete_off'),
       );
@@ -432,40 +433,41 @@ function protected_node_admin_settings() {
       PROTECTED_NODE_PER_NODE_AND_GLOBAL_PASSWORD => t('Per node password or Global password'),
       PROTECTED_NODE_GLOBAL_PASSWORD => t('Global password only'),
     ),
-    '#description' => t("When checked, the global password is used if the user doesn't enter a password when creating/editing nodes.") . t("<strong>WARNING:</strong> removing the global password when many pages were not otherwise assigned a password will make those nodes unaccessible except for UID=1 and the author of the node."),
+    '#description' => t("Selecting the global password option makes it possible to protect nodes using one password which must be provided in the 'Global password' fields below.
+      <br><strong>WARNING:</strong> Removing the global password after it has been assigned to nodes will make those nodes inaccessible except for the user with UID: 1 and the author of the node."),
   );
 
   $form['protected_node_security']['protected_node_global_password_field'] = array(
     '#type' => 'password_confirm',
     '#title' => t('Global password'),
-    '#description' => t('The default password for all nodes. This password is necessary if you select the previous checkbox.'),
+    '#description' => t('The default password for all nodes. This password is necessary for global password handling.'),
   );
 
   $form['protected_node_security']['protected_node_show_password_strength'] = array(
     '#type' => 'checkbox',
     '#title' => t('Show password strength in nodes'),
     '#default_value' => variable_get('protected_node_show_password_strength', TRUE),
-    '#description' => t('When checked, show the password strength on nodes being edited. Since some people will on purpose want to use this feature with very weak password, this may not always be welcome.'),
+    '#description' => t('When checked, show the password strength on nodes being edited. This will prevent the use of weak passwords.'),
   );
 
   $form['protected_node_security']['protected_node_show_node_titles'] = array(
     '#type' => 'checkbox',
     '#title' => t('Show node titles by default'),
     '#default_value' => variable_get('protected_node_show_node_titles', FALSE),
-    '#description' => t('Whether a the node title should be shown (selected) or hidden (unchecked) by default. This flag is used as the default of the Show title checkbox on a create node. Note that this setting is overridden by custom password page description text.'),
+    '#description' => t('Whether the node title should be shown by default. This setting can be overridden when creating and editing nodes.'),
   );
 
   $form['protected_node_security']['protected_node_allow_hint'] = array(
     '#type' => 'checkbox',
     '#title' => t('Allow author to enter a password hint'),
     '#default_value' => variable_get('protected_node_allow_hint', FALSE),
-    '#description' => t('By default, the password is kept as secret as possible. This option allows the author to enter a hint about the password of a node. The hint is later shown using the [node:password-hint] token.'),
+    '#description' => t('By default, the password is kept as secret as possible. This option allows the author to enter a hint about the password of a node. The hint can later be shown using the [node:password-hint] token.'),
   );
 
   $form['protected_node_auto_email'] = array(
     '#type' => 'fieldset',
     '#title' => t('Protected node email support'),
-    '#description' => t('The following allows the users who can protect a node to send an email about the protected node to their friends.'),
+    '#description' => t('This setting allows users who have access to protect a node to send an email about the protected node.'),
     '#collapsible' => TRUE,
   );
 
@@ -481,7 +483,7 @@ function protected_node_admin_settings() {
     '#title' => t('Email box width'),
     '#size' => 10,
     '#default_value' => variable_get('protected_node_email_box_width', '10'),
-    '#description' => t('Enter the width (number of columns) of the email box text area. Must be a positive integer. Default value : 10.'),
+    '#description' => t('Enter the width (number of columns) of the email box text area. Must be a positive integer. The default value is 10.'),
     '#states' => array(
       'visible' => array(
         ':input[name="protected_node_email_activation"]' => array('checked' => TRUE),
@@ -494,7 +496,7 @@ function protected_node_admin_settings() {
     '#title' => t('Email box height'),
     '#size' => 10,
     '#default_value' => variable_get('protected_node_email_box_height', '2'),
-    '#description' => t('Enter the height (number of rows) of the email box text area. Must be a positive integer. Default value : 2.'),
+    '#description' => t('Enter the height (number of rows) of the email box text area. Must be a positive integer. The default value is 2.'),
     '#states' => array(
       'visible' => array(
         ':input[name="protected_node_email_activation"]' => array('checked' => TRUE),
@@ -506,7 +508,7 @@ function protected_node_admin_settings() {
     '#type' => 'textfield',
     '#title' => t('From email address'),
     '#default_value' => variable_get('protected_node_email_from', ''),
-    '#description' => t('Enter the email address used in the From: header. By default, [site-mail] is used (@mail)', array('@mail' => variable_get('site_mail', '<undefined>'))),
+    '#description' => t('Enter the email address used in the email header. By default, [site-mail] (@mail) is used, if defined.', array('@mail' => variable_get('site_mail', '<undefined>'))),
     '#states' => array(
       'visible' => array(
         ':input[name="protected_node_email_activation"]' => array('checked' => TRUE),
@@ -543,7 +545,7 @@ function protected_node_admin_settings() {
     '#type' => 'checkbox',
     '#title' => t('Generate a random password if necessary'),
     '#default_value' => variable_get('protected_node_random_password', FALSE),
-    '#description' => t('When this flag is set, saving a protected node without re-entering the password will randomize a password and send it to your users. You may enter your email address to know about the password yourself. (It otherwise gets encrypted in the database.)'),
+    '#description' => t('When this flag is set, saving a protected node without re-entering the password will randomize a password and send it to your users. You may also add your email address to get notified of the password. (It otherwise will be stored in the database encrypted.)'),
     '#states' => array(
       'visible' => array(
         ':input[name="protected_node_email_activation"]' => array('checked' => TRUE),
@@ -568,28 +570,28 @@ function protected_node_admin_settings() {
     '#type' => 'textfield',
     '#title' => t('Password page title'),
     '#default_value' => variable_get('protected_node_title', t('Protected page -- Enter password')),
-    '#description' => t('Enter the title of the protected node page. No HTML allowed. You can use node type tokens from the token module when installed.'),
+    '#description' => t('Enter the title of the protected node page. No HTML allowed. You can use node type tokens provided by the token module if installed.'),
   );
 
   $form['protected_node_form']['protected_node_info'] = array(
     '#type' => 'textarea',
     '#title' => t('Password page general information'),
     '#default_value' => variable_get('protected_node_info', ''),
-    '#description' => t('Enter general information for the protected node page. HTML is accepted. You can use node type tokens from the token module when installed.'),
+    '#description' => t('Enter general information for the protected node page. HTML is allowed. You can use node type tokens provided by the token module if installed.'),
   );
 
   $form['protected_node_form']['protected_node_description'] = array(
     '#type' => 'textarea',
     '#title' => t('Password page description (inside the field set with the password form)'),
     '#default_value' => variable_get('protected_node_description', ''),
-    '#description' => t('Enter custom description for the protected node page. This description is displayed inside the fieldset with the password form. HTML is accepted. You can use node type tokens from the token module when installed.'),
+    '#description' => t('Enter custom description for the protected node page. This description is displayed inside the fieldset with the password form. HTML is accepted. You can use node type tokens provided by the token module if installed.'),
   );
 
   $form['protected_node_form']['protected_node_password_label'] = array(
     '#type' => 'textfield',
     '#title' => t('Password field label on password page'),
     '#default_value' => variable_get('protected_node_password_label', ''),
-    '#description' => t('Enter the text for the password label appearing on the password page. The default (when empty) is the node type name followed by the word "password". You can use tokens from the token module when installed.'),
+    '#description' => t('Enter the text for the password label appearing on the password page. The default (when empty) is the node type name followed by the word "password". You can use tokens provided by the token module if installed.'),
   );
 
   if (module_exists('token')) {
@@ -614,7 +616,7 @@ function protected_node_admin_settings() {
     '#title' => t('Failed password (IP) limit'),
     '#options' => _protected_node_get_failed_password_ip_limit_options(),
     '#default_value' => variable_get('protected_node_failed_password_ip_limit', 50),
-    '#description' => t('Defines the number of attempts a user has during a limited time window.'),
+    '#description' => t('Defines the number of attempts per user during a limited time window.'),
   );
 
   $form['protected_node_flood_control']['protected_node_failed_password_ip_window'] = array(
@@ -622,7 +624,7 @@ function protected_node_admin_settings() {
     '#title' => t('Failed password (IP) window'),
     '#options' => _protected_node_get_failed_password_ip_window_options(),
     '#default_value' => variable_get('protected_node_failed_password_ip_window', 3600),
-    '#description' => t('Defines the time window during while the user has a limited number of possible attempts.'),
+    '#description' => t('Defines the time window (in seconds) for the allowed number of attempts.'),
   );
 
   // View modes.
@@ -661,7 +663,7 @@ function protected_node_admin_settings() {
     '#title' => t('Clear sessions'),
     '#collapsible' => TRUE,
     '#collapsed' => TRUE,
-    '#description' => t('Click on this button to reset all the Protected Node password sessions of your website. This means all the users who entered a password before then will now have to log back in to see such and such node.'),
+    '#description' => t('Click on this button to reset all the Protected Node password sessions of your website. This means all the users who entered a password in the past will now have to log back in to review their node protection.'),
   );
   $form['protected_node_actions']['protected_node_clear_sessions']['protected_node_clear_sessions_button'] = array(
     '#type' => 'submit',
@@ -680,7 +682,7 @@ function protected_node_admin_settings() {
   $form['protected_node_actions']['protected_node_reset_passwords']['protected_node_reset_passwords_password'] = array(
     '#type' => 'password_confirm',
     '#title' => t('New Protected Nodes password'),
-    '#description' => t('Enter the new password that all existing protected nodes will be assigned.'),
+    '#description' => t('Enter the new password that will be assigned to all existing protected nodes.'),
   );
   $form['protected_node_actions']['protected_node_reset_passwords']['protected_node_reset_passwords_button'] = array(
     '#type' => 'submit',
@@ -694,7 +696,7 @@ function protected_node_admin_settings() {
     '#title' => t('Use global password'),
     '#collapsible' => TRUE,
     '#collapsed' => TRUE,
-    '#description' => '<span style="color: red;">' . t('WARNING: this function resets all your nodes password and make sure the global password is now required for all of them.') . '</span>',
+    '#description' => '<span style="color: red;">' . t('WARNING: this function deletes all the individual passwords. Make sure you have authorized the use of global password.') . '</span>',
   );
   $form['protected_node_actions']['protected_node_remove_passwords']['protected_node_remove_passwords_button'] = array(
     '#type' => 'submit',
@@ -708,7 +710,7 @@ function protected_node_admin_settings() {
     '#title' => t('Remove protection'),
     '#collapsible' => TRUE,
     '#collapsed' => TRUE,
-    '#description' => '<span style="color: red;">' . t('WARNING: this function unprotects all your currently protected nodes!!! The password is not modified.') . '</span>',
+    '#description' => '<span style="color: red;">' . t('WARNING: this function unprotects all your currently protected nodes! The password is not modifiable.') . '</span>',
   );
   $form['protected_node_actions']['protected_node_remove_protection']['protected_node_remove_protection_button'] = array(
     '#type' => 'submit',
@@ -722,7 +724,7 @@ function protected_node_admin_settings() {
     '#title' => t('Protect nodes'),
     '#collapsible' => TRUE,
     '#collapsed' => TRUE,
-    '#description' => t('WARNING: this function protects ALL your nodes making them accessible only when the password is known. Nodes that do not yet have a password will make use of the global password. You may use the Reset password feature to change that password afterward.'),
+    '#description' => t('WARNING: this function protects ALL your nodes making them accessible only when the password is known. Nodes that do not yet have a password will make use of the global password. You may use the Reset password feature to change that password afterwards.'),
   );
   $form['protected_node_actions']['protected_node_protect_nodes']['protected_node_protect_all_nodes_button'] = array(
     '#type' => 'submit',
@@ -973,7 +975,11 @@ function protected_node_node_type_form_alter(&$form) {
     '#title' => t('Protected mode for nodes of this type'),
     '#default_value' => variable_get('protected_node_protection_' . $form['#node_type']->type, PROTECTED_NODE_PROTECTION_PROTECTABLE),
     '#options' => $options,
-    '#description' => t('Select the protection mode for nodes of this type:<ul><li>Never protected &mdash; the nodes cannot be protected</li><li>Protectable &mdash; lets users choose whether the node is protected, defaults to protected or unprotected.</li><li>Always protected &mdash; the node is automatically protected, the author has no choice.</li></ul>'),
+    '#description' => t('Select the protection mode for nodes of this type:<ul>
+      <li>Never protected &mdash; the nodes cannot be protected</li>
+      <li>Protectable &mdash; lets users choose whether the node is protected, defaults to protected or unprotected.</li>
+      <li>Always protected &mdash; the node is automatically protected, the author has no choice.</li>
+    </ul>'),
   );
 
   $form['protected_node']['protected_node_node_type_password_field'] = array(
@@ -1001,7 +1007,7 @@ function protected_node_node_type_form_alter(&$form) {
     '#type' => 'textarea',
     '#title' => t('Password page description (inside the field set with the password form)'),
     '#default_value' => variable_get('protected_node_description_' . $form['#node_type']->type, ''),
-    '#description' => t('Enter custom description for the protected node page of this content type to override the global setting. This description is displayed inside the fieldset with the password form. HTML is accepted. You can use node type tokens from the token module when installed.'),
+    '#description' => t('Enter custom description for the protected node page of this content type to override the global setting. This description is displayed inside the fieldset with the password form. HTML is accepted. You can use node type tokens provided by the token module if installed.'),
   );
 
   $form['#validate'][] = '_protected_node_node_type_validate';
