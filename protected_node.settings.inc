@@ -185,8 +185,8 @@ function protected_node_node_form_alter(&$form) {
 
   // When custom description text is set there is no use for the Show Title
   // checkbox.
-  $global_text = variable_get('protected_node_description_' . $form['#bundle'], '');
-  $content_type_text = variable_get('protected_node_description', '');
+  $content_type_text = variable_get('protected_node_description_' . $form['#bundle'], '');
+  $global_text = variable_get('protected_node_description', '');
   if (empty($global_text) && empty($content_type_text)) {
     $form['protected_node']['protected_node_show_title'] = array(
       '#type' => 'checkbox',
