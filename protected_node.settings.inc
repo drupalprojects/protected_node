@@ -206,10 +206,19 @@ function protected_node_node_form_alter(&$form) {
   switch (variable_get('protected_node_use_global_password', PROTECTED_NODE_PER_NODE_PASSWORD)) {
     case PROTECTED_NODE_PER_NODE_PASSWORD:
     case PROTECTED_NODE_PER_NODE_AND_GLOBAL_PASSWORD:
+      // Description based on the user permissions.
+      if (user_access('administer site configuration')) {
+        $description = t('Enter a password here to protect this @node or set a global password on <a href="@settings_page">the settings page</a>. Changing the password will prevent all the users who knew the old password from accessing this page.', array(
+          '@node' => $node_type->name, '@settings_page' => url('admin/config/content/protected_node')));
+      }
+      else {
+        $description = t('Enter a password here to protect this @node. Changing the password will prevent all the users who knew the old password from accessing this page.', array(
+          '@node' => $node_type->name));
+      }
+
       $form['protected_node']['protected_node_passwd'] = array(
         '#type' => 'password_confirm',
-        '#description' => t('Enter a password here to protect this @node or set a global password on <a href="@settings_page">the settings page</a>. Changing the password will prevent all the users who knew the old password from accessing this page.', array(
-          '@node' => $node_type->name, '@settings_page' => url('admin/config/content/protected_node'))),
+        '#description' => $description,
         '#size' => 20,
         '#after_build' => array('protected_node_autocomplete_off'),
       );
@@ -228,7 +237,7 @@ function protected_node_node_form_alter(&$form) {
     $form['protected_node']['protected_node_hint'] = array(
       '#type' => 'textarea',
       '#title' => t('Password hint'),
-      '#description' => t('Enter a password hint. This information is displayed in the password form using the [node:password-hint] token.'),
+      '#description' => t('Enter a password hint.'),
       '#default_value' => $hint,
       '#cols' => 45,
       '#rows' => 5,
