@@ -373,21 +373,23 @@ function protected_node_and_attachment($path) {
       $in_field_collection = $query->countQuery()->execute()->fetchField();
       if ($in_field_collection != '0') {
         // The file is attached to a field collection item.
-        $field_collection_id = $query->execute()->fetch();
-        $field_collection = entity_load('field_collection_item', array($field_collection_id->id));
-        $protected_nid = $field_collection[$field_collection_id->id]->hostEntity();
-
+        $field_collection_ids = $query->execute()->fetchCol();
+        $field_collection_items = entity_load('field_collection_item', $field_collection_ids);
+        // Get the nids.
+        $protected_node_nids = array();
+        foreach ($field_collection_items as $field_collection_item) {
+          $protected_node_nids[] = $field_collection_item->hostEntity()->nid;
+        }
         // Query the node table again with the nid the field collection belongs
         // to.
         $query = db_select('node', 'n');
         $query->join('protected_nodes', 'pn', 'n.nid = pn.nid');
         $query->fields('n', array('nid', 'uid'));
         $query->fields('pn', array('protected_node_passwd_changed'));
-        $query->condition('n.nid', $protected_nid->nid);
+        $query->condition('n.nid', $protected_node_nids, 'IN');
         $query->condition('pn.protected_node_is_protected', '1');
 
         $number_of_results = $query->countQuery()->execute()->fetchField();
-
         if (0 == $number_of_results) {
           return FALSE;
         }
@@ -859,7 +861,7 @@ function _protected_node_save(&$node) {
   // We first test whether a protected_nodes entry exist so we can use UPDATE
   // or INSERT accordingly (UPDATE does not always properly report working
   // with MySQL).
-  // We also retrive nid because protected_node_passwd may exist and be empty.
+  // We also retrieve nid because protected_node_passwd may exist and be empty.
   $result = db_select('protected_nodes')
     ->fields('protected_nodes', array(
       'nid',

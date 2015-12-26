@@ -9,6 +9,7 @@ recommends[] = tokens
 
 files[] = tests/protected_node.test
 files[] = tests/protected_node.bulk.test
+files[] = tests/protected_node.field_collection.test
 files[] = tests/protected_node.fork.test
 files[] = tests/protected_node.global.test
 files[] = tests/protected_node.mail_test.test
