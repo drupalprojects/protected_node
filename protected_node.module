@@ -592,7 +592,7 @@ function _protected_node_node_create_or_update($node) {
 
   // Send notifications if there is at least one email.
   if ($node->protected_node_is_protected && !empty($node->protected_node_emails) &&
-      $node->status == 1 && isset($node->protected_node_clear_passwd)) {
+    $node->status == 1 && isset($node->protected_node_clear_passwd)) {
     module_load_include('mail.inc', 'protected_node');
     protected_node_send_mail($node);
   }
@@ -604,12 +604,12 @@ function _protected_node_node_create_or_update($node) {
 function protected_node_node_view($node, $view_mode, $langcode) {
   global $user;
   if (!empty($node->protected_node_is_protected)) {
-    // Accessed for search indexing? (usually by cron.php)
+    // Accessed for search indexing? (usually by cron.php).
     if ($view_mode == 'search_index') {
       // "user" could see the node, but at this time, not its contents
       // (the current user is Anonymous, so that statement is not exactly true,
       // but at the time of the search index building we cannot know who will
-      // be searching so we let go without the access denied error.)
+      // be searching so we let go without the access denied error).
       protected_node_invoke('protected_node_hide', $node);
     }
     elseif (!user_access('view protected content') && _protected_node_check_view_mode($view_mode)) {
@@ -825,10 +825,10 @@ function _protected_node_save(&$node) {
   // We also retrive nid because protected_node_passwd may exist and be empty.
   $result = db_select('protected_nodes')
     ->fields('protected_nodes', array(
-        'nid',
-        'protected_node_passwd',
-        'protected_node_emails',
-      ))
+      'nid',
+      'protected_node_passwd',
+      'protected_node_emails',
+    ))
     ->condition('nid', $node->nid)
     ->execute()
     ->fetchAssoc();
