@@ -909,7 +909,7 @@ function _protected_node_save(&$node) {
     $args = array(
       'protected_node_is_protected' => (int) $node->protected_node_is_protected,
       'protected_node_passwd' => $node->protected_node_passwd,
-      'protected_node_show_title' => $node->protected_node_show_title,
+      'protected_node_show_title' => (int) $node->protected_node_show_title,
       'protected_node_emails' => $saved_emails,
       'protected_node_hint' => isset($node->protected_node_hint) ? $node->protected_node_hint : '',
     );
@@ -936,7 +936,7 @@ function _protected_node_save(&$node) {
       ->fields(array(
         'protected_node_is_protected' => (int) $node->protected_node_is_protected,
         'protected_node_passwd' => $node->protected_node_passwd,
-        'protected_node_show_title' => $node->protected_node_show_title,
+        'protected_node_show_title' => (int) $node->protected_node_show_title,
         'nid' => $node->nid,
         'protected_node_emails' => isset($node->protected_node_emails) ? $node->protected_node_emails : '',
         'protected_node_hint' => isset($node->protected_node_hint) ? $node->protected_node_hint : '',
