@@ -25,7 +25,7 @@ class ProtectedNodePrivateFile extends ProtectedNodeBaseTestCase {
    * {@inheritdoc}
    */
   public function setUp() {
-    parent::setUp();
+    parent::setUp('image');
 
     // Log in an Admin.
     $this->drupalLogin($this->adminUser);
@@ -41,19 +41,27 @@ class ProtectedNodePrivateFile extends ProtectedNodeBaseTestCase {
     $filefieldtestcase->createFileField('private_file', 'page', array(
       'uri_scheme' => 'private',
     ));
+    // Set private image field for basic page.
+    $this->createImageField('private_image', 'page', array(
+      'uri_scheme' => 'private',
+    ));
 
-    // Get a file to upload.
+
+    // Get files to upload.
     $this->text_file = current($this->drupalGetTestFiles('text'));
+    $this->image_file = current($this->drupalGetTestFiles('image'));
 
-    // Add a new page node with this file so we can have a file id.
+    // Add a new page node with the files so we can have the file ids.
     $node_title = $this->randomName(8);
     $node_data = array(
       'title' => $node_title,
       'files[private_file_und_0]' => drupal_realpath($this->text_file->uri),
+      'files[private_image_und_0]' => drupal_realpath($this->image_file->uri),
     );
     $this->drupalPost('node/add/page', $node_data, t('Save'));
     $file_node = $this->drupalGetNodeByTitle($node_title);
     $this->text_file = (object) $file_node->private_file[LANGUAGE_NONE][0];
+    $this->image_file = (object) $file_node->private_image[LANGUAGE_NONE][0];
   }
 
   /**
@@ -179,6 +187,51 @@ class ProtectedNodePrivateFile extends ProtectedNodeBaseTestCase {
   }
 
   /**
+   * Test function.
+   *
+   * Test that an image uploaded with AJAX can be viewed before being saved.
+   */
+  public function testUpload() {
+    // Log in as Admin.
+    $this->drupalLogin($this->adminUser);
+    // Go to the page creation form.
+    $this->drupalGet('node/add/page');
+
+    $temp_image_file = current($this->drupalGetTestFiles('image'));
+
+    $this->drupalPostAJAX(
+      NULL,
+      array(
+        'files[private_image_und_0]' => drupal_realpath($temp_image_file->uri),
+      ),
+      array(
+        (string) 'private_image_und_0_upload_button' => (string) t('Upload'),
+      )
+    );
+
+    // Get the preview URL.
+    $image_url = NULL;
+    $image_preview = $this->xpath('//div[@class="image-preview"]/img');
+    /** @var SimpleXMLElement $html_node */
+    foreach ($image_preview as $html_node) {
+      $attributes = $html_node->attributes();
+      if (isset($attributes['src'])) {
+        $image_url = $attributes['src'];
+        break;
+      }
+    }
+
+    // Go to the preview image URL to check the access.
+    if (!is_null($image_url)) {
+      $this->drupalGet($image_url);
+      $this->assertResponse(200, 'Confirmed that the user has access to the image event if it is a private image as it is in temporary status.');
+    }
+    else {
+      $this->assertFalse($image_url, t('No image preview found.'), $this->group);
+    }
+  }
+
+  /**
    * Helper method to create a protected node.
    *
    * Please make sure the user has the permission to create the node before
@@ -204,6 +257,53 @@ class ProtectedNodePrivateFile extends ProtectedNodeBaseTestCase {
     $this->drupalPost('node/add/page', $node_data, t('Save'));
 
     return $this->drupalGetNodeByTitle($node_title);
+  }
+
+  /**
+   * Create a new image field.
+   *
+   * Copy/pasted from image.test. Don't know why "new ImageFieldTestCase()" made
+   * fatal error.
+   *
+   * @param $name
+   *   The name of the new field (all lowercase), exclude the "field_" prefix.
+   * @param $type_name
+   *   The node type that this field will be added to.
+   * @param $field_settings
+   *   A list of field settings that will be added to the defaults.
+   * @param $instance_settings
+   *   A list of instance settings that will be added to the instance defaults.
+   * @param $widget_settings
+   *   A list of widget settings that will be added to the widget defaults.
+   *
+   * @return array
+   *   The $instance array with the id property filled in.
+   */
+  public function createImageField($name, $type_name, $field_settings = array(), $instance_settings = array(), $widget_settings = array()) {
+    $field = array(
+      'field_name' => $name,
+      'type' => 'image',
+      'settings' => array(),
+      'cardinality' => !empty($field_settings['cardinality']) ? $field_settings['cardinality'] : 1,
+    );
+    $field['settings'] = array_merge($field['settings'], $field_settings);
+    field_create_field($field);
+
+    $instance = array(
+      'field_name' => $field['field_name'],
+      'entity_type' => 'node',
+      'label' => $name,
+      'bundle' => $type_name,
+      'required' => !empty($instance_settings['required']),
+      'settings' => array(),
+      'widget' => array(
+        'type' => 'image_image',
+        'settings' => array(),
+      ),
+    );
+    $instance['settings'] = array_merge($instance['settings'], $instance_settings);
+    $instance['widget']['settings'] = array_merge($instance['widget']['settings'], $widget_settings);
+    return field_create_instance($instance);
   }
 
 }

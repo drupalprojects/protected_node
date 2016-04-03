@@ -737,10 +737,10 @@ function protected_node_file_download($uri) {
 
   // Private file access for image style derivatives.
   if (strpos($path, 'styles/') === 0) {
-    $original_uri = _protected_node_get_original_uri($path, $uri);
-
     // Check that the file exists and is an image.
     if (image_get_info($uri)) {
+
+      $original_uri = _protected_node_get_original_uri($path, $uri);
       // Check the permissions of the original to grant access to this image.
       $headers = module_invoke_all('file_download', $original_uri);
       // Confirm there's at least one module granting access and none denying
@@ -749,7 +749,7 @@ function protected_node_file_download($uri) {
         return array();
       }
     }
-    return -1;
+    return array();
   }
 
   // Private file access for the original files.
@@ -809,16 +809,23 @@ function protected_node_file_download($uri) {
           }
         }
       }
+
+      // No password, access denied.
+      return -1;
     }
     // Manage case of Webform files upload.
     elseif (strpos($file->uri, '://webform/') !== FALSE) {
       return array();
     }
+    // Do not protect temporary files.
+    else {
+      return array();
+    }
 
   }
 
-  // No password, access denied.
-  return -1;
+  // No a file managed by protected node.
+  return array();
 }
 
 /**
