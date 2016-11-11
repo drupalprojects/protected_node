@@ -232,6 +232,36 @@ class ProtectedNodePrivateFile extends ProtectedNodeBaseTestCase {
   }
 
   /**
+   * Test function.
+   *
+   * Test that a file on a node protected with per node protection can be
+   * downloaded if the user has the "View protected content (bypass password)"
+   * permission.
+   */
+  public function testBypassView() {
+    // Log in as Admin.
+    $this->drupalLogin($this->adminUser);
+    // Generate random password.
+    $password = $this->randomName(10);
+    // Create a new page node.
+    $node = $this->createProtectedNode($password);
+    // Once the node created logout the user.
+    $this->drupalLogout();
+
+    // A bypass password for view authenticated user sees the node.
+    $this->drupalLogin($this->bypassViewAccessAllowedUser);
+    $this->drupalGet('node/' . $node->nid);
+
+    $text = $node->body[LANGUAGE_NONE][0]['value'];
+    $this->assertText($text, "User with the bypass password for view permission can access a protected node without password.", $this->group);
+
+    // Ensure the file can be downloaded.
+    $this->drupalGet(file_create_url($node->private_file[LANGUAGE_NONE][0]['uri']));
+    $text = 'Protected page -- Enter password';
+    $this->assertNoText($text, "User with the bypass password for view permission can access a protected node without password.", $this->group);
+  }
+
+  /**
    * Helper method to create a protected node.
    *
    * Please make sure the user has the permission to create the node before
@@ -265,15 +295,15 @@ class ProtectedNodePrivateFile extends ProtectedNodeBaseTestCase {
    * Copy/pasted from image.test. Don't know why "new ImageFieldTestCase()" made
    * fatal error.
    *
-   * @param $name
+   * @param string $name
    *   The name of the new field (all lowercase), exclude the "field_" prefix.
-   * @param $type_name
+   * @param string $type_name
    *   The node type that this field will be added to.
-   * @param $field_settings
+   * @param array $field_settings
    *   A list of field settings that will be added to the defaults.
-   * @param $instance_settings
+   * @param array $instance_settings
    *   A list of instance settings that will be added to the instance defaults.
-   * @param $widget_settings
+   * @param array $widget_settings
    *   A list of widget settings that will be added to the widget defaults.
    *
    * @return array

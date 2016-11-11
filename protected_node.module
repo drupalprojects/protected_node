@@ -411,6 +411,11 @@ function protected_node_and_attachment($path) {
       return FALSE;
     }
 
+    // The user has the bypass password for view.
+    if (user_access('view protected content', $user)) {
+      return FALSE;
+    }
+
     // Got the global password?
     if (isset($_SESSION['_protected_node']['passwords']['global'])) {
       $when = $_SESSION['_protected_node']['passwords']['global'];
@@ -438,7 +443,6 @@ function protected_node_and_attachment($path) {
     return $file_info->nid;
   }
 }
-
 
 /**
  * Module invoke.
@@ -790,6 +794,11 @@ function protected_node_file_download($uri) {
       foreach ($result as $file_info) {
         // If the file belongs to the current user let them see it.
         if ($file_info === FALSE || ($user->uid && $user->uid == $file_info->uid)) {
+          return array();
+        }
+
+        // The user has the bypass password for view.
+        if (user_access('view protected content', $user)) {
           return array();
         }
 
