@@ -29,7 +29,6 @@ define('PROTECTED_NODE_FIELDSET_OPEN', 1);
  */
 define('PROTECTED_NODE_FIELDSET_CLOSE', 2);
 
-
 /**
  * Helper function.
  *
@@ -209,11 +208,14 @@ function protected_node_node_form_alter(&$form) {
       // Description based on the user permissions.
       if (user_access('administer site configuration')) {
         $description = t('Enter a password here to protect this @node or set a global password on <a href="@settings_page">the settings page</a>. Changing the password will prevent all the users who knew the old password from accessing this page.', array(
-          '@node' => $node_type->name, '@settings_page' => url('admin/config/content/protected_node')));
+          '@node' => $node_type->name,
+          '@settings_page' => url('admin/config/content/protected_node'),
+        ));
       }
       else {
         $description = t('Enter a password here to protect this @node. Changing the password will prevent all the users who knew the old password from accessing this page.', array(
-          '@node' => $node_type->name));
+          '@node' => $node_type->name,
+        ));
       }
 
       $form['protected_node']['protected_node_passwd'] = array(
@@ -420,9 +422,9 @@ function protected_node_admin_settings() {
     $form['protected_node_stats']['protected_node_statistics'] = array(
       '#type' => 'markup',
       '#markup' => theme('table', array(
-          'header' => $column_labels,
-          'rows' => $rows,
-        )),
+        'header' => $column_labels,
+        'rows' => $rows,
+      )),
     );
   }
 
@@ -921,7 +923,7 @@ function protected_node_action_protect_all_nodes($form, &$form_state) {
       ->fetchfield();
 
     if (!$nid_in_protected_node) {
-      // Add the node in protected_nodes
+      // Add the node in protected_nodes.
       db_insert('protected_nodes')
         ->fields(array(
           'nid' => $nid,

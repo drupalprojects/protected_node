@@ -229,7 +229,7 @@ function protected_node_init() {
  * @param string $op
  *   Operation: 'access', 'view', 'edit', or 'delete'.
  *
- * @return FALSE
+ * @return false
  *   if the node is not protected for the current user.
  *   Return TRUE if it is protected and cannot be viewed by the current user.
  *   Return $nid if the user has a chance to unlock this protected node by
@@ -731,7 +731,6 @@ function protected_node_protected_node_hide(&$node) {
   }
 }
 
-
 /**
  * Implements hook_file_download().
  */
@@ -1184,22 +1183,22 @@ function protected_node_set_protected($param, $passwd = NULL) {
       if (empty($passwd)) {
         // In this case, an empty password is fine.
         $result = db_update('protected_nodes')
-            ->fields(array(
-              'protected_node_is_protected' => 1,
-            ))
-            ->condition('nid', $node->nid)
-            ->execute() !== FALSE;
+          ->fields(array(
+            'protected_node_is_protected' => 1,
+          ))
+          ->condition('nid', $node->nid)
+          ->execute() !== FALSE;
       }
       else {
         // We have to also update the password in this case.
         $result = db_update('protected_nodes')
-            ->fields(array(
-              'protected_node_is_protected' => 1,
-              'protected_node_passwd' => hash('sha256', $passwd),
-              'protected_node_passwd_changed' => REQUEST_TIME,
-            ))
-            ->condition('nid', $node->nid)
-            ->execute() !== FALSE;
+          ->fields(array(
+            'protected_node_is_protected' => 1,
+            'protected_node_passwd' => hash('sha256', $passwd),
+            'protected_node_passwd_changed' => REQUEST_TIME,
+          ))
+          ->condition('nid', $node->nid)
+          ->execute() !== FALSE;
       }
     }
     else {
@@ -1211,13 +1210,13 @@ function protected_node_set_protected($param, $passwd = NULL) {
         $passwd = hash('sha256', $passwd);
       }
       $result = db_insert('protected_nodes')
-          ->fields(array(
-            'nid' => $node->nid,
-            'protected_node_is_protected' => 1,
-            'protected_node_passwd' => $passwd,
-            'protected_node_show_title' => variable_get('protected_node_show_node_titles', FALSE),
-          ))
-          ->execute() !== FALSE;
+        ->fields(array(
+          'nid' => $node->nid,
+          'protected_node_is_protected' => 1,
+          'protected_node_passwd' => $passwd,
+          'protected_node_show_title' => variable_get('protected_node_show_node_titles', FALSE),
+        ))
+        ->execute() !== FALSE;
     }
   }
   else {
@@ -1228,12 +1227,12 @@ function protected_node_set_protected($param, $passwd = NULL) {
     }
 
     $result = db_update('protected_nodes')
-        ->fields(array(
-          'protected_node_passwd' => hash('sha256', $passwd),
-          'protected_node_passwd_changed' => REQUEST_TIME,
-        ))
-        ->condition('nid', $node->nid)
-        ->execute() !== FALSE;
+      ->fields(array(
+        'protected_node_passwd' => hash('sha256', $passwd),
+        'protected_node_passwd_changed' => REQUEST_TIME,
+      ))
+      ->condition('nid', $node->nid)
+      ->execute() !== FALSE;
   }
 
   return $result;
@@ -1260,10 +1259,10 @@ function protected_node_set_protected($param, $passwd = NULL) {
  */
 function protected_node_unset_protected($nid) {
   $result = db_select('protected_nodes')
-      ->fields('protected_nodes', array('protected_node_is_protected'))
-      ->condition('nid', $nid)
-      ->execute()
-      ->fetchField() == 1;
+    ->fields('protected_nodes', array('protected_node_is_protected'))
+    ->condition('nid', $nid)
+    ->execute()
+    ->fetchField() == 1;
 
   db_update('protected_nodes')
     ->fields(array(
@@ -1294,10 +1293,10 @@ function protected_node_isset_protected($nid) {
   }
 
   $result = db_select('protected_nodes')
-      ->fields('protected_nodes', array('protected_node_is_protected'))
-      ->condition('nid', $nid)
-      ->execute()
-      ->fetchField() == 1;
+    ->fields('protected_nodes', array('protected_node_is_protected'))
+    ->condition('nid', $nid)
+    ->execute()
+    ->fetchField() == 1;
 
   return $result;
 }
@@ -1425,7 +1424,6 @@ function _protected_node_get_failed_password_ip_limit_options() {
     500,
   ));
 }
-
 
 /**
  * Helper function.

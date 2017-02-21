@@ -103,13 +103,12 @@ function protected_node_update_7100() {
  */
 function protected_node_update_7101() {
   db_change_field('protected_nodes', 'protected_node_passwd', 'protected_node_passwd', array(
-      'description' => 'The sha1/sha256 hashed password for the given node.',
-      'type' => 'char',
-      'length' => 128,
-      'not null' => TRUE,
-      'default' => '',
-    )
-  );
+    'description' => 'The sha1/sha256 hashed password for the given node.',
+    'type' => 'char',
+    'length' => 128,
+    'not null' => TRUE,
+    'default' => '',
+  ));
 }
 
 /**

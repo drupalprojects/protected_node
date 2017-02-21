@@ -139,7 +139,7 @@ class ProtectedNodePerNodePassword extends ProtectedNodeBaseTestCase {
    * @param string $password
    *   A password.
    *
-   * @return object.
+   * @return object
    *   A node object.
    */
   public function createProtectedNode($password) {

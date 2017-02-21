@@ -170,7 +170,7 @@ class ProtectedNodePageDisplay extends ProtectedNodeBaseTestCase {
    *   Whether to show the node title or not. Has no effect if
    *   $show_title_option_available is FALSE.
    *
-   * @return object.
+   * @return object
    *   A node object.
    */
   public function createProtectedNode($show_title_option_available, $show_title = FALSE) {

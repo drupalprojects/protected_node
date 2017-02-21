@@ -29,8 +29,7 @@ function protected_node_variable_info($options) {
   $variables['protected_node_use_global_password'] = array(
     'type' => 'select',
     'title' => t('Global password handling', array(), $options),
-    'description' => t("Selecting the global password option makes it possible to protect nodes using one password which must be provided in the 'Global password' fields below.", array(), $options) .
-      t('<br><strong>WARNING:</strong> Removing the global password after it has been assigned to nodes will make those nodes inaccessible except for the user with UID: 1 and the author of the node.', array(), $options),
+    'description' => t("Selecting the global password option makes it possible to protect nodes using one password which must be provided in the 'Global password' fields below.", array(), $options) . t('<br><strong>WARNING:</strong> Removing the global password after it has been assigned to nodes will make those nodes inaccessible except for the user with UID: 1 and the author of the node.', array(), $options),
     'option' => array(
       PROTECTED_NODE_PER_NODE_PASSWORD => t('Per node password', array(), $options),
       PROTECTED_NODE_PER_NODE_AND_GLOBAL_PASSWORD => t('Per node password or Global password', array(), $options),

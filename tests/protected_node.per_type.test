@@ -140,7 +140,7 @@ class ProtectedNodePerTypePassword extends ProtectedNodeBaseTestCase {
    * Please make sure the user has the permission to create the node before
    * calling the method.
    *
-   * @return object.
+   * @return object
    *   A node object.
    */
   public function createProtectedNode() {

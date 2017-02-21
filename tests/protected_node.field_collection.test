@@ -210,7 +210,7 @@ class ProtectedNodeFieldCollection extends ProtectedNodeBaseTestCase {
    * @param string $password
    *   A password.
    *
-   * @return object.
+   * @return object
    *   A node object.
    */
   public function createProtectedNode($password) {
@@ -237,13 +237,12 @@ class ProtectedNodeFieldCollection extends ProtectedNodeBaseTestCase {
    * @param string $password
    *   A password.
    *
-   * @return array.
+   * @return array
    *   An array containing the node and the field_collection_item object.
    */
   protected function createProtectedNodeWithFieldCollection($password) {
     $node = $this->createProtectedNode($password);
     // Retrieve the field collection item.
-
     $field_collection_item_id = $node->{$this->field_collection_field_name}[LANGUAGE_NONE][0]['value'];
     $field_collection_items = entity_load('field_collection_item', array($field_collection_item_id));
     $field_collection_item = array_shift($field_collection_items);

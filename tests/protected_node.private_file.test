@@ -46,7 +46,6 @@ class ProtectedNodePrivateFile extends ProtectedNodeBaseTestCase {
       'uri_scheme' => 'private',
     ));
 
-
     // Get files to upload.
     $this->text_file = current($this->drupalGetTestFiles('text'));
     $this->image_file = current($this->drupalGetTestFiles('image'));
@@ -270,7 +269,7 @@ class ProtectedNodePrivateFile extends ProtectedNodeBaseTestCase {
    * @param string $password
    *   A password.
    *
-   * @return object.
+   * @return object
    *   A node object.
    */
   public function createProtectedNode($password) {
@@ -309,7 +308,7 @@ class ProtectedNodePrivateFile extends ProtectedNodeBaseTestCase {
    * @return array
    *   The $instance array with the id property filled in.
    */
-  public function createImageField($name, $type_name, $field_settings = array(), $instance_settings = array(), $widget_settings = array()) {
+  public function createImageField($name, $type_name, array $field_settings = array(), array $instance_settings = array(), array $widget_settings = array()) {
     $field = array(
       'field_name' => $name,
       'type' => 'image',
