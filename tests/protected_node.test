@@ -46,6 +46,7 @@ class ProtectedNodeBaseTestCase extends DrupalWebTestCase {
       'administer nodes',
       'bypass node access',
       'administer content types',
+      'administer paragraphs bundles',
     ));
 
     // User with access protected node permission.
