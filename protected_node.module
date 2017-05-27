@@ -371,8 +371,8 @@ function protected_node_and_attachment($path) {
       $query->condition('fu.type', 'field_collection_item');
       $query->condition('fm.uri', '%' . db_like($path), 'LIKE');
       $in_field_collection = $query->countQuery()->execute()->fetchField();
+      // The file is attached to a field collection item.
       if ($in_field_collection != '0') {
-        // The file is attached to a field collection item.
         $field_collection_ids = $query->execute()->fetchCol();
         $field_collection_items = entity_load('field_collection_item', $field_collection_ids);
         // Get the nids.
@@ -398,8 +398,52 @@ function protected_node_and_attachment($path) {
         return FALSE;
       }
     }
+    elseif (module_exists('paragraphs')) {
+      // Check if file is attached to protected node via paragraphs.
+      $query = db_select('file_usage', 'fu');
+      $query->join('file_managed', 'fm', 'fu.fid = fm.fid');
+      $query->fields('fu', array('id'));
+      $query->condition('fu.type', 'paragraphs_item');
+      $query->condition('fm.uri', '%' . db_like($path), 'LIKE');
+      $in_paragraphs = $query->countQuery()->execute()->fetchField();
+      // The file is attached to a paragraphs item.
+      if ($in_paragraphs != '0') {
+        $paragraphs_ids = $query->execute()->fetchCol();
+        /** @var \ParagraphsItemEntity[] $paragraphs_items */
+        $paragraphs_items = entity_load('paragraphs_item', $paragraphs_ids);
+        // Get the nids.
+        $protected_node_nids = array();
+        foreach ($paragraphs_items as $paragraphs_item) {
+          $nid = _protected_node_get_paragraph_node_host_entity_id($paragraphs_item);
+          if ($nid) {
+            $protected_node_nids[] = $nid;
+          }
+        }
+        // Query the node table again with the nid the paragraph belongs
+        // to.
+        if (!empty($protected_node_nids)) {
+          $query = db_select('node', 'n');
+          $query->join('protected_nodes', 'pn', 'n.nid = pn.nid');
+          $query->fields('n', array('nid', 'uid'));
+          $query->fields('pn', array('protected_node_passwd_changed'));
+          $query->condition('n.nid', $protected_node_nids, 'IN');
+          $query->condition('pn.protected_node_is_protected', '1');
+
+          $number_of_results = $query->countQuery()->execute()->fetchField();
+          if (0 == $number_of_results) {
+            return FALSE;
+          }
+        }
+        else {
+          return FALSE;
+        }
+      }
+      else {
+        return FALSE;
+      }
+    }
     else {
-      // If not in node, nor in field_collection, return FALSE
+      // If not in node, nor in field_collection or paragraphs, return FALSE
       return FALSE; /* Row doesn't exist, it's not protected */
     }
   }
@@ -1447,4 +1491,29 @@ function _protected_node_get_failed_password_ip_window_options() {
     43200,
     86400,
   ), 'format_interval');
+}
+
+/**
+ * Helper function to get recursively the host entity nid of the paragraph.
+ *
+ * @param \ParagraphsItemEntity $paragraphs_item
+ *   A paragraph item.
+ *
+ * @return int|false
+ *   Return FALSE if the paragraph or the parent paragraphs are not attached to
+ *   a node
+ */
+function _protected_node_get_paragraph_node_host_entity_id(ParagraphsItemEntity $paragraphs_item) {
+  // Need to load the host entity otherwise host entity date are null.
+  paragraphs_item_get_host_entity($paragraphs_item);
+  $host_entity_type = $paragraphs_item->hostEntityType();
+  if ($host_entity_type == 'node') {
+    return $paragraphs_item->hostEntity()->nid;
+  }
+  elseif ($host_entity_type == 'paragraphs_item') {
+    $host_paragraphs_items = entity_load('paragraphs_item', [$paragraphs_item->hostEntityId()]);
+    return _protected_node_get_paragraph_node_host_entity_id(array_shift($host_paragraphs_items));
+  }
+
+  return FALSE;
 }
