@@ -1511,7 +1511,8 @@ function _protected_node_get_paragraph_node_host_entity_id(ParagraphsItemEntity 
     return $paragraphs_item->hostEntity()->nid;
   }
   elseif ($host_entity_type == 'paragraphs_item') {
-    $host_paragraphs_items = entity_load('paragraphs_item', [$paragraphs_item->hostEntityId()]);
+    $host_id = array($paragraphs_item->hostEntityId());
+    $host_paragraphs_items = entity_load('paragraphs_item', $host_id);
     return _protected_node_get_paragraph_node_host_entity_id(array_shift($host_paragraphs_items));
   }
 
